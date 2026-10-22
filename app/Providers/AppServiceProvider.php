@@ -1,0 +1,30 @@
+<?php
+
+namespace App\Providers;
+
+use App\Models\Organisation;
+use App\Models\User;
+use App\Policies\OrganisationPolicy;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        config(['mail.default' => 'log', 'mail.mailers' => ['log' => ['transport' => 'log'], 'array' => ['transport' => 'array']]]);
+        Gate::define('platform', fn (User $user) => $user->is_platform_admin);
+        Gate::policy(Organisation::class, OrganisationPolicy::class);
+    }
+}
