@@ -15,3 +15,7 @@ Tenant-scoped contact CRUD/history/search/filter/pagination and bulk archive/sup
 ## Campaign and simulation milestone
 
 Implemented sender identities (unverified), original templates and Tiptap editor, server HTML sanitisation, campaign draft/readiness/scheduling/snapshot/cancellation/duplication, deterministic simulation adapter, queue pump, recipient jobs, durable attempt/event keys, unsubscribe and stored reporting. Seven campaign regression scenarios / 40 assertions pass. Initial browser testing caught unsupported sanitizer configuration and an account-deletion session-ordering regression; both were corrected. Full final acceptance results are recorded in the handover once completed.
+
+## Final integrated verification
+
+Implementation commits: 0218fea (company administration), b1b231d (functional contact/audience/campaign/simulation core). Final PHP suite passes on SQLite and MariaDB: 69 tests / 317 assertions each. Both Chromium journeys pass; final run 46.8 seconds includes actual Redis/Horizon CSV import and delayed retry completion. TypeScript, ESLint and production build pass. npm reports 0 vulnerabilities; Composer reports no advisories. All six migrations applied; Horizon and recovery scheduler are running. LAN preview at 192.168.0.22:8013 responds HTTP 200. Original admin account remains active. No development database reset/reseed, external mail, deployment, push or DNS change occurred. See phase-1b-handover.md for details and limits.

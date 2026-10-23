@@ -70,3 +70,9 @@ The default PHP suite uses SQLite :memory: and array sessions/cache. The MySQL c
 ## Operational limits
 
 No deployment, real SMTP connection, domain verification, contacts, campaigns or live sending is configured. HTTPS, production secret management, backups, retention, monitoring and deployment controls require a future operational review. Logs contain verification/reset links and must remain private.
+
+## Phase 1B operation
+
+Existing installations run `php artisan migrate` only: do not reset or reseed development data. Phase 1B introduces real Redis jobs for CSV imports and deterministic local delivery simulation. Keep `php artisan horizon` and `php artisan schedule:work` running. `php artisan dispatch:tick` performs one recovery tick manually. Redis retry_after defaults to 180 seconds; Horizon timeout is 150 seconds, with import-job timeout 120 seconds and per-recipient timeout 60 seconds. Keep worker timeouts below retry_after when adapting infrastructure.
+
+The LAN preview uses port 8013; browser tests use port 8012. Both can run against the same preserved local database. Authentication email remains in local logs; invitation links are shared securely from the UI. See phase-1b-handover.md for the review walkthrough, contact-eligibility.md for permission evidence, campaign-lifecycle.md for snapshots, and simulated-delivery.md for retry/recovery definitions.
