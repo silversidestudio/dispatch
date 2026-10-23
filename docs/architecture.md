@@ -40,3 +40,12 @@ The dashboard reports database membership counts, actual role and tenant-scoped 
 ## Later delivery contract
 
 Phase 1D will introduce provider-independent submission/result contracts and a deterministic simulator, recipient uniqueness constraints, transactional queue dispatch, durable idempotency keys and structured attempts/events. Acknowledgement loss after provider acceptance creates an unavoidable uncertain outcome: a restart must reconcile that outcome using provider evidence/idempotency rather than blindly resubmitting. Webhook signatures, redaction, duplicate event keys and ordering rules are deferred to that milestone. No partial live integration is included.
+
+
+## Phase 1B extensions
+
+The foundation now includes platform-managed company creation, invitations, safe membership removal/ownership transfer and account suspension. Platform content access still requires actual organisation membership; support impersonation is not implemented. Last-owner and last-active-platform-admin mutations are protected by transaction locks. Active-account middleware blocks suspended sessions, while unsubscribe remains available.
+
+Contacts and audience operations use explicit tenant policy checks and validated linked IDs. EligibilityService centralises eligibility/evidence/suppression. AudienceService accepts structured rules only. CSV files remain private, size/row/column bounded, with profile-only mapping and per-row replay keys. Templates/campaigns use server HTML Purifier and sandboxed previews. The simulator and queue jobs run independently of browser sessions and enforce company/recipient state themselves.
+
+Campaign scheduling creates immutable content and recipient snapshots. Jobs and a recovery scheduler reconcile pending work, with campaign/recipient locks and unique attempt/event keys. No external delivery adapter exists. See contact-eligibility.md, campaign-lifecycle.md, simulated-delivery.md and email-editor.md for definitions and limits.

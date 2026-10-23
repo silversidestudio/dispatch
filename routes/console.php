@@ -1,8 +1,10 @@
 <?php
 
+use App\Jobs\PumpCampaigns;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('platform:promote {email}', function () {
     $u = User::where('email', $this->argument('email'))->first();
@@ -27,3 +29,9 @@ Artisan::command('development:verify {email}', function () {
     AuditLog::create(['user_id' => $u->id, 'action' => 'development.email_verified']);
     $this->info('Local account verified.');
 })->purpose('Verify a local development account without sending email');
+
+Artisan::command('dispatch:tick', function () {
+    app(PumpCampaigns::class)->handle();
+    $this->info('Due simulation work dispatched.');
+})->purpose('Recover due scheduled campaigns and deferred simulation recipients');
+Schedule::command('dispatch:tick')->everyMinute()->withoutOverlapping();

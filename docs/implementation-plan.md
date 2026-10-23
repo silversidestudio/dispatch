@@ -24,3 +24,8 @@ Only Phase 1A is authorised in this session. Stop after its handover. Do not pus
 - Phase 1C: campaign states, audiences, safe HTML editor/sanitisation, templates, previews and scheduling preparation.
 - Phase 1D: deterministic simulated provider, pre-flight checks, queues, durable idempotency, recipient attempts/events and precise reporting.
 - Phase 1E: integrated review, security/retention review, polish and operational handover.
+
+
+## Phase 1B expanded authorisation
+
+The subsequent Phase 1B instruction explicitly authorised company/user administration, contacts/audiences/imports, templates/campaigns and simulated delivery. This supersedes the earlier stop-at-1A boundary for those local features. Branch feature/phase-1b-core-features extends 810d67d; existing development records remain preserved. No deployment, DNS or real email transmission is authorised. See phase-1b-progress.md and phase-1b-handover.md for actual results.

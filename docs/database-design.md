@@ -20,3 +20,12 @@ Four migrations are present: standard users/authentication infrastructure, cache
 ## Later milestones
 
 Contacts, eligibility history, lists, imports and suppressions are Phase 1B; templates/campaigns Phase 1C; recipients, attempts and events Phase 1D. Every future tenant-owned table requires an indexed organisation foreign key; linked records must be checked for matching organisation, ideally with composite constraints where practical. Contact email normalisation and uniqueness, append-only eligibility evidence, minimal suppression retention, event partitioning/retention and idempotency constraints must be designed with those features, not inferred from stored contact presence.
+
+
+## Phase 1B additive schema
+
+2026_10_23_000001 adds account status, company website/postal address and owner invitations. 2026_10_23_000002 creates contacts, eligibility_records, suppressions, mailing_lists, contact_mailing_list, segments, contact_imports, import_rows, sending_identities, email_templates, campaigns, campaign_recipients, delivery_attempts and delivery_events.
+
+Contacts have company/email uniqueness (including archived records), status/eligibility indexes and JSON custom attributes. Suppressions have independent company/email uniqueness and survive list/contact editing. Evidence references actor/company/contact and is append-only via application routes. Lists use unique contact/list membership. Imports use unique import/row-number results. Campaign audience references are structured list/segment type+ID, with same-company checks before access and snapshot. Recipient uniqueness is campaign/contact; attempts are unique per recipient/attempt-number; events use a unique deterministic event key. Delivery events have company/time indexes. Identity verification remains unverified with separate not-checked DNS fields. All personal data queries are tenant-scoped in controllers/services, including queue context.
+
+Development migrations are additive only; no reset or development seeder was run during Phase 1B. MariaDB integration tests use dispatch_test, never dispatch_dev. Raw import files, attempts/events and audit history currently require an operational retention policy before production use. Database administrators are trusted; application-level tenant checks do not protect against direct privileged database writes.

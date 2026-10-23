@@ -1,8 +1,7 @@
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Errors } from '@/components/workspace';
 import { Input } from '@/components/ui/input';
-import { Panel, Workspace } from '@/components/workspace';
+import { Label } from '@/components/ui/label';
+import { Errors, Panel, Workspace } from '@/components/workspace';
 import { Link, router, useForm } from '@inertiajs/react';
 type Props = {
     organisationPage: {
@@ -15,12 +14,12 @@ type Props = {
     users: { id: number; name: string; email: string; is_platform_admin: boolean }[];
     stats: { organisations: number; users: number; active: number };
     logs: { id: number; action: string; organisation_id: number | null; created_at: string }[];
-    filters: { search: string };
+    filters: { search: string; status?: string };
     runtime: Record<string, string>;
 };
 export default function Platform({ organisationPage: organisations, users, stats, logs, filters, runtime }: Props) {
-    const create = useForm({name:'',owner_email:''});
-    const f = useForm({ search: filters.search });
+    const create = useForm({ name: '', owner_email: '' });
+    const f = useForm({ search: filters.search, status: filters.status ?? '' });
     return (
         <Workspace
             title="Platform administration"
@@ -39,7 +38,35 @@ export default function Platform({ organisationPage: organisations, users, stats
                     </div>
                 ))}
             </div>
-            <Panel title="Create company" description="Assign an existing user as owner, or create a secure owner invitation."><form className="flex flex-wrap items-end gap-3" onSubmit={e=>{e.preventDefault();create.post('/platform/companies')}}><div><Label htmlFor="company-name">Company name</Label><Input id="company-name" required value={create.data.name} onChange={e=>create.setData('name',e.target.value)}/></div><div><Label htmlFor="owner-email">Owner email</Label><Input id="owner-email" type="email" required value={create.data.owner_email} onChange={e=>create.setData('owner_email',e.target.value)}/></div><Button>Create company</Button><Button variant="outline" asChild><Link href="/platform/users">Manage users</Link></Button></form><Errors errors={create.errors}/></Panel>
+            <Panel title="Create company" description="Assign an existing user as owner, or create a secure owner invitation.">
+                <form
+                    className="flex flex-wrap items-end gap-3"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        create.post('/platform/companies');
+                    }}
+                >
+                    <div>
+                        <Label htmlFor="company-name">Company name</Label>
+                        <Input id="company-name" required value={create.data.name} onChange={(e) => create.setData('name', e.target.value)} />
+                    </div>
+                    <div>
+                        <Label htmlFor="owner-email">Owner email</Label>
+                        <Input
+                            id="owner-email"
+                            type="email"
+                            required
+                            value={create.data.owner_email}
+                            onChange={(e) => create.setData('owner_email', e.target.value)}
+                        />
+                    </div>
+                    <Button>Create company</Button>
+                    <Button variant="outline" asChild>
+                        <Link href="/platform/users">Manage users</Link>
+                    </Button>
+                </form>
+                <Errors errors={create.errors} />
+            </Panel>
             <Panel title="Organisations">
                 <form
                     className="mb-5 flex max-w-lg gap-2"
@@ -54,6 +81,16 @@ export default function Platform({ organisationPage: organisations, users, stats
                         value={f.data.search}
                         onChange={(e) => f.setData('search', e.target.value)}
                     />
+                    <select
+                        aria-label="Company status filter"
+                        className="bg-background rounded-lg border p-2 text-sm"
+                        value={f.data.status}
+                        onChange={(e) => f.setData('status', e.target.value)}
+                    >
+                        <option value="">All statuses</option>
+                        <option>active</option>
+                        <option>suspended</option>
+                    </select>
                     <Button variant="outline">Search</Button>
                 </form>
                 <div className="overflow-x-auto">
@@ -70,7 +107,11 @@ export default function Platform({ organisationPage: organisations, users, stats
                         <tbody>
                             {organisations.data.map((o) => (
                                 <tr key={o.id} className="border-b last:border-0">
-                                    <td className="p-3 font-medium"><Link className="underline" href={`/platform/companies/${o.id}`}>{o.name}</Link></td>
+                                    <td className="p-3 font-medium">
+                                        <Link className="underline" href={`/platform/companies/${o.id}`}>
+                                            {o.name}
+                                        </Link>
+                                    </td>
                                     <td className="p-3">{o.members_count}</td>
                                     <td className="p-3">{o.status}</td>
                                     <td className="p-3">

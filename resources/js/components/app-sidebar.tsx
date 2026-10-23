@@ -3,13 +3,24 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Building2, LayoutGrid, Settings, ShieldCheck } from 'lucide-react';
+import { BarChart3, Building2, FileText, Fingerprint, LayoutGrid, List, Mail, Settings, ShieldCheck, Upload, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 export function AppSidebar() {
     const { auth, organisations, currentOrganisationId } = usePage<SharedData>().props;
     const items: NavItem[] = [
         { title: 'Overview', url: '/dashboard', icon: LayoutGrid },
         { title: 'Organisations', url: '/organisations', icon: Building2 },
+        ...(currentOrganisationId
+            ? [
+                  { title: 'Contacts', url: `/organisations/${currentOrganisationId}/contacts`, icon: Users },
+                  { title: 'Lists & segments', url: `/organisations/${currentOrganisationId}/audiences`, icon: List },
+                  { title: 'Imports', url: `/organisations/${currentOrganisationId}/imports`, icon: Upload },
+                  { title: 'Campaigns', url: `/organisations/${currentOrganisationId}/campaigns`, icon: Mail },
+                  { title: 'Templates', url: `/organisations/${currentOrganisationId}/templates`, icon: FileText },
+                  { title: 'Sending identities', url: `/organisations/${currentOrganisationId}/identities`, icon: Fingerprint },
+                  { title: 'Reporting', url: `/organisations/${currentOrganisationId}/reports`, icon: BarChart3 },
+              ]
+            : []),
         ...(currentOrganisationId ? [{ title: 'Workspace settings', url: `/organisations/${currentOrganisationId}`, icon: Settings }] : []),
         ...(auth.user.is_platform_admin ? [{ title: 'Platform administration', url: '/platform', icon: ShieldCheck }] : []),
     ];

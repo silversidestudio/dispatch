@@ -5,14 +5,15 @@ import { Errors, Panel, Workspace } from '@/components/workspace';
 import { SharedData } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/react';
 type Props = {
-    organisation: { id: number; name: string };
+    organisation: { id: number; name: string; website: string | null; postal_address: string | null };
     canUpdate: boolean;
     canManageMembers: boolean;
     members: { id: number; name: string; email: string; role: string }[];
     invitations: { id: number; email: string; role: string; expires_at: string }[];
 };
 export default function OrganisationSettings({ organisation, canUpdate, canManageMembers, members, invitations }: Props) {
-    const f = useForm({ name: organisation.name });
+    const f = useForm({ name: organisation.name, website: organisation.website ?? '', postal_address: organisation.postal_address ?? '' });
+    const transfer = useForm({ member_id: '', confirmation: '' });
     const invite = useForm({ email: '', role: 'viewer' });
     const { flash } = usePage<SharedData>().props;
     return (
@@ -30,6 +31,15 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                 >
                     <Label htmlFor="name">Organisation name</Label>
                     <Input id="name" value={f.data.name} disabled={!canUpdate} onChange={(e) => f.setData('name', e.target.value)} />
+                    <Label htmlFor="website">Company website</Label>
+                    <Input id="website" disabled={!canUpdate} value={f.data.website} onChange={(e) => f.setData('website', e.target.value)} />
+                    <Label htmlFor="postal-address">Sender postal address</Label>
+                    <Input
+                        id="postal-address"
+                        disabled={!canUpdate}
+                        value={f.data.postal_address}
+                        onChange={(e) => f.setData('postal_address', e.target.value)}
+                    />
                     <Errors errors={f.errors} />
                     {canUpdate && <Button disabled={f.processing}>Save changes</Button>}
                 </form>
@@ -136,6 +146,62 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                         </ul>
                     </Panel>
                 </>
+            )}
+            {canManageMembers && (
+                <Panel title="Ownership and membership" description="Transfer ownership explicitly. The final owner cannot be removed.">
+                    <form
+                        className="flex flex-wrap gap-3"
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            transfer.post(`/organisations/${organisation.id}/transfer`);
+                        }}
+                    >
+                        <select
+                            aria-label="New owner"
+                            className="bg-background rounded border p-2"
+                            value={transfer.data.member_id}
+                            onChange={(e) => transfer.setData('member_id', e.target.value)}
+                        >
+                            <option value="">Choose new owner</option>
+                            {members
+                                .filter((m) => m.role !== 'owner')
+                                .map((m) => (
+                                    <option value={m.id} key={m.id}>
+                                        {m.name}
+                                    </option>
+                                ))}
+                        </select>
+                        <Input
+                            aria-label="Confirm transfer"
+                            className="max-w-xs"
+                            placeholder="Type TRANSFER"
+                            value={transfer.data.confirmation}
+                            onChange={(e) => transfer.setData('confirmation', e.target.value)}
+                        />
+                        <Button>Transfer ownership</Button>
+                    </form>
+                    <Errors errors={transfer.errors} />
+                    <div className="mt-5 space-y-3">
+                        {members
+                            .filter((m) => m.role !== 'owner')
+                            .map((m) => (
+                                <div key={m.id} className="flex justify-between text-sm">
+                                    <span>
+                                        {m.name} · {m.role}
+                                    </span>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                            if (confirm(`Remove ${m.name}?`)) router.delete(`/organisations/${organisation.id}/members/${m.id}`);
+                                        }}
+                                    >
+                                        Remove member
+                                    </Button>
+                                </div>
+                            ))}
+                    </div>
+                </Panel>
             )}
         </Workspace>
     );

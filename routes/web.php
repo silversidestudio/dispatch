@@ -28,3 +28,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('organisations/{organisation}/members/{member}', [OrganisationController::class, 'remove']);
     Route::post('organisations/{organisation}/transfer', [OrganisationController::class, 'transfer']);
 });
+require __DIR__.'/marketing.php';

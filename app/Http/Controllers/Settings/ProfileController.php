@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -52,14 +54,17 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        if ($user->organisations()->wherePivot('role', 'owner')->exists()) {
-            throw ValidationException::withMessages(['password' => 'Organisation owners must arrange ownership transfer before deleting their account.']);
-        }
-
-        Auth::logout();
-
-        $user->delete();
-
+        DB::transaction(function () use ($user) {
+            $admins = User::where('is_platform_admin', true)->orderBy('id')->lockForUpdate()->get();
+            if ($user->is_platform_admin && $user->status === 'active' && $admins->where('status', 'active')->count() <= 1) {
+                throw ValidationException::withMessages(['password' => 'The final active platform administrator cannot be deleted.']);
+            }
+            if ($user->organisations()->wherePivot('role', 'owner')->exists()) {
+                throw ValidationException::withMessages(['password' => 'Organisation owners must arrange ownership transfer before deleting their account.']);
+            }
+            Auth::logout();
+            $user->delete();
+        });
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

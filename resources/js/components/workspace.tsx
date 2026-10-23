@@ -4,7 +4,7 @@ import { Head, usePage } from '@inertiajs/react';
 import { ReactNode, useEffect } from 'react';
 import { toast } from 'sonner';
 export function Workspace({ title, subtitle, children, actions }: { title: string; subtitle?: string; children: ReactNode; actions?: ReactNode }) {
-    const { flash } = usePage<SharedData>().props;
+    const { flash, errors } = usePage<SharedData>().props;
     useEffect(() => {
         if (flash.success) toast.success(flash.success);
     }, [flash.success]);
@@ -12,10 +12,17 @@ export function Workspace({ title, subtitle, children, actions }: { title: strin
         <AppLayout breadcrumbs={[{ title, href: '#' }]}>
             <Head title={title} />
             <main className="mx-auto w-full max-w-[1500px] space-y-7 p-4 md:p-8">
+                {errors && Object.keys(errors).length > 0 && (
+                    <div role="alert" className="border-destructive/30 bg-destructive/5 text-destructive rounded-xl border p-4 text-sm">
+                        {Object.values(errors).map((message, i) => (
+                            <p key={i}>{String(message)}</p>
+                        ))}
+                    </div>
+                )}
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <p className="text-muted-foreground mb-2 text-xs font-medium tracking-widest uppercase">Your email workspace</p>
-                        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight break-words md:text-3xl">{title}</h1>
                         {subtitle && <p className="text-muted-foreground mt-2 text-sm">{subtitle}</p>}
                     </div>
                     {actions}
