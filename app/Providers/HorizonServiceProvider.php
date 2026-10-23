@@ -15,7 +15,7 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
     {
         parent::boot();
 
-        Horizon::auth(fn ($request) => $request->user()?->hasVerifiedEmail() && $request->user()?->is_platform_admin);
+        Horizon::auth(fn ($request) => $request->user()?->hasVerifiedEmail() && $request->user()?->is_platform_admin && $request->user()?->status === 'active');
 
         // Horizon::routeSmsNotificationsTo('15556667777');
         // Horizon::routeMailNotificationsTo('example@example.com');

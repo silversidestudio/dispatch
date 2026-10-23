@@ -24,6 +24,8 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Organisation::class)->withPivot('role')->withTimestamps();
     }
 
+    protected $attributes = ['status' => 'active'];
+
     protected $fillable = [
         'name',
         'email',

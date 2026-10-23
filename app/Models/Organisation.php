@@ -9,7 +9,7 @@ class Organisation extends Model
 {
     protected $attributes = ['status' => 'active'];
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'website', 'postal_address'];
 
     public function members(): BelongsToMany
     {

@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         config(['mail.default' => 'log', 'mail.mailers' => ['log' => ['transport' => 'log'], 'array' => ['transport' => 'array']]]);
-        Gate::define('platform', fn (User $user) => $user->is_platform_admin);
+        Gate::define('platform', fn (User $user) => $user->is_platform_admin && $user->status === 'active');
         Gate::policy(Organisation::class, OrganisationPolicy::class);
     }
 }

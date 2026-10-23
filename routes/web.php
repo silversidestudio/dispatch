@@ -23,3 +23,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
+require __DIR__.'/platform.php';
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::delete('organisations/{organisation}/members/{member}', [OrganisationController::class, 'remove']);
+    Route::post('organisations/{organisation}/transfer', [OrganisationController::class, 'transfer']);
+});
