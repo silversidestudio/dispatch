@@ -1,10 +1,12 @@
 # Dispatch — email marketing platform
 
-Standalone Phase 1B local demonstration platform. Laravel 12, PHP 8.3+, React 19, Inertia 2, TypeScript, Tailwind 4, Radix/shadcn components, MySQL-compatible database, Redis and Horizon.
+Standalone Phase 1C implementation, locally tested with mocked SendGrid responses. Laravel 12, PHP 8.3+, React 19, Inertia 2, TypeScript, Tailwind 4, Radix/shadcn components, MySQL-compatible database, Redis and Horizon.
 
-**Local development only. No external email delivery is implemented or enabled.** Mail transports are restricted to local logging and in-memory testing. Contacts, audiences, campaigns and simulated delivery are implemented. Real external delivery remains disabled.
+**Not production ready. Live sending remains disabled.** SendGrid v3 integration, signed feedback, analytics and controlled delivery modes are implemented, but no external provider verification, deployment or live pilot has occurred. Simulation is the default. See [launch readiness](docs/production-readiness.md) before any production action.
 
 Start with [development setup](docs/development-setup.md). See [architecture](docs/architecture.md), [database design](docs/database-design.md), [implementation plan](docs/implementation-plan.md) and [Phase 1A handover](docs/phase-1a-handover.md).
+
+Phase 1C: [handover](docs/phase-1c-handover.md), [SendGrid setup](docs/sendgrid-setup.md), [deployment runbook](docs/production-deployment.md), [pilot plan](docs/controlled-pilot.md), [security review](docs/phase-1c-security-review.md).
 
 ## Quick start
 

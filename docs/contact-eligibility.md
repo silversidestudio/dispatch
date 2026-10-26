@@ -26,3 +26,11 @@ Sources reviewed for this phase:
 - [ICO: complying with the electronic mail marketing rules](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-direct-marketing-using-electronic-mail/how-do-we-comply-with-the-pecr-electronic-mail-marketing-rules/)
 
 These rules require a fresh operational/legal review before implementing or approving real sending. An unsubscribe link alone does not establish compliance.
+
+## Phase 1C privacy and feedback
+
+Signed provider hard bounces, complaints and unsubscribes apply the same tenant suppression service used by visible and one-click unsubscribe. Suppression remains effective across imports/lists/copies/address changes. Tracking is off by default; owner/admin review records evidence and permits explicit campaign flags, not automatic legal permission.
+
+Owner/admin contact JSON export and explicit ERASE action provide a restricted privacy workflow. Active campaigns/imports block erasure; completed recipient personalisation and profile/evidence fields are redacted, matching raw uploads removed, minimal original-address suppression retained. Audit IDs/counts remain. Retained suppression is personal data requiring approved access/retention controls. Provider-held data, backups and legal exceptions still need an operator process.
+
+UK policy decisions remain the client's responsibility: subscriber category, consent or other applicable eligibility, documented source/evidence, privacy notice, tracking technologies, retention and data subject requests. Email permission does not by itself settle tracking-pixel storage/access requirements. See [ICO electronic mail guidance](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-direct-marketing-using-electronic-mail/what-else-do-we-need-to-consider/) and [ICO storage/access technology guidance](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-storage-and-access-technologies/). No legal compliance certification or client approval has been inferred.

@@ -29,3 +29,13 @@ Only Phase 1A is authorised in this session. Stop after its handover. Do not pus
 ## Phase 1B expanded authorisation
 
 The subsequent Phase 1B instruction explicitly authorised company/user administration, contacts/audiences/imports, templates/campaigns and simulated delivery. This supersedes the earlier stop-at-1A boundary for those local features. Branch feature/phase-1b-core-features extends 810d67d; existing development records remain preserved. No deployment, DNS or real email transmission is authorised. See phase-1b-progress.md and phase-1b-handover.md for actual results.
+
+## Phase 1C — implementation and launch gates
+
+1. C.1 complete locally: gated SendGrid v3 adapter, separate modes, immutable snapshots, durable reservations, conservative uncertain outcomes, throttling and pause/resume.
+2. C.2 complete locally: signed raw-body webhook, encrypted/redacted queued batches, tenant-safe correlation, deduplication/quarantine, ordering and suppression. Public provider verification remains blocked.
+3. C.3 complete locally: unique/total tracking, precise rate denominators, safe per-link labels, recipient timelines, date/event/search filters, CSV and comparison. No real provider activity has been observed.
+4. C.4 complete for developer review: five original templates, Tiptap alignment, review gates, controlled one-contact simulation/sandbox preparation and dashboard/provider controls. Actual email-client rendering and non-technical client acceptance remain unverified.
+5. C.5 partial: local security controls, regression tests, deployment/restore/rollback/pilot runbooks and all 132 acceptance assessments. Production-like infrastructure, monitoring, restore drills, stress/security review, legal approval and the authorised real pilot remain mandatory launch gates. Do not declare production readiness.
+
+See phase-1c-handover.md for exact validation results and production-readiness.md for per-item evidence/status. No push, deployment, DNS modification, credential provisioning or real email transmission was performed.

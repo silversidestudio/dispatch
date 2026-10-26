@@ -1,5 +1,7 @@
 # Architecture
 
+Current state: Phase 1C extends the earlier foundation and simulation. Historical Phase 1A/1B descriptions below explain decisions; the Phase 1C section and sendgrid-setup.md describe current delivery capabilities. Live sending is disabled and externally unverified.
+
 ## Scope and design decisions
 
 Phase 1A is a conventional Laravel monolith with Inertia/React pages. Dispatch is a working development name. No existing application was modified. The local MyBookable foundation at `website-design-test/booking-saas` was inspected read-only for neutral surfaces, component conventions, spacing and navigation. No business logic, credentials or assets were copied.
@@ -27,9 +29,9 @@ Registration, login, email verification, signed verification URLs, password rese
 
 Invitations use random 64-character tokens with SHA-256 hashes at rest, seven-day expiry, verified exact-email matching and transactional one-time acceptance. Reissuing invalidates the previous token. Links are shown once to the owner for secure local sharing; no invitation email is transmitted. Avoid sharing application logs or invitation URLs publicly.
 
-## Email safety
+## Email safety — original foundation
 
-No SMTP/provider implementation or send endpoint exists. AppServiceProvider replaces Laravel's merged mailer configuration with log and array transports only. Even MAIL_MAILER changes cannot enable SMTP. Verification/reset links remain in ignored local logs. Horizon runs Redis workers but Phase 1A enqueues no campaign delivery jobs.
+In Phase 1A no SMTP/provider implementation or send endpoint existed. AppServiceProvider replaces Laravel's merged mailer configuration with log and array transports only. Even MAIL_MAILER changes cannot enable SMTP. Verification/reset links remain in ignored local logs. Horizon runs Redis workers but Phase 1A enqueues no campaign delivery jobs.
 
 ## Audit and metrics
 
@@ -37,7 +39,7 @@ Organisation creation/settings/status changes, invitations, member role changes 
 
 The dashboard reports database membership counts, actual role and tenant-scoped audit entries. Campaign and acceptance values display unavailable markers with explanatory empty states. No fabricated events or delivery statistics are presented. Future SMTP acceptance must never be presented as inbox placement.
 
-## Later delivery contract
+## Original planned delivery contract (implemented in Phase 1B/1C)
 
 Phase 1D will introduce provider-independent submission/result contracts and a deterministic simulator, recipient uniqueness constraints, transactional queue dispatch, durable idempotency keys and structured attempts/events. Acknowledgement loss after provider acceptance creates an unavoidable uncertain outcome: a restart must reconcile that outcome using provider evidence/idempotency rather than blindly resubmitting. Webhook signatures, redaction, duplicate event keys and ordering rules are deferred to that milestone. No partial live integration is included.
 
@@ -48,4 +50,12 @@ The foundation now includes platform-managed company creation, invitations, safe
 
 Contacts and audience operations use explicit tenant policy checks and validated linked IDs. EligibilityService centralises eligibility/evidence/suppression. AudienceService accepts structured rules only. CSV files remain private, size/row/column bounded, with profile-only mapping and per-row replay keys. Templates/campaigns use server HTML Purifier and sandboxed previews. The simulator and queue jobs run independently of browser sessions and enforce company/recipient state themselves.
 
-Campaign scheduling creates immutable content and recipient snapshots. Jobs and a recovery scheduler reconcile pending work, with campaign/recipient locks and unique attempt/event keys. No external delivery adapter exists. See contact-eligibility.md, campaign-lifecycle.md, simulated-delivery.md and email-editor.md for definitions and limits.
+Campaign scheduling creates immutable content and recipient snapshots. Jobs and a recovery scheduler reconcile pending work, with campaign/recipient locks and unique attempt/event keys. At the Phase 1B handover no external delivery adapter existed; Phase 1C adds the gated SendGrid adapter below. See contact-eligibility.md, campaign-lifecycle.md, simulated-delivery.md and email-editor.md for definitions and limits.
+
+## Phase 1C provider feedback and analytics
+
+SendGridDeliveryProvider implements the existing typed DeliveryProvider contract using Mail Send v3. SimulatedDeliveryProvider remains independent. Immutable snapshots select simulation/sendgrid_sandbox/sendgrid_live; application defaults cannot upgrade existing campaigns. ProviderReadiness enforces configuration/identity/tracking gates; SendGridSubmissionService commits durable attempt reservations before network work and holds uncertain outcomes for evidenced reconciliation. See sendgrid-setup.md for limits of exactly-once submission and cancellation.
+
+Signed raw-body webhooks enter SendGridWebhookController, encrypted normalised WebhookBatch envelopes and ProcessSendGridWebhook. WebhookService verifies signatures, correlates only server-generated UUIDs and exact tenant/recipient relationships, deduplicates receipts/events, quarantines unmatched records, preserves terminal delivery evidence and applies suppressions. No raw unredacted provider payload is retained. Analytics services query stored provider evidence, isolate simulation and distinguish attempts/events/unique recipients. No new external analytics service or infrastructure was introduced.
+
+ContactPrivacyController provides restricted export and audited erasure with suppression retention and active-work guards. ProductionSafety fails production HTTP/debug/insecure session configurations closed. Account verification/reset use a separately gated SendGridAuthChannel only when explicitly configured; local log notifications remain the default. Platform staff can authorise operational identities without gaining private content permission. See phase-1c-security-review.md and production-readiness.md for unverified external controls and scale limits.

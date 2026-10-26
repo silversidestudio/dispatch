@@ -32,3 +32,7 @@ Recipient links carry authenticated encrypted payloads and relative URL signatur
 ## Future real-provider ambiguity
 
 A real provider may accept a message before the application records its acknowledgement. A worker restart cannot prove whether submission occurred. Future implementation must use provider-supported idempotency keys/reconciliation and explicitly represent uncertain outcomes; it must not blindly resubmit. This simulator does not establish production duplicate-prevention guarantees for external providers. Signature-verified webhooks, provider reconciliation, delivery feedback, tracking and production retention remain future work.
+
+## Phase 1C separation
+
+Simulation remains the default and uses no external transport. SendGrid sandbox and live snapshots use separate explicit modes and never replay old simulation recipients through the real provider. Sandbox API validation was mocked only; it is not an externally verified integration. Metrics/events identify the provider and simulation flag. See sendgrid-setup.md for SendGrid reservation/uncertainty handling and controlled-pilot.md before any external testing.

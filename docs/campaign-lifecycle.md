@@ -10,7 +10,7 @@ Only drafts without a snapshot can be edited. Duplicate creates a new draft with
 
 ## Pre-flight
 
-Required: active company, company postal address, tenant-owned sender identity, non-empty subject/HTML/plain text, sender-address footer placeholder, unsubscribe placeholder in both bodies, a valid tenant-owned list/segment and at least one eligible contact. A 10,000-recipient simulation cap applies. Unknown eligibility, suppression and archived contacts are excluded. The only authorised provider is simulation; sender verification is explicitly unverified and never implied by a successful simulation.
+Required: active company, company postal address, tenant-owned sender identity, non-empty subject/HTML/plain text, sender-address footer placeholder, unsubscribe placeholder in both bodies, a valid tenant-owned list/segment and at least one eligible contact. A 10,000-recipient simulation cap applies. Unknown eligibility, suppression and archived contacts are excluded. Simulation remains the default; SendGrid sandbox/live use separate explicit modes and the Phase 1C gates below. A successful simulation never verifies a sender.
 
 ## Snapshot and scheduling
 
@@ -30,3 +30,9 @@ Suppressed before submission: snapshotted recipients subsequently blocked by the
 Retries: attempts numbered greater than one; routine job replay with no new attempt is not a retry metric.
 
 Historical eligibility counts are snapshot values; current pre-flight counts may differ. Reports expose actual stored data and no invented opens/clicks/revenue.
+
+## Phase 1C
+
+Draft → ready → scheduled → processing → completed remain the primary states. Scheduled/processing campaigns may pause, retain paused_from and resume; cancellation preserves in-flight evidence. SendGrid attempts reserve submitting before HTTP; accepted/sandbox_validated/deferred/rejected/uncertain outcomes persist separately from delivery feedback. Uncertain recipients hold completion pending explicit evidence-based reconciliation. Provider feedback can arrive before acknowledgement and must not trigger replay. Delivery completion is submission work completion, not proof that all receiving servers have accepted mail; late events remain ingestible.
+
+Mode, sender, content, recipient address, privacy flags and unsubscribe base freeze at scheduling. Later configuration cannot transmit prior simulations. Live scheduling requires SEND confirmation plus all pre-flight gates; imports/list changes never restore eligibility. See sendgrid-setup.md for retries, cancellation race limits, throttling and reconciliation. Test preparation creates a distinct one-contact draft and never submits automatically.
