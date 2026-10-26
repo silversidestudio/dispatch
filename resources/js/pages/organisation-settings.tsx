@@ -1,3 +1,4 @@
+import { TrackingReview } from '@/components/provider-controls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -203,6 +204,7 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                     </div>
                 </Panel>
             )}
+            {canUpdate && <TrackingReview companyId={organisation.id} />}
         </Workspace>
     );
 }

@@ -19,7 +19,7 @@ class ContentController extends Controller
     {
         Gate::authorize('view', $organisation);
 
-        return Inertia::render('identities', ['company' => $organisation, 'identities' => SendingIdentity::where('organisation_id', $organisation->id)->get(), 'canManage' => Gate::allows('update', $organisation)]);
+        return Inertia::render('identities', ['company' => $organisation, 'identities' => SendingIdentity::where('organisation_id', $organisation->id)->get(), 'canManage' => Gate::allows('update', $organisation), 'readiness' => ['provider' => config('dispatch.provider'), 'enabled' => (bool) config('dispatch.sendgrid.enabled'), 'configured' => (bool) config('dispatch.sendgrid.api_key'), 'live_enabled' => (bool) config('dispatch.sendgrid.live_enabled')], 'canVerify' => Gate::allows('platform')]);
     }
 
     public function identitySave(Request $r, Organisation $organisation, ?SendingIdentity $identity = null)
@@ -28,7 +28,7 @@ class ContentController extends Controller
         if ($identity) {
             abort_unless($identity->organisation_id === $organisation->id, 404);
         }$r->merge(['email' => strtolower(trim($r->input('email', '')))]);
-        $d = $r->validate(['name' => 'required|string|max:120', 'email' => ['required', 'email:rfc', 'max:254', Rule::unique('sending_identities')->where('organisation_id', $organisation->id)->ignore($identity?->id)], 'reply_to' => 'nullable|email:rfc|max:254', 'is_default' => 'required|boolean']);
+        $d = $r->validate(['name' => 'required|string|max:120', 'email' => ['required', 'email:rfc', 'max:454', Rule::unique('sending_identities')->where('organisation_id', $organisation->id)->ignore($identity?->id)], 'reply_to' => 'nullable|email:rfc|max:454', 'is_default' => 'required|boolean']);
         DB::transaction(function () use ($organisation, $identity, $d) {
             Organisation::whereKey($organisation->id)->lockForUpdate()->firstOrFail();
             if ($d['is_default']) {
@@ -55,7 +55,7 @@ class ContentController extends Controller
     public function starter(Request $r, Organisation $organisation)
     {
         Gate::authorize('manageCampaigns', $organisation);
-        $d = $r->validate(['starter' => 'required|integer|min:0|max:2']);
+        $d = $r->validate(['starter' => 'required|integer|min:0|max:4']);
         $s = app(EmailContentService::class)->starters()[$d['starter']];
         $s['html'] = app(EmailContentService::class)->clean($s['html']);
         $t = EmailTemplate::create(['organisation_id' => $organisation->id, ...$s, 'text_body' => app(EmailContentService::class)->text($s['html'])]);
@@ -77,7 +77,7 @@ class ContentController extends Controller
         Gate::authorize('manageCampaigns', $organisation);
         if ($template) {
             abort_unless($template->organisation_id === $organisation->id, 404);
-        }$d = $r->validate(['name' => 'required|string|max:120', 'category' => 'required|string|max:120', 'subject' => 'required|string|max:255', 'preview_text' => 'nullable|string|max:255', 'html' => 'required|string|max:200000', 'text_body' => 'required|string|max:100000']);
+        }$d = $r->validate(['name' => 'required|string|max:120', 'category' => 'required|string|max:120', 'subject' => 'required|string|max:455', 'preview_text' => 'nullable|string|max:455', 'html' => 'required|string|max:400000', 'text_body' => 'required|string|max:100000']);
         $d['html'] = app(EmailContentService::class)->clean($d['html']);
         if ($template) {
             $template->update($d);
@@ -105,6 +105,6 @@ class ContentController extends Controller
         Gate::authorize('view', $organisation);
         abort_unless($template->organisation_id === $organisation->id, 404);
 
-        return response(app(EmailContentService::class)->render($template->html, ['first_name' => 'Alex', 'last_name' => 'Example', 'email' => 'preview@example.test', 'sender_name' => $organisation->name, 'sender_address' => $organisation->postal_address ?? 'Sender address required', 'unsubscribe_url' => '#preview-only']))->header('Content-Security-Policy',"default-src 'none'; img-src https:; style-src 'unsafe-inline'; sandbox")->header('Referrer-Policy','no-referrer');
+        return response(app(EmailContentService::class)->render($template->html, ['first_name' => 'Alex', 'last_name' => 'Example', 'email' => 'preview@example.test', 'sender_name' => $organisation->name, 'sender_address' => $organisation->postal_address ?? 'Sender address required', 'unsubscribe_url' => '#preview-only']))->header('Content-Security-Policy', "default-src 'none'; img-src https:; style-src 'unsafe-inline'; sandbox")->header('Referrer-Policy', 'no-referrer');
     }
 }

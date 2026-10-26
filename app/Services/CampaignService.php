@@ -46,7 +46,7 @@ class CampaignService
             $errors[] = 'Simulation limit is 10,000 recipients.';
         }
 
-        return ['errors' => $errors, 'total' => $all, 'eligible' => $eligible, 'excluded' => $all - $eligible, 'provider' => $c->delivery_mode??'simulation','sender'=>($c->snapshot['sender_name']??$identity?->name??'Missing').' <'.($c->snapshot['sender_email']??$identity?->email??'missing').'>','tracking'=>['open'=>(bool)($c->snapshot['open_tracking']??$c->open_tracking),'click'=>(bool)($c->snapshot['click_tracking']??$c->click_tracking)],'postal_address'=>$c->snapshot['sender_address']??$o->postal_address];
+        return ['errors' => $errors, 'total' => $all, 'eligible' => $eligible, 'excluded' => $all - $eligible, 'provider' => $c->delivery_mode ?? 'simulation', 'sender' => ($c->snapshot['sender_name'] ?? $identity?->name ?? 'Missing').' <'.($c->snapshot['sender_email'] ?? $identity?->email ?? 'missing').'>', 'tracking' => ['open' => (bool) ($c->snapshot['open_tracking'] ?? $c->open_tracking), 'click' => (bool) ($c->snapshot['click_tracking'] ?? $c->click_tracking)], 'postal_address' => $c->snapshot['sender_address'] ?? $o->postal_address];
     }
 
     public function ready(Campaign $campaign): void
@@ -67,6 +67,7 @@ class CampaignService
         DB::transaction(function () use ($campaign, $when, $confirmed) {
             $c = Campaign::whereKey($campaign->id)->lockForUpdate()->firstOrFail();
             $this->requireState($c, ['ready']);
+            Organisation::whereKey($c->organisation_id)->lockForUpdate()->firstOrFail();
             if ($c->delivery_mode === 'sendgrid_live') {
                 if (! $confirmed) {
                     throw ValidationException::withMessages(['campaign' => 'Type SEND to authorise this live campaign.']);
@@ -141,7 +142,7 @@ class CampaignService
 
     public function event(CampaignRecipient $r, string $type, string $key, array $metadata = []): void
     {
-        DeliveryEvent::firstOrCreate(['event_key' => $key], ['organisation_id' => $r->organisation_id, 'campaign_id' => $r->campaign_id, 'campaign_recipient_id' => $r->id, 'type' => $type, 'simulated' => true, 'metadata' => $metadata]);
+        DeliveryEvent::firstOrCreate(['event_key' => $key], ['organisation_id' => $r->organisation_id, 'campaign_id' => $r->campaign_id, 'campaign_recipient_id' => $r->id, 'type' => $type, 'simulated' => (Campaign::findOrFail($r->campaign_id)->snapshot['delivery_mode'] ?? 'simulation') !== 'sendgrid_live', 'provider' => str_starts_with(Campaign::findOrFail($r->campaign_id)->snapshot['delivery_mode'] ?? '', 'sendgrid_') ? 'sendgrid' : 'simulation', 'occurred_at' => now(), 'metadata' => $metadata]);
     }
 
     public function complete(int $id): void

@@ -60,10 +60,10 @@ export function AppSidebar() {
             <SidebarContent>
                 <NavMain items={items} />
                 <div className="bg-background mx-4 mt-auto mb-4 rounded-xl border p-4 text-xs group-data-[collapsible=icon]:hidden">
-                    <div className="mb-2 font-medium">A safe place to begin</div>
-                    <p className="text-muted-foreground leading-5">Foundation workspace. External email delivery is disabled.</p>
+                    <div className="mb-2 font-medium">Campaign safety</div>
+                    <p className="text-muted-foreground leading-5">Review the delivery mode, audience and pre-flight checks before scheduling.</p>
                     <span className="mt-3 inline-flex rounded-full bg-indigo-500/10 px-2 py-1 text-indigo-600 dark:text-indigo-300">
-                        Local development
+                        Explicit sending controls
                     </span>
                 </div>
             </SidebarContent>

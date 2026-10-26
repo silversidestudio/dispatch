@@ -1,4 +1,5 @@
 import { Company, Field } from '@/components/marketing';
+import { ProviderIdentity, VerifyIdentity } from '@/components/provider-controls';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
 import { useForm } from '@inertiajs/react';
@@ -12,12 +13,37 @@ export type Identity = {
     verification_status: string;
     is_default: boolean;
 };
-export default function Identities({ company, identities, canManage }: { company: Company; identities: Identity[]; canManage: boolean }) {
+export default function Identities({
+    company,
+    identities,
+    canManage,
+    readiness,
+    canVerify,
+}: {
+    company: Company;
+    identities: (Identity & ProviderIdentity)[];
+    canManage: boolean;
+    readiness: { provider: string; enabled: boolean; configured: boolean; live_enabled: boolean };
+    canVerify: boolean;
+}) {
     const f = useForm({ name: '', email: '', reply_to: '', is_default: false as boolean });
     const [id, setId] = useState<number | null>(null);
     const base = `/organisations/${company.id}/identities`;
     return (
-        <Workspace title="Sending identities" subtitle="Simulation only. No DNS checks or real delivery are enabled.">
+        <Workspace
+            title="Sending identities"
+            subtitle="Identity verification and provider readiness. Configuration does not authorise a production launch."
+        >
+            <Panel title="Provider readiness">
+                <p className="text-sm">
+                    Provider: {readiness.provider} · API configuration: {readiness.enabled && readiness.configured ? 'Configured' : 'Not configured'}{' '}
+                    · Live sending: {readiness.live_enabled ? 'Explicitly enabled in environment' : 'Disabled'}
+                </p>
+                <p className="text-muted-foreground mt-3 text-xs">
+                    Cloudflare: add the exact CNAME records from SendGrid Sender Authentication as DNS-only, not proxied. DMARC requires a separate
+                    business policy review. No DNS changes are made by Dispatch.
+                </p>
+            </Panel>
             <Panel title="Company identities">
                 <div className="grid gap-4 md:grid-cols-2">
                     {identities.map((i) => (
@@ -26,7 +52,11 @@ export default function Identities({ company, identities, canManage }: { company
                                 {i.name} {i.is_default && '· Default'}
                             </p>
                             <p className="mt-1 text-sm">{i.email}</p>
-                            <p className="text-muted-foreground mt-3 text-xs">{i.domain} · Unverified · SPF, DKIM and DMARC not checked</p>
+                            <p className="text-muted-foreground mt-3 text-xs">
+                                {i.domain} · {i.verification_status} · SPF: {i.spf_status} · DKIM: {i.dkim_status} · DMARC: {i.dmarc_status} · Last
+                                check: {i.verified_at ? new Date(i.verified_at).toLocaleString() : 'Never'}
+                            </p>
+                            {canVerify && <VerifyIdentity companyId={company.id} identity={i} />}
                             {canManage && (
                                 <Button
                                     className="mt-4"

@@ -114,6 +114,11 @@ test('platform company to owner contacts import campaign simulation and reportin
     const campaignLink = await owner.getByRole('link', { name: 'E2E company campaign' }).getAttribute('href');
     const response = await admin.goto(campaignLink!);
     expect(response?.status()).toBe(403);
+    await owner.goto(campaignLink!);
+    await owner.getByLabel('Test recipient email').fill(`success-${stamp}@example.test`);
+    await owner.getByRole('button', { name: 'Prepare test draft', exact: true }).click();
+    await expect(owner.getByRole('heading', { name: 'TEST — E2E company campaign', exact: true })).toBeVisible();
+    await expect(owner.getByText('1 contacts · 1 eligible · 0 excluded', { exact: true })).toBeVisible();
     expect(errors).toEqual([]);
     await adminContext.close();
     await ownerContext.close();

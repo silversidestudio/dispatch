@@ -9,7 +9,7 @@ class EnsureActiveAccount
 {
     public function handle(Request $request, Closure $next)
     {
-        abort_if(! $request->is('unsubscribe/*') && $request->user() && $request->user()->status !== 'active', 403, 'This account is suspended. Contact your administrator.');
+        abort_if(! $request->is('unsubscribe/*', 'one-click/*', 'webhooks/*') && $request->user() && $request->user()->status !== 'active', 403, 'This account is suspended. Contact your administrator.');
 
         return $next($request);
     }

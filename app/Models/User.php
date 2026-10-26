@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Services\SendGridAuthChannel;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -19,6 +22,26 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @var list<string>
      */
+    public function sendEmailVerificationNotification()
+    {
+        $notification = new VerifyEmail;
+        if (config('dispatch.sendgrid.auth_enabled')) {
+            app(SendGridAuthChannel::class)->send($this, $notification);
+        } else {
+            $this->notify($notification);
+        }
+    }
+
+    public function sendPasswordResetNotification($token)
+    {
+        $notification = new ResetPassword($token);
+        if (config('dispatch.sendgrid.auth_enabled')) {
+            app(SendGridAuthChannel::class)->send($this, $notification);
+        } else {
+            $this->notify($notification);
+        }
+    }
+
     public function organisations(): BelongsToMany
     {
         return $this->belongsToMany(Organisation::class)->withPivot('role')->withTimestamps();

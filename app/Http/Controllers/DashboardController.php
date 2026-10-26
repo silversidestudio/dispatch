@@ -8,6 +8,7 @@ use App\Models\Contact;
 use App\Models\DeliveryEvent;
 use App\Models\MailingList;
 use App\Models\Suppression;
+use App\Services\CampaignAnalytics;
 use App\Services\EligibilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -36,8 +37,8 @@ class DashboardController extends Controller
             'mailing_lists' => MailingList::where('organisation_id', $o->id)->count(),
             'draft_campaigns' => Campaign::where('organisation_id', $o->id)->where('status', 'draft')->count(),
             'scheduled_campaigns' => Campaign::where('organisation_id', $o->id)->where('status', 'scheduled')->count(),
-            'simulated_acceptances' => DeliveryEvent::where('organisation_id', $o->id)->where('type', 'accepted')->count(),
+            'simulated_acceptances' => DeliveryEvent::where('organisation_id', $o->id)->where('simulated', true)->where('type', 'accepted')->count(), 'emails_delivered' => DeliveryEvent::where('organisation_id', $o->id)->where('provider', 'sendgrid')->where('simulated', false)->where('type', 'delivered')->distinct()->count('campaign_recipient_id'),
         ], 'recentCampaigns' => Campaign::where('organisation_id', $o->id)->latest()->limit(5)->get(['id', 'name', 'status']),
-            'canManage' => Gate::allows('update', $o), 'activity' => AuditLog::where('organisation_id', $o->id)->latest('id')->limit(6)->get(['id', 'action', 'created_at'])]);
+            'providerStatus' => ['provider' => config('dispatch.provider'), 'configured' => (bool) config('dispatch.sendgrid.api_key'), 'live_enabled' => (bool) config('dispatch.sendgrid.live_enabled')], 'performance' => Campaign::where('organisation_id', $o->id)->whereNotNull('snapshot')->latest()->limit(5)->get()->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'analytics' => app(CampaignAnalytics::class)->summary($c)]), 'alerts' => DeliveryEvent::where('organisation_id', $o->id)->where('simulated', false)->whereIn('type', ['bounce', 'spamreport'])->latest('id')->limit(10)->get(['id', 'campaign_id', 'type', 'occurred_at']), 'canManage' => Gate::allows('update', $o), 'activity' => AuditLog::where('organisation_id', $o->id)->latest('id')->limit(6)->get(['id', 'action', 'created_at'])]);
     }
 }

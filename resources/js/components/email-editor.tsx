@@ -1,12 +1,14 @@
 import { Button } from '@/components/ui/button';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useEffect } from 'react';
 export function EmailEditor({ value, onChange, editable = true }: { value: string; onChange: (html: string) => void; editable?: boolean }) {
     const editor = useEditor({
         extensions: [
+            TextAlign.configure({ types: ['heading', 'paragraph'] }),
             StarterKit.configure({ link: false }),
             Link.extend({
                 addAttributes() {
@@ -30,6 +32,17 @@ export function EmailEditor({ value, onChange, editable = true }: { value: strin
             <div className="bg-muted/30 flex flex-wrap gap-1 border-b p-2">
                 {editable && (
                     <>
+                        {['left', 'center', 'right'].map((align) => (
+                            <Button
+                                key={align}
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => editor.chain().focus().setTextAlign(align).run()}
+                            >
+                                {align[0].toUpperCase() + align.slice(1)}
+                            </Button>
+                        ))}
                         <Button type="button" variant="ghost" size="sm" onClick={() => editor.chain().focus().toggleBold().run()}>
                             Bold
                         </Button>

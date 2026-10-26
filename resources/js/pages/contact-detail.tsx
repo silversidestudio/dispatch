@@ -1,13 +1,14 @@
 import { Company, Contact, Field, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 type Evidence = { id: number; basis: string; evidence: string; method: string; recorded_at: string };
 export default function Detail({
     company,
     contact,
     eligible,
     canManage,
+    canPrivacy,
     evidence,
     suppression,
     history,
@@ -16,6 +17,7 @@ export default function Detail({
     contact: Contact;
     eligible: boolean;
     canManage: boolean;
+    canPrivacy: boolean;
     evidence: Evidence[];
     suppression: { reason: string } | null;
     history: { id: number; action: string; created_at: string }[];
@@ -162,6 +164,29 @@ export default function Detail({
                     </p>
                 ))}
             </Panel>
+            {canPrivacy && (
+                <Panel
+                    title="Personal data controls"
+                    description="Owner/administrator only. Erasure is blocked during active delivery and retains minimal suppression to prevent re-contact."
+                >
+                    <div className="flex flex-wrap gap-3">
+                        <Button variant="outline" asChild>
+                            <a href={base + '/privacy-export'}>Export contact data</a>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                const confirmation = prompt(
+                                    'Type ERASE to redact this contact and completed recipient personalisation. Minimal suppression remains.',
+                                );
+                                if (confirmation === 'ERASE') router.post(base + '/erase', { confirmation });
+                            }}
+                        >
+                            Erase personal data
+                        </Button>
+                    </div>
+                </Panel>
+            )}
         </Workspace>
     );
 }

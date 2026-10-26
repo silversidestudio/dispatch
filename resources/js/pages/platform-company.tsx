@@ -1,3 +1,4 @@
+import { ProviderIdentity, VerifyIdentity } from '@/components/provider-controls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,9 +14,11 @@ export default function Company({
     userOptions,
     counts,
     deliveryActivity,
+    sendingIdentities,
 }: {
+    sendingIdentities: ProviderIdentity[];
     counts: Record<string, number>;
-    deliveryActivity: { type: string; total: number }[];
+    deliveryActivity: { type: string; total: number; simulated: boolean }[];
     company: { id: number; name: string; website: string | null; postal_address: string | null };
     members: Member[];
     invites: { id: number; email: string; role: string; expires_at: string }[];
@@ -39,11 +42,24 @@ export default function Company({
                         </p>
                     ))}
                     {deliveryActivity.map((d) => (
-                        <p key={d.type}>
-                            Simulated {d.type}: {d.total}
+                        <p key={d.type + String(d.simulated)}>
+                            {d.simulated ? 'Simulated' : 'SendGrid'} {d.type}: {d.total}
                         </p>
                     ))}
                 </div>
+            </Panel>
+            <Panel
+                title="Sending domain authorisation"
+                description="Platform control applies to identity/domain configuration only, not private campaign content."
+            >
+                {sendingIdentities.map((i) => (
+                    <div key={i.id} className="mb-5 rounded-lg border p-4 text-sm">
+                        <p>
+                            {i.name} · {i.email} · {i.domain} · {i.verification_status}
+                        </p>
+                        <VerifyIdentity companyId={company.id} identity={i} />
+                    </div>
+                ))}
             </Panel>
             <Panel title="Company profile">
                 <form

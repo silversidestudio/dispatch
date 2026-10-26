@@ -6,6 +6,7 @@ type Report = {
     id: number;
     name: string;
     status: string;
+    mode: string;
     date: string;
     audience_at_snapshot: number;
     eligible_at_snapshot: number;
@@ -22,9 +23,14 @@ export default function Reports({ company, reports }: { company: Company; report
     const filtered = reports.filter((r) => (!start || r.date.slice(0, 10) >= start) && (!end || r.date.slice(0, 10) <= end));
     return (
         <Workspace
-            title="Simulation reports"
-            subtitle="Actual stored simulation results. Acceptance does not establish inbox delivery, opens or clicks."
+            title="Campaign reports"
+            subtitle="Stored results labelled by delivery mode. API acceptance is not receiving-server delivery or inbox placement."
         >
+            <div>
+                <Link className="text-sm underline" href={`/organisations/${company.id}/campaign-comparison`}>
+                    Compare campaigns and provider analytics
+                </Link>
+            </div>
             <Panel title="Campaign results" description="Latest 30 snapshotted campaigns. Date filters use the campaign creation date.">
                 <div className="mb-5 flex flex-wrap gap-4">
                     <Field label="From date" type="date" value={start} change={setStart} />
@@ -37,6 +43,7 @@ export default function Reports({ company, reports }: { company: Company; report
                                 {[
                                     'Campaign',
                                     'Status',
+                                    'Mode',
                                     'Audience',
                                     'Eligible',
                                     'Excluded',
@@ -62,6 +69,7 @@ export default function Reports({ company, reports }: { company: Company; report
                                     </td>
                                     {[
                                         r.status,
+                                        r.mode,
                                         r.audience_at_snapshot,
                                         r.eligible_at_snapshot,
                                         r.excluded_at_snapshot,
@@ -80,7 +88,7 @@ export default function Reports({ company, reports }: { company: Company; report
                         </tbody>
                     </table>
                 </div>
-                {!filtered.length && <p className="text-muted-foreground py-10 text-center">No simulated campaigns in this date range.</p>}
+                {!filtered.length && <p className="text-muted-foreground py-10 text-center">No campaigns in this date range.</p>}
             </Panel>
         </Workspace>
     );

@@ -2,13 +2,20 @@ import { Metrics } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Panel, Workspace } from '@/components/workspace';
 import { Link } from '@inertiajs/react';
+import { Analytics } from './campaign-analytics';
 export default function Dashboard({
     organisation,
     stats,
     recentCampaigns,
     activity,
+    performance,
+    alerts,
+    providerStatus,
 }: {
     organisation: { id: number; name: string; role: string; members: number };
+    providerStatus: { provider: string; configured: boolean; live_enabled: boolean };
+    performance: { id: number; name: string; analytics: Analytics }[];
+    alerts: { id: number; campaign_id: number; type: string; occurred_at: string | null }[];
     stats: Record<string, number>;
     recentCampaigns: { id: number; name: string; status: string }[];
     activity: { id: number; action: string; created_at: string }[];
@@ -25,12 +32,51 @@ export default function Dashboard({
             }
         >
             <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-5">
-                <p className="text-sm font-medium">Local simulation only · External email delivery disabled</p>
+                <p className="text-sm font-medium">
+                    Delivery provider: {providerStatus.provider} · Live delivery{' '}
+                    {providerStatus.live_enabled ? 'enabled by configuration; approval still required' : 'disabled'}
+                </p>
                 <p className="text-muted-foreground mt-1 text-xs">
                     All activity below comes from stored company data. Simulated acceptance is not confirmed inbox delivery.
                 </p>
             </div>
             <Metrics data={stats} />
+            <Panel
+                title="Recent campaign performance"
+                description="Real provider evidence is distinct from simulation. Rates are unavailable until provider events establish denominators."
+            >
+                <div className="grid gap-4 md:grid-cols-2">
+                    {performance.map((c) => (
+                        <Link key={c.id} href={`${base}/campaigns/${c.id}/analytics`} className="rounded-xl border p-4 text-sm">
+                            <p className="font-medium">{c.name}</p>
+                            <p className="text-muted-foreground mt-2">
+                                Delivered {c.analytics.counts.delivered} · Bounce rate{' '}
+                                {c.analytics.rates.bounce === null ? 'N/A' : c.analytics.rates.bounce + '%'} · Delivery rate{' '}
+                                {c.analytics.rates.delivery === null ? 'N/A' : c.analytics.rates.delivery + '%'}
+                            </p>
+                            <p className="mt-2 text-xs">
+                                Tracked open rate {c.analytics.rates.unique_open === null ? 'N/A' : c.analytics.rates.unique_open + '%'} · Tracked
+                                click rate {c.analytics.rates.unique_click === null ? 'N/A' : c.analytics.rates.unique_click + '%'}
+                            </p>
+                            <progress
+                                aria-label={`Delivery progress ${c.name}`}
+                                className="mt-3 h-2 w-full accent-indigo-600"
+                                value={c.analytics.counts.delivered}
+                                max={Math.max(1, c.analytics.counts.eligible_recipients)}
+                            />
+                        </Link>
+                    ))}
+                </div>
+            </Panel>
+            {alerts.length > 0 && (
+                <Panel title="Recent provider alerts">
+                    {alerts.map((a) => (
+                        <p key={a.id} className="py-2 text-sm">
+                            {a.type} · Campaign {a.campaign_id} · {a.occurred_at ? new Date(a.occurred_at).toLocaleString() : ''}
+                        </p>
+                    ))}
+                </Panel>
+            )}
             <div className="grid gap-6 lg:grid-cols-2">
                 <Panel title="Recent campaigns">
                     <div className="space-y-3">

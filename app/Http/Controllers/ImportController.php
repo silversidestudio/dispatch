@@ -42,7 +42,7 @@ class ImportController extends Controller
     {
         Gate::authorize('view', $organisation);
         abort_unless($import->organisation_id === $organisation->id, 404);
-        [$headers,$rows] = app(CsvImportService::class)->read($import->path);
+        [$headers,$rows] = Storage::exists($import->path) ? app(CsvImportService::class)->read($import->path) : [$import->headers, []];
         $sample = array_map(function ($row) use ($organisation, $headers) {
             $emails = array_filter($row, fn ($v) => filter_var($v, FILTER_VALIDATE_EMAIL));
 
@@ -75,7 +75,7 @@ class ImportController extends Controller
             ProcessContactImport::dispatch($i->id)->afterCommit();
         });
 
-        return back()->with('success', 'Import queued. New contacts remain ineligible until evidence is recorded.');
+        return redirect("/organisations/$organisation->id/imports/$import->id")->with('success', 'Import queued. New contacts remain ineligible until evidence is recorded.');
     }
 
     public function errors(Organisation $organisation, ContactImport $import)

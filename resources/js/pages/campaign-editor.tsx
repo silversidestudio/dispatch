@@ -25,6 +25,9 @@ export default function Editor({
     const footer =
         '<h1>Hello {{first_name}}</h1><p>Write something useful for your audience.</p><p>{{sender_name}} · {{sender_address}}</p><p><a href="{{unsubscribe_url}}">Unsubscribe</a></p>';
     const f = useForm({
+        delivery_mode: campaign?.delivery_mode ?? 'simulation',
+        open_tracking: campaign?.open_tracking ?? false,
+        click_tracking: campaign?.click_tracking ?? false,
         name: campaign?.name ?? '',
         subject: campaign?.subject ?? '',
         preview_text: campaign?.preview_text ?? '',
@@ -77,6 +80,26 @@ export default function Editor({
                                 </option>
                             ))}
                         </Select>
+                    </div>
+                </Panel>
+                <Panel
+                    title="Provider and privacy controls"
+                    description="Live sending requires verified identity, explicit confirmation and separately approved configuration. Tracking requires a documented company review."
+                >
+                    <Select label="Delivery mode" value={f.data.delivery_mode} change={(v) => f.setData('delivery_mode', v)}>
+                        <option value="simulation">Local simulation</option>
+                        <option value="sendgrid_sandbox">SendGrid sandbox validation</option>
+                        <option value="sendgrid_live">SendGrid live (approval required)</option>
+                    </Select>
+                    <div className="mt-4 flex flex-wrap gap-4">
+                        <label className="flex gap-2 text-sm">
+                            <input type="checkbox" checked={f.data.open_tracking} onChange={(e) => f.setData('open_tracking', e.target.checked)} />
+                            Enable tracked opens
+                        </label>
+                        <label className="flex gap-2 text-sm">
+                            <input type="checkbox" checked={f.data.click_tracking} onChange={(e) => f.setData('click_tracking', e.target.checked)} />
+                            Enable tracked clicks
+                        </label>
                     </div>
                 </Panel>
                 <Panel

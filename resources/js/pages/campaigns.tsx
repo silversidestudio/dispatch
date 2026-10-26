@@ -3,6 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Panel, Workspace } from '@/components/workspace';
 import { Link } from '@inertiajs/react';
 export type Campaign = {
+    delivery_mode: string;
+    open_tracking: boolean;
+    click_tracking: boolean;
     id: number;
     name: string;
     subject: string;
@@ -22,7 +25,7 @@ export default function Campaigns({ company, campaigns, canManage }: { company: 
     return (
         <Workspace
             title="Campaigns"
-            subtitle={`${company.name} · Prepare, preview and simulate. No real marketing email is sent.`}
+            subtitle={`${company.name} · Prepare, preview and schedule with explicit provider controls.`}
             actions={
                 canManage && (
                     <Button asChild>

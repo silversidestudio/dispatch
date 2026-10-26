@@ -1,11 +1,17 @@
 <?php
 
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AudienceController as A;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ContactController as C;
+use App\Http\Controllers\ContactPrivacyController;
 use App\Http\Controllers\ContentController;
 use App\Http\Controllers\ImportController as I;
+use App\Http\Controllers\ProviderController;
+use App\Http\Controllers\SendGridWebhookController;
 use App\Http\Controllers\UnsubscribeController;
+use App\Services\UnsubscribeService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')->group(function () {
@@ -56,9 +62,42 @@ Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')-
     Route::post('campaigns/{campaign}/ready', [$c, 'ready']);
     Route::post('campaigns/{campaign}/schedule', [$c, 'schedule']);
     Route::post('campaigns/{campaign}/cancel', [$c, 'cancel']);
+    Route::post('campaigns/{campaign}/prepare-test', [$c, 'prepareTest'])->middleware('throttle:10,1');
     Route::post('campaigns/{campaign}/duplicate', [$c, 'duplicate']);
     Route::get('campaigns/{campaign}/preview', [$c, 'preview']);
-    Route::get('campaigns/{campaign}/recipients/{recipient}/unsubscribe',[$c, 'unsubscribe']);
-    Route::get('audience-preview',[$c, 'audience']);
-    Route::get('reports',[$c, 'reporting']);
+    Route::get('campaigns/{campaign}/recipients/{recipient}/unsubscribe', [$c, 'unsubscribe']);
+    Route::get('audience-preview', [$c, 'audience']);
+    Route::get('reports', [$c, 'reporting']);
+});
+Route::post('/webhooks/sendgrid', SendGridWebhookController::class)->middleware('throttle:300,1');
+Route::get('/one-click/{token}', fn () => response('Use the visible unsubscribe link to confirm your preference.', 200))->middleware(['signed:relative', 'throttle:30,1'])->name('unsubscribe.oneclick');
+Route::post('/one-click/{token}', function (Request $request, string $token) {
+    abort_unless($request->input('List-Unsubscribe') === 'One-Click', 422);
+    try {
+        app(UnsubscribeService::class)->apply($token);
+    } catch (Throwable) {
+        abort(404);
+    }
+
+    return response('', 204);
+})->middleware(['signed:relative', 'throttle:30,1']);
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('/platform/companies/{organisation}/identities/{identity}/verify', [ProviderController::class, 'verify']);
+    Route::post('/organisations/{organisation}/tracking-review', [ProviderController::class, 'tracking']);
+    Route::post('/organisations/{organisation}/attempts/{attempt}/reconcile', [ProviderController::class, 'reconcile']);
+});
+Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')->group(function () {
+    $a = AnalyticsController::class;
+    Route::get('campaign-comparison', [$a, 'comparison']);
+    Route::get('campaigns/{campaign}/analytics', [$a, 'show']);
+    Route::get('campaigns/{campaign}/analytics/export', [$a, 'export']);
+    Route::get('campaigns/{campaign}/activity/{recipient}', [$a, 'recipient']);
+});
+Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')->group(function () {
+    Route::post('campaigns/{campaign}/pause', [CampaignController::class, 'pause']);
+    Route::post('campaigns/{campaign}/resume', [CampaignController::class, 'resume']);
+});
+Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}/contacts/{contact}')->group(function () {
+    Route::get('privacy-export', [ContactPrivacyController::class, 'export']);
+    Route::post('erase', [ContactPrivacyController::class, 'erase']);
 });

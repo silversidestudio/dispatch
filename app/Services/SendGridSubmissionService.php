@@ -26,7 +26,7 @@ class SendGridSubmissionService
         $attempt = DB::transaction(function () use ($initial) {
             $c = Campaign::whereKey($initial->campaign_id)->lockForUpdate()->firstOrFail();
             $r = CampaignRecipient::whereKey($initial->id)->lockForUpdate()->firstOrFail();
-            if ($c->status !== 'processing' || ! in_array($r->status, ['pending', 'deferred']) || ($r->next_attempt_at && $r->next_attempt_at->isFuture())) {
+            if ($r->organisation_id !== $c->organisation_id || $c->status !== 'processing' || ! in_array($r->status, ['pending', 'deferred']) || ($r->next_attempt_at && $r->next_attempt_at->isFuture())) {
                 return null;
             }
             if (Organisation::whereKey($c->organisation_id)->value('status') !== 'active') {
@@ -71,7 +71,7 @@ class SendGridSubmissionService
         $r = $initial->fresh();
         $c = Campaign::findOrFail($r->campaign_id);
         $contact = Contact::where('organisation_id', $r->organisation_id)->find($r->contact_id);
-        if ($c->status !== 'processing' || ! $contact || $contact->email !== $r->email || ! app(EligibilityService::class)->eligible($contact) || app(ProviderReadiness::class)->errors($c, true)) {
+        if ($c->status !== 'processing' || Organisation::whereKey($c->organisation_id)->value('status') !== 'active' || ! $contact || $contact->email !== $r->email || ! app(EligibilityService::class)->eligible($contact) || app(ProviderReadiness::class)->errors($c, true)) {
             $this->finish($attempt, new SubmissionResult('not_submitted', '', null, 'pre_submission_guard'));
 
             return;
@@ -80,7 +80,11 @@ class SendGridSubmissionService
         $values = [...$r->personalisation, 'sender_name' => $c->snapshot['sender_name'], 'sender_address' => $c->snapshot['sender_address'], 'unsubscribe_url' => $c->snapshot['unsubscribe_base'].$unsubscribe->url($contact, $r)];
         $content = app(EmailContentService::class);
         $oneClick = $c->snapshot['unsubscribe_base'].$unsubscribe->oneClickUrl($contact, $r);
-        $message = new DeliveryMessage($attempt->correlation_id, $r->email, $c->snapshot['sender_email'], $c->snapshot['subject'], $content->render($c->snapshot['html'], $values), $content->personaliseText($c->snapshot['text_body'], $values), $c->snapshot['reply_to'] ?? null, $c->snapshot['delivery_mode'] === 'sendgrid_sandbox', (bool) $c->live_authorised_at, (bool) $c->snapshot['open_tracking'], (bool) $c->snapshot['click_tracking'], ['List-Unsubscribe' => '<'.$oneClick.'>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'], $c->snapshot['sender_name']);
+        $plain = $content->personaliseText($c->snapshot['text_body'], $values);
+        if (! str_contains($c->snapshot['text_body'], '{{sender_address}}')) {
+            $plain .= "\n\n".$c->snapshot['sender_name']."\n".$c->snapshot['sender_address'];
+        }
+        $message = new DeliveryMessage($attempt->correlation_id, $r->email, $c->snapshot['sender_email'], $c->snapshot['subject'], $content->render($c->snapshot['html'], $values), $plain, $c->snapshot['reply_to'] ?? null, $c->snapshot['delivery_mode'] === 'sendgrid_sandbox', (bool) $c->live_authorised_at, (bool) $c->snapshot['open_tracking'], (bool) $c->snapshot['click_tracking'], ['List-Unsubscribe' => '<'.$oneClick.'>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'], $c->snapshot['sender_name']);
         try {
             $result = app(SendGridDeliveryProvider::class)->submit($message, $attempt->number);
         } catch (\Throwable) {
@@ -97,6 +101,13 @@ class SendGridSubmissionService
             $r = CampaignRecipient::whereKey($initial->id)->lockForUpdate()->firstOrFail();
             $a = DeliveryAttempt::whereKey($attempt->id)->lockForUpdate()->firstOrFail();
             // A signed webhook can establish acceptance before the HTTP acknowledgement is persisted.
+            if ($a->outcome === 'accepted') {
+                if ($result->httpStatus) {
+                    $a->update(['http_status' => $result->httpStatus, 'finished_at' => now()]);
+                }
+
+                return $c->id;
+            }
             if (! in_array($a->outcome, ['submitting', 'uncertain'])) {
                 return $c->id;
             }
@@ -119,7 +130,7 @@ class SendGridSubmissionService
                 DeliverRecipient::dispatch($r->id)->delay($next)->afterCommit();
             }
 
-return $c->id;
+            return $c->id;
         });
         app(CampaignService::class)->complete($campaignId);
     }
@@ -140,7 +151,7 @@ return $c->id;
                 $r->update(['status' => 'failed']);
             }
             $a->update(['outcome' => $decision, 'diagnostic_code' => 'manually_reconciled']);
-            AuditLog::record('submission.reconciled',$c->organisation_id,['attempt_id' => $a->id, 'decision' => $decision, 'evidence' => $evidence]);
+            AuditLog::record('submission.reconciled', $c->organisation_id, ['attempt_id' => $a->id, 'decision' => $decision, 'evidence' => $evidence]);
         });
     }
 }

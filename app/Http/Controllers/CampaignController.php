@@ -15,13 +15,16 @@ use App\Models\Segment;
 use App\Models\SendingIdentity;
 use App\Services\AudienceService;
 use App\Services\CampaignService;
+use App\Services\EligibilityService;
 use App\Services\EmailContentService;
 use App\Services\UnsubscribeService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class CampaignController extends Controller
@@ -89,6 +92,9 @@ class CampaignController extends Controller
     {
         $this->scope($organisation, $campaign);
         $stats = $this->stats($campaign);
+        if (($campaign->snapshot['delivery_mode'] ?? $campaign->delivery_mode) !== 'simulation') {
+            $stats = ['original_audience' => $campaign->audience_count, 'eligible_recipients' => $campaign->recipients()->count(), 'excluded' => $campaign->excluded_count, 'provider_attempts' => $stats['simulated_attempts'], 'api_acceptances' => $campaign->recipients()->where('status', 'accepted')->count(), 'uncertain' => $campaign->recipients()->where('status', 'uncertain')->count(), 'sandbox_validated' => $campaign->recipients()->where('status', 'sandbox_validated')->count()];
+        }
 
         return Inertia::render('campaign-detail', ['company' => $organisation, 'campaign' => $campaign, 'preflight' => app(CampaignService::class)->preflight($campaign), 'stats' => $stats, 'recipients' => $campaign->recipients()->orderBy('id')->paginate(25), 'events' => DeliveryEvent::where('organisation_id', $organisation->id)->where('campaign_id', $campaign->id)->latest('id')->limit(30)->get(), 'history' => AuditLog::where('organisation_id', $organisation->id)->where('metadata->campaign_id', $campaign->id)->orderBy('id')->get(), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
     }
@@ -107,7 +113,7 @@ class CampaignController extends Controller
         $this->scope($organisation, $campaign, 'manageCampaigns');
         app(CampaignService::class)->ready($campaign);
 
-        return back()->with('success', 'Campaign is ready for simulation.');
+        return back()->with('success', 'Campaign is ready for the selected delivery mode.');
     }
 
     public function schedule(Request $r, Organisation $organisation, Campaign $campaign)
@@ -117,7 +123,7 @@ class CampaignController extends Controller
         $when = isset($d['scheduled_at']) ? Carbon::parse($d['scheduled_at']) : now();
         app(CampaignService::class)->schedule($campaign, $when, ($d['confirmation'] ?? '') === 'SEND');
 
-        return back()->with('success', 'Immutable recipient and content snapshot created. Local simulation scheduled.');
+        return back()->with('success', 'Immutable recipient and content snapshot created for the selected provider mode.');
     }
 
     public function pause(Organisation $organisation, Campaign $campaign)
@@ -141,7 +147,29 @@ class CampaignController extends Controller
         $this->scope($organisation, $campaign, 'manageCampaigns');
         app(CampaignService::class)->cancel($campaign);
 
-        return back()->with('success', 'Campaign cancelled. Previously simulated attempts remain in history.');
+        return back()->with('success', 'Campaign cancelled. Recorded attempts remain in history.');
+    }
+
+    public function prepareTest(Request $r, Organisation $organisation, Campaign $campaign)
+    {
+        $this->scope($organisation, $campaign, 'manageCampaigns');
+        $d = $r->validate(['email' => 'required|email:rfc|max:254', 'mode' => 'required|in:simulation,sendgrid_sandbox', 'confirmation' => 'required|in:PREPARE']);
+        $contact = Contact::where('organisation_id', $organisation->id)->where('email', strtolower(trim($d['email'])))->first();
+        if (! $contact || ! app(EligibilityService::class)->eligible($contact)) {
+            throw ValidationException::withMessages(['email' => 'Choose an existing eligible, unsuppressed company contact with permission for this test.']);
+        }
+        $copy = DB::transaction(function () use ($campaign, $organisation, $contact, $d) {
+            $list = MailingList::create(['organisation_id' => $organisation->id, 'name' => 'Test audience '.Str::uuid(), 'description' => 'Explicit single-recipient test audience; membership does not establish eligibility.']);
+            $list->contacts()->attach($contact->id);
+            $copy = $campaign->replicate(['snapshot', 'scheduled_at', 'completed_at', 'live_authorised_at']);
+            $copy->fill(['name' => mb_substr('TEST — '.$campaign->name, 0, 120), 'status' => 'draft', 'audience_type' => 'list', 'audience_id' => $list->id, 'audience_count' => 0, 'excluded_count' => 0, 'delivery_mode' => $d['mode'], 'open_tracking' => false, 'click_tracking' => false, 'created_by' => auth()->id()]);
+            $copy->save();
+            AuditLog::record('campaign.test_prepared', $organisation->id, ['campaign_id' => $copy->id, 'source_campaign_id' => $campaign->id, 'contact_id' => $contact->id, 'mode' => $d['mode']]);
+
+            return $copy;
+        });
+
+        return redirect("/organisations/$organisation->id/campaigns/$copy->id")->with('success', 'Single-recipient test draft prepared. Review, mark ready and schedule explicitly; no request has been submitted.');
     }
 
     public function duplicate(Organisation $organisation, Campaign $campaign)
@@ -191,6 +219,6 @@ class CampaignController extends Controller
         Gate::authorize('view', $organisation);
         $campaigns = Campaign::where('organisation_id', $organisation->id)->whereNotNull('snapshot')->latest()->limit(30)->get();
 
-        return Inertia::render('reports', ['company' => $organisation, 'reports' => $campaigns->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'status' => $c->status, 'date' => $c->created_at, ...$this->stats($c)])]);
+        return Inertia::render('reports', ['company' => $organisation, 'reports' => $campaigns->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'status' => $c->status, 'mode' => $c->snapshot['delivery_mode'] ?? 'simulation', 'date' => $c->created_at, ...$this->stats($c)])]);
     }
 }

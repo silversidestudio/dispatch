@@ -1,4 +1,4 @@
-import { Company, Field, Metrics, Page, Pages } from '@/components/marketing';
+import { Company, Field, Metrics, Page, Pages, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
 import { SharedData } from '@/types';
@@ -17,15 +17,24 @@ export default function Detail({
 }: {
     company: Company;
     campaign: Campaign;
-    preflight: { errors: string[]; total: number; eligible: number; excluded: number };
+    preflight: {
+        sender: string;
+        postal_address: string | null;
+        tracking: { open: boolean; click: boolean };
+        errors: string[];
+        total: number;
+        eligible: number;
+        excluded: number;
+    };
     stats: Record<string, number>;
     recipients: Page<{ id: number; email: string; status: string; attempt_count: number }>;
-    events: { id: number; type: string; created_at: string }[];
+    events: { id: number; type: string; created_at: string; simulated: boolean }[];
     history: { id: number; action: string; created_at: string }[];
     canManage: boolean;
 }) {
     const base = `/organisations/${company.id}/campaigns/${campaign.id}`;
-    const f = useForm({ scheduled_at: '' });
+    const f = useForm({ scheduled_at: '', confirmation: '' });
+    const test = useForm({ email: '', mode: 'simulation', confirmation: 'PREPARE' });
     const [mobile, setMobile] = useState(false);
     const [link, setLink] = useState('');
     const { errors } = usePage<SharedData>().props;
@@ -37,7 +46,7 @@ export default function Detail({
     return (
         <Workspace
             title={campaign.name}
-            subtitle={`${campaign.status.toUpperCase()} · Local simulation only · ${campaign.subject}`}
+            subtitle={`${campaign.status.toUpperCase()} · ${campaign.delivery_mode === 'simulation' ? 'Local simulation only' : campaign.delivery_mode} · ${campaign.subject}`}
             actions={
                 canManage && (
                     <div className="flex flex-wrap gap-2">
@@ -46,10 +55,23 @@ export default function Detail({
                                 <Link href={base + '/edit'}>Edit draft</Link>
                             </Button>
                         )}
+                        <Button variant="outline" asChild>
+                            <Link href={base + '/analytics'}>Campaign analytics</Link>
+                        </Button>
+                        {['scheduled', 'processing'].includes(campaign.status) && (
+                            <Button variant="outline" onClick={() => router.post(base + '/pause')}>
+                                Pause
+                            </Button>
+                        )}
+                        {campaign.status === 'paused' && (
+                            <Button variant="outline" onClick={() => router.post(base + '/resume')}>
+                                Resume
+                            </Button>
+                        )}
                         <Button variant="outline" onClick={() => router.post(base + '/duplicate')}>
                             Duplicate
                         </Button>
-                        {['draft', 'ready', 'scheduled', 'processing'].includes(campaign.status) && (
+                        {['draft', 'ready', 'scheduled', 'processing', 'paused'].includes(campaign.status) && (
                             <Button
                                 variant="outline"
                                 onClick={() => {
@@ -64,8 +86,58 @@ export default function Detail({
             }
         >
             <Errors errors={errors as Record<string, string>} />
+            {canManage && (
+                <Panel
+                    title="Single-recipient test"
+                    description="Prepare a separate test draft for an existing eligible contact. Simulation stays local; sandbox requires configured SendGrid and does not deliver. Nothing is submitted until the separate review and scheduling confirmation."
+                >
+                    <form
+                        className="grid items-end gap-3 md:grid-cols-3"
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            test.post(base + '/prepare-test');
+                        }}
+                    >
+                        <Field label="Test recipient email" type="email" value={test.data.email} change={(v) => test.setData('email', v)} />
+                        <Select label="Test mode" value={test.data.mode} change={(v) => test.setData('mode', v)}>
+                            <option value="simulation">Local simulation</option>
+                            <option value="sendgrid_sandbox">SendGrid sandbox validation</option>
+                        </Select>
+                        <Button disabled={test.processing}>Prepare test draft</Button>
+                        <Errors errors={test.errors} />
+                    </form>
+                </Panel>
+            )}
+            <Panel title="Final campaign review">
+                <dl className="grid gap-4 text-sm md:grid-cols-2">
+                    <div>
+                        <dt className="text-muted-foreground">Sender</dt>
+                        <dd>{preflight.sender}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-muted-foreground">Subject</dt>
+                        <dd>{campaign.subject}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-muted-foreground">Audience and estimated volume</dt>
+                        <dd>
+                            {preflight.total} contacts · {preflight.eligible} eligible · {preflight.excluded} excluded
+                        </dd>
+                    </div>
+                    <div>
+                        <dt className="text-muted-foreground">Tracking</dt>
+                        <dd>
+                            Opens {preflight.tracking.open ? 'enabled' : 'disabled'} · Clicks {preflight.tracking.click ? 'enabled' : 'disabled'}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt className="text-muted-foreground">Unsubscribe and sender identification</dt>
+                        <dd>Visible footer + signed one-click headers · {preflight.postal_address ?? 'Postal address missing'}</dd>
+                    </div>
+                </dl>
+            </Panel>
             <Metrics data={stats} />
-            {stats.eligible_at_snapshot > 0 && (
+            {campaign.delivery_mode === 'simulation' && stats.eligible_at_snapshot > 0 && (
                 <Panel
                     title="Simulated recipient outcomes"
                     description="Counts use unique snapshotted recipients; retries do not increase the recipient denominator."
@@ -108,7 +180,7 @@ export default function Detail({
                         </ul>
                     ) : (
                         <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                            Pre-flight checks pass for local simulation. Sender identity remains unverified.
+                            Pre-flight checks pass for the selected mode. Live delivery still requires explicit confirmation and launch approval.
                         </p>
                     )}
                     {canManage && campaign.status === 'draft' && (
@@ -122,7 +194,7 @@ export default function Detail({
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 const utc = f.data.scheduled_at ? new Date(f.data.scheduled_at).toISOString() : '';
-                                router.post(base + '/schedule', { scheduled_at: utc });
+                                router.post(base + '/schedule', { scheduled_at: utc, confirmation: f.data.confirmation });
                             }}
                         >
                             <Field
@@ -131,7 +203,14 @@ export default function Detail({
                                 value={f.data.scheduled_at}
                                 change={(v) => f.setData('scheduled_at', v)}
                             />
-                            <Button>Schedule simulation</Button>
+                            <Field label="Type SEND for live delivery" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
+                            <Button>
+                                {campaign.delivery_mode === 'simulation'
+                                    ? 'Schedule simulation'
+                                    : campaign.delivery_mode === 'sendgrid_sandbox'
+                                      ? 'Schedule sandbox validation'
+                                      : 'Confirm and schedule live sending'}
+                            </Button>
                             <p className="text-muted-foreground w-full text-xs">
                                 Leave blank to initiate now. Scheduling freezes the audience and email content.
                             </p>
@@ -151,7 +230,10 @@ export default function Detail({
                     className={`mx-auto mt-5 h-[600px] max-w-full border bg-white ${mobile ? 'w-[375px]' : 'w-full'}`}
                 />
             </Panel>
-            <Panel title="Recipient snapshot" description="Accepted means simulated server acceptance, never inbox placement.">
+            <Panel
+                title="Recipient snapshot"
+                description="Submission acceptance does not establish receiving-server delivery or inbox placement. See analytics for provider evidence."
+            >
                 <div className="overflow-auto">
                     <table className="w-full text-left text-sm">
                         <thead>
@@ -197,10 +279,10 @@ export default function Detail({
                 )}
             </Panel>
             <div className="grid gap-6 lg:grid-cols-2">
-                <Panel title="Simulated delivery events">
+                <Panel title={campaign.delivery_mode === 'simulation' ? 'Simulated delivery events' : 'Submission and provider events'}>
                     {events.map((e) => (
                         <p className="border-b py-3 text-sm" key={e.id}>
-                            Simulated {e.type} · {new Date(e.created_at).toLocaleString()}
+                            {e.simulated ? 'Simulated' : 'SendGrid'} {e.type} · {new Date(e.created_at).toLocaleString()}
                         </p>
                     ))}
                     {!events.length && <p className="text-muted-foreground text-sm">No delivery events yet.</p>}

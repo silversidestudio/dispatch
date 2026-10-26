@@ -58,7 +58,7 @@ class ContactController extends Controller
         Gate::authorize('view', $organisation);
         abort_unless($contact->organisation_id === $organisation->id, 404);
 
-        return Inertia::render('contact-detail', ['company' => $organisation, 'contact' => $contact, 'eligible' => app(EligibilityService::class)->eligible($contact), 'canManage' => Gate::allows('manageCampaigns', $organisation), 'evidence' => EligibilityRecord::where('organisation_id', $organisation->id)->where('contact_id', $contact->id)->latest('id')->get(), 'suppression' => Suppression::where('organisation_id', $organisation->id)->where('email', $contact->email)->first(), 'history' => AuditLog::where('organisation_id', $organisation->id)->where('metadata->contact_id', $contact->id)->latest('id')->limit(40)->get()]);
+        return Inertia::render('contact-detail', ['company' => $organisation, 'contact' => $contact, 'eligible' => app(EligibilityService::class)->eligible($contact), 'canManage' => Gate::allows('manageCampaigns', $organisation), 'canPrivacy' => Gate::allows('update', $organisation), 'evidence' => EligibilityRecord::where('organisation_id', $organisation->id)->where('contact_id', $contact->id)->latest('id')->get(), 'suppression' => Suppression::where('organisation_id', $organisation->id)->where('email', $contact->email)->first(), 'history' => AuditLog::where('organisation_id', $organisation->id)->where('metadata->contact_id', $contact->id)->latest('id')->limit(40)->get()]);
     }
 
     public function update(Request $r, Organisation $organisation, Contact $contact)
@@ -116,11 +116,11 @@ class ContactController extends Controller
                 if ($d['action'] === 'archive') {
                     $c->update(['status' => 'archived']);
                 } else {
-                    app(EligibilityService::class)->suppress($c,'administratively_blocked','Bulk administrative suppression.');
-                }AuditLog::record('contact.'.$d['action'],$organisation->id,['contact_id' => $c->id]);
+                    app(EligibilityService::class)->suppress($c, 'administratively_blocked', 'Bulk administrative suppression.');
+                }AuditLog::record('contact.'.$d['action'], $organisation->id, ['contact_id' => $c->id]);
             }
         });
 
-        return back()->with('success','Selected contacts updated.');
+        return back()->with('success', 'Selected contacts updated.');
     }
 }

@@ -42,7 +42,7 @@ class CsvImportService
                 }
             }
 
-return [$headers, $rows];
+            return [$headers, $rows];
         } finally {
             fclose($h);
         }
@@ -50,7 +50,7 @@ return [$headers, $rows];
 
     public function process(ContactImport $import): void
     {
-        if ($import->status === 'completed' || $import->status === 'preview') {
+        if (in_array($import->status, ['completed', 'erased']) || $import->status === 'preview') {
             return;
         }
         if (Organisation::whereKey($import->organisation_id)->value('status') !== 'active') {
@@ -89,6 +89,6 @@ return [$headers, $rows];
             });
         }
         $import->update(['status' => 'completed', 'failure' => null]);
-        AuditLog::record('import.completed',$import->organisation_id,['import_id' => $import->id]);
+        AuditLog::record('import.completed', $import->organisation_id, ['import_id' => $import->id]);
     }
 }

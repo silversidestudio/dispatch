@@ -8,6 +8,7 @@ use App\Models\Contact;
 use App\Models\DeliveryAttempt;
 use App\Models\DeliveryEvent;
 use App\Models\Organisation;
+use App\Models\SendingIdentity;
 use App\Models\User;
 use App\Services\MembershipService;
 use Illuminate\Http\Request;
@@ -42,7 +43,7 @@ class PlatformCompanyController extends Controller
     {
         Gate::authorize('platform');
 
-        return Inertia::render('platform-company', ['company' => $organisation, 'counts' => ['contacts' => Contact::where('organisation_id', $organisation->id)->count(), 'campaigns' => Campaign::where('organisation_id', $organisation->id)->count(), 'simulated_attempts' => DeliveryAttempt::where('organisation_id', $organisation->id)->count()], 'deliveryActivity' => DeliveryEvent::where('organisation_id', $organisation->id)->selectRaw('type, COUNT(*) as total')->groupBy('type')->get(), 'members' => $organisation->members()->get(['users.id', 'name', 'email', 'status'])->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'status' => $u->status, 'role' => $u->pivot->role]), 'invites' => DB::table('organisation_invitations')->where('organisation_id', $organisation->id)->get(['id', 'email', 'role', 'expires_at']), 'audit' => AuditLog::where('organisation_id', $organisation->id)->latest('id')->limit(30)->get(), 'userOptions' => User::where('status', 'active')->orderBy('name')->get(['id', 'name', 'email'])]);
+        return Inertia::render('platform-company', ['sendingIdentities' => SendingIdentity::where('organisation_id', $organisation->id)->get(), 'company' => $organisation, 'counts' => ['contacts' => Contact::where('organisation_id', $organisation->id)->count(), 'campaigns' => Campaign::where('organisation_id', $organisation->id)->count(), 'simulated_attempts' => DeliveryAttempt::where('organisation_id', $organisation->id)->count()], 'deliveryActivity' => DeliveryEvent::where('organisation_id', $organisation->id)->selectRaw('type, simulated, COUNT(*) as total')->groupBy('type', 'simulated')->get(), 'members' => $organisation->members()->get(['users.id', 'name', 'email', 'status'])->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'status' => $u->status, 'role' => $u->pivot->role]), 'invites' => DB::table('organisation_invitations')->where('organisation_id', $organisation->id)->get(['id', 'email', 'role', 'expires_at']), 'audit' => AuditLog::where('organisation_id', $organisation->id)->latest('id')->limit(30)->get(), 'userOptions' => User::where('status', 'active')->orderBy('name')->get(['id', 'name', 'email'])]);
     }
 
     public function update(Request $r, Organisation $organisation)
