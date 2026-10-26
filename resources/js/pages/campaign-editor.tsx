@@ -157,7 +157,7 @@ export default function Editor({
                                 </option>
                             ))}
                         </Select>
-                        <EmailEditor value={f.data.html} onChange={(v) => f.setData('html', v)} />
+                        <EmailEditor buttonColour={company.email_branding?.button_color} value={f.data.html} onChange={(v) => f.setData('html', v)} />
                         <label className="block text-sm font-medium">
                             Plain-text alternative
                             <textarea

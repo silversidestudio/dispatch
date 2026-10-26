@@ -1,3 +1,4 @@
+import { EmailBranding, type Branding } from '@/components/email-branding';
 import { TrackingReview } from '@/components/provider-controls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,7 @@ import { Errors, Panel, Workspace } from '@/components/workspace';
 import { SharedData } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/react';
 type Props = {
-    organisation: { id: number; name: string; website: string | null; postal_address: string | null };
+    organisation: { id: number; name: string; website: string | null; postal_address: string | null; email_branding?: Branding | null };
     canUpdate: boolean;
     canManageMembers: boolean;
     members: { id: number; name: string; email: string; role: string }[];
@@ -45,6 +46,7 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                     {canUpdate && <Button disabled={f.processing}>Save changes</Button>}
                 </form>
             </Panel>
+            <EmailBranding id={organisation.id} branding={organisation.email_branding} canUpdate={canUpdate} />
             {canManageMembers && (
                 <>
                     <Panel title="Members" description="Only the owner can grant or change membership roles.">

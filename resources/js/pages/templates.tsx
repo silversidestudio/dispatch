@@ -1,8 +1,29 @@
+import { EmailPreview } from '@/components/email-preview';
 import { Company } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
-import { Panel, Workspace } from '@/components/workspace';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Workspace } from '@/components/workspace';
 import { Link, router } from '@inertiajs/react';
+import { ArrowUpRight, Copy, Eye, FilePlus2, Pencil, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 export type Template = { id: number; name: string; category: string; subject: string; preview_text: string | null; html: string; text_body: string };
+type Starter = { name: string; category: string; subject: string; description: string; html: string; text_body: string };
+function Thumbnail({ src, name }: { src: string; name: string }) {
+    return (
+        <div className="relative h-52 overflow-hidden border-b bg-slate-100" aria-hidden="true">
+            <iframe
+                title={`${name} thumbnail`}
+                src={src}
+                sandbox=""
+                referrerPolicy="no-referrer"
+                tabIndex={-1}
+                loading="lazy"
+                className="pointer-events-none absolute top-0 left-1/2 h-[760px] w-[600px] origin-top -translate-x-1/2 scale-[0.48] border-0 bg-white"
+            />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-linear-to-t from-slate-100/80 to-transparent" />
+        </div>
+    );
+}
 export default function Templates({
     company,
     templates,
@@ -11,39 +32,185 @@ export default function Templates({
 }: {
     company: Company;
     templates: Template[];
-    starters: { name: string; category: string; subject: string }[];
+    starters: Starter[];
     canManage: boolean;
 }) {
     const base = `/organisations/${company.id}/templates`;
+    const [preview, setPreview] = useState<{ src: string; name: string; subject: string; text: string; previewText: string | null } | null>(null);
+    const [filter, setFilter] = useState('All designs');
+    const categories = ['All designs', ...new Set(starters.map((s) => s.category))];
     return (
-        <Workspace title="Email templates" subtitle="Reusable, company-specific content. Original starter designs are included.">
-            <Panel title="Your library">
-                <div className="grid gap-4 md:grid-cols-3">
+        <Workspace
+            title="Email templates"
+            subtitle="Thoughtful starting points. Your brand, your message, beautifully presented."
+            actions={
+                canManage && (
+                    <Button onClick={() => router.post(base + '/starter', { starter: 4 })}>
+                        <FilePlus2 className="mr-2 size-4" />
+                        Create a template
+                    </Button>
+                )
+            }
+        >
+            <section className="min-w-0">
+                <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                        <h2 className="text-lg font-semibold">Your library</h2>
+                        <p className="text-muted-foreground mt-1 text-sm">Saved designs, ready for your next campaign.</p>
+                    </div>
+                    <span className="text-muted-foreground text-sm">
+                        {templates.length} {templates.length === 1 ? 'template' : 'templates'}
+                    </span>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                     {templates.map((t) => (
-                        <Link className="hover:bg-muted/20 rounded-xl border p-5" href={`${base}/${t.id}`} key={t.id}>
-                            <p className="text-muted-foreground text-xs tracking-wide uppercase">{t.category}</p>
-                            <h2 className="mt-3 font-semibold">{t.name}</h2>
-                            <p className="text-muted-foreground mt-2 text-sm">{t.subject}</p>
-                        </Link>
+                        <article key={t.id} className="bg-card min-w-0 overflow-hidden rounded-xl border shadow-xs">
+                            <Thumbnail src={`${base}/${t.id}/preview`} name={t.name} />
+                            <div className="space-y-4 p-5">
+                                <div>
+                                    <p className="text-muted-foreground text-[11px] font-medium tracking-widest uppercase">{t.category}</p>
+                                    <h3 className="mt-2 font-semibold break-words">{t.name}</h3>
+                                    <p className="text-muted-foreground mt-2 line-clamp-2 text-sm">{t.preview_text || t.subject}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                            setPreview({
+                                                src: `${base}/${t.id}/preview`,
+                                                name: t.name,
+                                                subject: t.subject,
+                                                text: t.text_body ?? '',
+                                                previewText: t.preview_text,
+                                            })
+                                        }
+                                    >
+                                        <Eye className="mr-2 size-3.5" />
+                                        Preview
+                                    </Button>
+                                    <Button variant="outline" size="sm" asChild>
+                                        <Link href={`${base}/${t.id}`}>
+                                            <Pencil className="mr-2 size-3.5" />
+                                            {canManage ? 'Edit' : 'View'}
+                                        </Link>
+                                    </Button>
+                                    {canManage && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            aria-label={`Duplicate ${t.name}`}
+                                            onClick={() => router.post(`${base}/${t.id}/duplicate`)}
+                                        >
+                                            <Copy className="size-3.5" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </article>
                     ))}
                 </div>
-                {!templates.length && <p className="text-muted-foreground py-8 text-center">Start with an original design below.</p>}
-            </Panel>
-            {canManage && (
-                <Panel title="Original starter templates">
-                    <div className="grid gap-4 md:grid-cols-3">
-                        {starters.map((s, i) => (
-                            <div className="rounded-xl border p-5" key={s.name}>
-                                <p className="text-muted-foreground text-xs">{s.category}</p>
-                                <h3 className="my-3 font-semibold">{s.name}</h3>
-                                <Button variant="outline" onClick={() => router.post(base + '/starter', { starter: i })}>
-                                    Use template
-                                </Button>
-                            </div>
-                        ))}
+                {!templates.length && (
+                    <div className="bg-card rounded-xl border border-dashed px-6 py-12 text-center">
+                        <FilePlus2 className="text-muted-foreground mx-auto mb-4 size-8" />
+                        <h3 className="font-medium">Your next great email starts here</h3>
+                        <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
+                            Choose a Studio design below to make it your own. Your saved templates will appear here.
+                        </p>
                     </div>
-                </Panel>
-            )}
+                )}
+            </section>
+            <section>
+                <div className="mb-5">
+                    <div className="mb-2 flex items-center gap-2">
+                        <Sparkles className="size-4 text-emerald-600" />
+                        <p className="text-xs font-medium tracking-widest uppercase">The Studio collection · v2</p>
+                    </div>
+                    <h2 className="text-lg font-semibold">Designed to make a good impression</h2>
+                    <p className="text-muted-foreground mt-1 text-sm">Five original, responsive designs. Existing templates are never replaced.</p>
+                </div>
+                <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Template categories">
+                    {categories.map((c) => (
+                        <Button
+                            key={c}
+                            type="button"
+                            size="sm"
+                            variant={filter === c ? 'secondary' : 'ghost'}
+                            aria-pressed={filter === c}
+                            onClick={() => setFilter(c)}
+                        >
+                            {c}
+                        </Button>
+                    ))}
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {starters.map((s, i) =>
+                        filter === 'All designs' || filter === s.category ? (
+                            <article
+                                key={s.name}
+                                className="bg-card min-w-0 overflow-hidden rounded-xl border shadow-xs transition-shadow hover:shadow-md"
+                            >
+                                <Thumbnail src={`/organisations/${company.id}/starter-previews/${i}`} name={s.name} />
+                                <div className="space-y-4 p-5">
+                                    <div>
+                                        <p className="text-muted-foreground text-[11px] font-medium tracking-widest uppercase">{s.category}</p>
+                                        <h3 className="mt-2 font-semibold">{s.name.replace(' · Studio v2', '')}</h3>
+                                        <p className="text-muted-foreground mt-2 min-h-10 text-sm">{s.description}</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {canManage && (
+                                            <Button size="sm" onClick={() => router.post(base + '/starter', { starter: i })}>
+                                                Use template
+                                                <ArrowUpRight className="ml-2 size-3.5" />
+                                            </Button>
+                                        )}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                                setPreview({
+                                                    src: `/organisations/${company.id}/starter-previews/${i}`,
+                                                    name: s.name,
+                                                    subject: s.subject,
+                                                    text: s.text_body,
+                                                    previewText: s.description,
+                                                })
+                                            }
+                                        >
+                                            <Eye className="mr-2 size-3.5" />
+                                            Preview
+                                        </Button>
+                                    </div>
+                                </div>
+                            </article>
+                        ) : null,
+                    )}
+                </div>
+            </section>
+            <Dialog
+                open={!!preview}
+                onOpenChange={(v) => {
+                    if (!v) setPreview(null);
+                }}
+            >
+                <DialogContent className="max-h-[94dvh] max-w-[calc(100%-1rem)] overflow-y-auto p-3 sm:max-w-4xl sm:p-6">
+                    <DialogHeader>
+                        <DialogTitle>{preview?.name}</DialogTitle>
+                        <DialogDescription>Sample personalisation only. Email-client rendering still needs a Gmail/Outlook check.</DialogDescription>
+                    </DialogHeader>
+                    {preview && (
+                        <EmailPreview
+                            src={preview.src}
+                            title="Template library preview"
+                            subject={preview.subject}
+                            previewText={preview.previewText}
+                            senderName={company.name}
+                            postalAddress={company.postal_address}
+                            text={preview.text}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
         </Workspace>
     );
 }

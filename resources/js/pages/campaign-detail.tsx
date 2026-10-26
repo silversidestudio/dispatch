@@ -1,3 +1,4 @@
+import { EmailPreview } from '@/components/email-preview';
 import { Company, Field, Metrics, Page, Pages, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
@@ -19,6 +20,8 @@ export default function Detail({
     campaign: Campaign;
     preflight: {
         sender: string;
+        sender_name: string;
+        sender_email: string;
         postal_address: string | null;
         tracking: { open: boolean; click: boolean };
         errors: string[];
@@ -35,7 +38,6 @@ export default function Detail({
     const base = `/organisations/${company.id}/campaigns/${campaign.id}`;
     const f = useForm({ scheduled_at: '', confirmation: '' });
     const test = useForm({ email: '', mode: 'simulation', confirmation: 'PREPARE' });
-    const [mobile, setMobile] = useState(false);
     const [link, setLink] = useState('');
     const { errors } = usePage<SharedData>().props;
     useEffect(() => {
@@ -218,18 +220,18 @@ export default function Detail({
                     )}
                 </Panel>
             )}
-            <Panel title="Email preview" description="Saved content, sample personalisation. No test email is transmitted.">
-                <Button variant="outline" onClick={() => setMobile(!mobile)}>
-                    {mobile ? 'Desktop preview' : 'Mobile preview'}
-                </Button>
-                <iframe
-                    title="Campaign preview"
-                    sandbox=""
-                    referrerPolicy="no-referrer"
-                    src={base + '/preview'}
-                    className={`mx-auto mt-5 h-[600px] max-w-full border bg-white ${mobile ? 'w-[375px]' : 'w-full'}`}
-                />
-            </Panel>
+            <EmailPreview
+                src={base + '/preview'}
+                title="Campaign preview"
+                subject={String(campaign.snapshot?.subject ?? campaign.subject)}
+                previewText={String(campaign.snapshot?.preview_text ?? campaign.preview_text ?? '')}
+                senderName={preflight.sender_name}
+                senderEmail={preflight.sender_email}
+                postalAddress={preflight.postal_address}
+                text={String(campaign.snapshot?.text_body ?? campaign.text_body)}
+                version={campaign.html}
+            />
+
             <Panel
                 title="Recipient snapshot"
                 description="Submission acceptance does not establish receiving-server delivery or inbox placement. See analytics for provider evidence."

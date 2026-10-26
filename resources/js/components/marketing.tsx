@@ -2,7 +2,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from '@inertiajs/react';
 import { ReactNode, useId } from 'react';
-export type Company = { id: number; name: string; postal_address?: string | null };
+export type Company = { id: number; name: string; postal_address?: string | null; email_branding?: { button_color?: string } | null };
 export type Contact = {
     id: number;
     email: string;
@@ -24,18 +24,20 @@ export function Field({
     change,
     type = 'text',
     required = false,
+    disabled = false,
 }: {
     label: string;
     value: string;
     change: (s: string) => void;
     type?: string;
     required?: boolean;
+    disabled?: boolean;
 }) {
     const id = useId();
     return (
         <div className="space-y-2">
             <Label htmlFor={id}>{label}</Label>
-            <Input id={id} type={type} required={required} value={value} onChange={(e) => change(e.target.value)} />
+            <Input id={id} type={type} required={required} disabled={disabled} value={value} onChange={(e) => change(e.target.value)} />
         </div>
     );
 }
