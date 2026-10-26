@@ -46,7 +46,7 @@ class CampaignService
             $errors[] = 'Simulation limit is 10,000 recipients.';
         }
 
-        return ['errors' => $errors, 'total' => $all, 'eligible' => $eligible, 'excluded' => $all - $eligible, 'provider' => $c->delivery_mode ?? 'simulation', 'sender' => ($c->snapshot['sender_name'] ?? $identity?->name ?? 'Missing').' <'.($c->snapshot['sender_email'] ?? $identity?->email ?? 'missing').'>', 'tracking' => ['open' => (bool) ($c->snapshot['open_tracking'] ?? $c->open_tracking), 'click' => (bool) ($c->snapshot['click_tracking'] ?? $c->click_tracking)], 'postal_address' => $c->snapshot['sender_address'] ?? $o->postal_address];
+        return ['errors' => $errors, 'total' => $all, 'eligible' => $eligible, 'excluded' => $all - $eligible, 'provider' => $c->delivery_mode ?? 'simulation', 'sender_name' => $c->snapshot['sender_name'] ?? $identity?->name ?? 'Missing', 'sender_email' => $c->snapshot['sender_email'] ?? $identity?->email ?? 'preview@example.test', 'sender' => ($c->snapshot['sender_name'] ?? $identity?->name ?? 'Missing').' <'.($c->snapshot['sender_email'] ?? $identity?->email ?? 'missing').'>', 'tracking' => ['open' => (bool) ($c->snapshot['open_tracking'] ?? $c->open_tracking), 'click' => (bool) ($c->snapshot['click_tracking'] ?? $c->click_tracking)], 'postal_address' => $c->snapshot['sender_address'] ?? $o->postal_address];
     }
 
     public function ready(Campaign $campaign): void

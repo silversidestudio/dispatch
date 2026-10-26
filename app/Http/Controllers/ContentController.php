@@ -7,10 +7,12 @@ use App\Models\EmailTemplate;
 use App\Models\Organisation;
 use App\Models\SendingIdentity;
 use App\Services\EmailContentService;
+use App\Services\EmailMarkup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class ContentController extends Controller
@@ -49,14 +51,37 @@ class ContentController extends Controller
     {
         Gate::authorize('view', $organisation);
 
-        return Inertia::render('templates', ['company' => $organisation, 'templates' => EmailTemplate::where('organisation_id', $organisation->id)->latest()->get(['id', 'name', 'category', 'subject', 'preview_text']), 'starters' => app(EmailContentService::class)->starters(), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+        return Inertia::render('templates', ['company' => $organisation, 'templates' => EmailTemplate::where('organisation_id', $organisation->id)->latest()->get(['id', 'name', 'category', 'subject', 'preview_text', 'text_body']), 'starters' => app(EmailContentService::class)->starters($organisation->email_branding ?? []), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+    }
+
+    public function starterPreview(Organisation $organisation, int $starter)
+    {
+        Gate::authorize('view', $organisation);
+        abort_unless($starter >= 0 && $starter < 5, 404);
+        $s = app(EmailContentService::class)->starters($organisation->email_branding ?? [])[$starter];
+
+        return response(app(EmailContentService::class)->render($s['html'], ['first_name' => 'Alex', 'last_name' => 'Example', 'email' => 'preview@example.test', 'sender_name' => $organisation->name, 'sender_address' => $organisation->postal_address ?: '10 Example Street, London · demonstration address', 'unsubscribe_url' => '#preview-only'], $s['preview_text']))->header('Content-Security-Policy', "default-src 'none'; img-src 'self' https:; style-src 'unsafe-inline'; sandbox")->header('Referrer-Policy', 'no-referrer');
+    }
+
+    public function branding(Request $r, Organisation $organisation)
+    {
+        Gate::authorize('update', $organisation);
+        $d = $r->validate(['logo_url' => 'nullable|url:https|max:2000', 'primary_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'], 'secondary_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'], 'button_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'], 'footer_text' => 'nullable|string|max:1000']);
+        if (($d['logo_url'] ?? '') && ! app(EmailMarkup::class)->safeUrl($d['logo_url'], false)) {
+            throw ValidationException::withMessages(['logo_url' => 'Use a public HTTPS URL without credentials.']);
+        }
+        $organisation->forceFill(['email_branding' => $d])->save();
+        AuditLog::record('email_branding.updated', $organisation->id);
+
+        return back()->with('success', 'Email branding saved. Existing templates and campaign snapshots are unchanged.');
     }
 
     public function starter(Request $r, Organisation $organisation)
     {
         Gate::authorize('manageCampaigns', $organisation);
         $d = $r->validate(['starter' => 'required|integer|min:0|max:4']);
-        $s = app(EmailContentService::class)->starters()[$d['starter']];
+        $s = app(EmailContentService::class)->starters($organisation->email_branding ?? [])[$d['starter']];
+        unset($s['description']);
         $s['html'] = app(EmailContentService::class)->clean($s['html']);
         $t = EmailTemplate::create(['organisation_id' => $organisation->id, ...$s, 'text_body' => app(EmailContentService::class)->text($s['html'])]);
         AuditLog::record('template.created', $organisation->id, ['template_id' => $t->id]);
@@ -105,6 +130,6 @@ class ContentController extends Controller
         Gate::authorize('view', $organisation);
         abort_unless($template->organisation_id === $organisation->id, 404);
 
-        return response(app(EmailContentService::class)->render($template->html, ['first_name' => 'Alex', 'last_name' => 'Example', 'email' => 'preview@example.test', 'sender_name' => $organisation->name, 'sender_address' => $organisation->postal_address ?? 'Sender address required', 'unsubscribe_url' => '#preview-only']))->header('Content-Security-Policy', "default-src 'none'; img-src https:; style-src 'unsafe-inline'; sandbox")->header('Referrer-Policy', 'no-referrer');
+        return response(app(EmailContentService::class)->render($template->html, ['first_name' => 'Alex', 'last_name' => 'Example', 'email' => 'preview@example.test', 'sender_name' => $organisation->name, 'sender_address' => $organisation->postal_address ?? 'Sender address required', 'unsubscribe_url' => '#preview-only'], $template->preview_text ?? ''))->header('Content-Security-Policy', "default-src 'none'; img-src 'self' https:; style-src 'unsafe-inline'; sandbox")->header('Referrer-Policy', 'no-referrer');
     }
 }

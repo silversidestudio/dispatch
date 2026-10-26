@@ -194,7 +194,7 @@ class CampaignController extends Controller
         $identity = SendingIdentity::where('organisation_id', $organisation->id)->findOrFail($campaign->sending_identity_id);
         $values = ['first_name' => 'Alex', 'last_name' => 'Example', 'email' => 'preview@example.test', 'sender_name' => $s['sender_name'] ?? $identity->name, 'sender_address' => $s['sender_address'] ?? $organisation->postal_address ?? 'Address required', 'unsubscribe_url' => '#preview-only'];
 
-        return response(app(EmailContentService::class)->render($s['html'] ?? $campaign->html, $values))->header('Content-Security-Policy', "default-src 'none'; img-src https:; style-src 'unsafe-inline'; sandbox")->header('Referrer-Policy', 'no-referrer');
+        return response(app(EmailContentService::class)->render($s['html'] ?? $campaign->html, $values, $s['preview_text'] ?? $campaign->preview_text ?? ''))->header('Content-Security-Policy', "default-src 'none'; img-src 'self' https:; style-src 'unsafe-inline'; sandbox")->header('Referrer-Policy', 'no-referrer');
     }
 
     public function audience(Request $r, Organisation $organisation)

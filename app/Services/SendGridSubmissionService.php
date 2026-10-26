@@ -84,7 +84,7 @@ class SendGridSubmissionService
         if (! str_contains($c->snapshot['text_body'], '{{sender_address}}')) {
             $plain .= "\n\n".$c->snapshot['sender_name']."\n".$c->snapshot['sender_address'];
         }
-        $message = new DeliveryMessage($attempt->correlation_id, $r->email, $c->snapshot['sender_email'], $c->snapshot['subject'], $content->render($c->snapshot['html'], $values), $plain, $c->snapshot['reply_to'] ?? null, $c->snapshot['delivery_mode'] === 'sendgrid_sandbox', (bool) $c->live_authorised_at, (bool) $c->snapshot['open_tracking'], (bool) $c->snapshot['click_tracking'], ['List-Unsubscribe' => '<'.$oneClick.'>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'], $c->snapshot['sender_name']);
+        $message = new DeliveryMessage($attempt->correlation_id, $r->email, $c->snapshot['sender_email'], $c->snapshot['subject'], $content->render($c->snapshot['html'], $values, $c->snapshot['preview_text'] ?? ''), $plain, $c->snapshot['reply_to'] ?? null, $c->snapshot['delivery_mode'] === 'sendgrid_sandbox', (bool) $c->live_authorised_at, (bool) $c->snapshot['open_tracking'], (bool) $c->snapshot['click_tracking'], ['List-Unsubscribe' => '<'.$oneClick.'>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'], $c->snapshot['sender_name']);
         try {
             $result = app(SendGridDeliveryProvider::class)->submit($message, $attempt->number);
         } catch (\Throwable) {
