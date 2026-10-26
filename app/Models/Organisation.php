@@ -11,6 +11,11 @@ class Organisation extends Model
 
     protected $fillable = ['name', 'website', 'postal_address'];
 
+    protected function casts(): array
+    {
+        return ['open_tracking_enabled' => 'boolean', 'click_tracking_enabled' => 'boolean', 'tracking_reviewed_at' => 'datetime'];
+    }
+
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class)->withPivot('role')->withTimestamps();

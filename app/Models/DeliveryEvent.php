@@ -10,6 +10,6 @@ class DeliveryEvent extends Model
 
     protected function casts(): array
     {
-        return ['metadata' => 'array', 'simulated' => 'boolean'];
+        return ['metadata' => 'array', 'occurred_at' => 'datetime', 'simulated' => 'boolean'];
     }
 }

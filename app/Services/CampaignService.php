@@ -37,9 +37,7 @@ class CampaignService
         if (! str_contains($c->html, '{{sender_address}}')) {
             $errors[] = 'Include {{sender_address}} in the HTML footer.';
         }
-        if (config('dispatch.provider') !== 'simulation') {
-            $errors[] = 'Only the simulation adapter is authorised.';
-        }
+        $errors = [...$errors, ...app(ProviderReadiness::class)->errors($c)];
         $all = app(AudienceService::class)->query($o->id, $c->audience_type, $c->audience_id)->count();
         $eligible = app(AudienceService::class)->query($o->id, $c->audience_type, $c->audience_id, true)->count();
         if ($eligible === 0) {
@@ -48,7 +46,7 @@ class CampaignService
             $errors[] = 'Simulation limit is 10,000 recipients.';
         }
 
-        return ['errors' => $errors, 'total' => $all, 'eligible' => $eligible, 'excluded' => $all - $eligible, 'provider' => 'Local simulation only; identities remain unverified'];
+        return ['errors' => $errors, 'total' => $all, 'eligible' => $eligible, 'excluded' => $all - $eligible, 'provider' => $c->delivery_mode??'simulation','sender'=>($c->snapshot['sender_name']??$identity?->name??'Missing').' <'.($c->snapshot['sender_email']??$identity?->email??'missing').'>','tracking'=>['open'=>(bool)($c->snapshot['open_tracking']??$c->open_tracking),'click'=>(bool)($c->snapshot['click_tracking']??$c->click_tracking)],'postal_address'=>$c->snapshot['sender_address']??$o->postal_address];
     }
 
     public function ready(Campaign $campaign): void
@@ -64,17 +62,22 @@ class CampaignService
         });
     }
 
-    public function schedule(Campaign $campaign, \DateTimeInterface $when): void
+    public function schedule(Campaign $campaign, \DateTimeInterface $when, bool $confirmed = false): void
     {
-        DB::transaction(function () use ($campaign, $when) {
+        DB::transaction(function () use ($campaign, $when, $confirmed) {
             $c = Campaign::whereKey($campaign->id)->lockForUpdate()->firstOrFail();
             $this->requireState($c, ['ready']);
+            if ($c->delivery_mode === 'sendgrid_live') {
+                if (! $confirmed) {
+                    throw ValidationException::withMessages(['campaign' => 'Type SEND to authorise this live campaign.']);
+                }$c->live_authorised_at = now();
+            }
             $p = $this->preflight($c);
             if ($p['errors']) {
                 throw ValidationException::withMessages(['campaign' => implode(' ', $p['errors'])]);
             }$identity = SendingIdentity::where('organisation_id', $c->organisation_id)->findOrFail($c->sending_identity_id);
             $o = Organisation::findOrFail($c->organisation_id);
-            $c->snapshot = ['subject' => $c->subject, 'preview_text' => $c->preview_text, 'html' => app(EmailContentService::class)->clean($c->html), 'text_body' => $c->text_body, 'sender_name' => $identity->name, 'sender_email' => $identity->email, 'reply_to' => $c->reply_to ?: $identity->reply_to, 'sender_address' => $o->postal_address, 'provider' => 'simulation', 'unsubscribe_base' => rtrim(config('app.url'), '/')];
+            $c->snapshot = ['subject' => $c->subject, 'preview_text' => $c->preview_text, 'html' => app(EmailContentService::class)->clean($c->html), 'text_body' => $c->text_body, 'sender_name' => $identity->name, 'sender_email' => $identity->email, 'reply_to' => $c->reply_to ?: $identity->reply_to, 'sender_address' => $o->postal_address, 'provider' => $c->delivery_mode === 'simulation' ? 'simulation' : 'sendgrid', 'delivery_mode' => $c->delivery_mode ?? 'simulation', 'open_tracking' => (bool) $c->open_tracking, 'click_tracking' => (bool) $c->click_tracking, 'unsubscribe_base' => rtrim(config('app.url'), '/')];
             $suppressed = app(AudienceService::class)->query($c->organisation_id, $c->audience_type, $c->audience_id)->whereExists(fn ($q) => $q->selectRaw('1')->from('suppressions')->whereColumn('suppressions.organisation_id', 'contacts.organisation_id')->whereColumn('suppressions.email', 'contacts.email'))->count();
             $snapshot = $c->snapshot;
             $snapshot['suppressed_at_snapshot'] = $suppressed;
@@ -101,10 +104,31 @@ class CampaignService
     {
         DB::transaction(function () use ($campaign) {
             $c = Campaign::whereKey($campaign->id)->lockForUpdate()->firstOrFail();
-            $this->requireState($c, ['draft', 'ready', 'scheduled', 'processing']);
+            $this->requireState($c, ['draft', 'ready', 'scheduled', 'processing', 'paused']);
             $c->update(['status' => 'cancelled']);
             $c->recipients()->whereIn('status', ['pending', 'deferred'])->update(['status' => 'cancelled']);
             AuditLog::record('campaign.cancelled', $c->organisation_id, ['campaign_id' => $c->id]);
+        });
+    }
+
+    public function pause(Campaign $campaign): void
+    {
+        DB::transaction(function () use ($campaign) {
+            $c = Campaign::whereKey($campaign->id)->lockForUpdate()->firstOrFail();
+            $this->requireState($c, ['scheduled', 'processing']);
+            $c->update(['paused_from' => $c->status, 'status' => 'paused']);
+            AuditLog::record('campaign.paused', $c->organisation_id, ['campaign_id' => $c->id]);
+        });
+    }
+
+    public function resume(Campaign $campaign): void
+    {
+        DB::transaction(function () use ($campaign) {
+            $c = Campaign::whereKey($campaign->id)->lockForUpdate()->firstOrFail();
+            $this->requireState($c, ['paused']);
+            $c->update(['status' => $c->paused_from ?? 'processing', 'paused_from' => null]);
+            AuditLog::record('campaign.resumed', $c->organisation_id, ['campaign_id' => $c->id]);
+            PumpCampaigns::dispatch()->afterCommit();
         });
     }
 
@@ -124,7 +148,7 @@ class CampaignService
     {
         DB::transaction(function () use ($id) {
             $c = Campaign::whereKey($id)->lockForUpdate()->firstOrFail();
-            if ($c->status === 'processing' && ! $c->recipients()->whereIn('status', ['pending', 'deferred'])->exists()) {
+            if ($c->status === 'processing' && ! $c->recipients()->whereIn('status', ['pending', 'deferred', 'submitting', 'uncertain'])->exists()) {
                 $c->update(['status' => 'completed', 'completed_at' => now()]);
                 AuditLog::record('campaign.completed', $c->organisation_id, ['campaign_id' => $c->id]);
             }

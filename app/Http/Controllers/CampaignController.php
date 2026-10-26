@@ -65,7 +65,8 @@ class CampaignController extends Controller
         Gate::authorize('manageCampaigns', $organisation);
         if ($campaign) {
             $this->scope($organisation, $campaign, 'manageCampaigns');
-        }$d = $r->validate(['name' => 'required|string|max:120', 'subject' => 'required|string|max:255', 'preview_text' => 'nullable|string|max:255', 'sending_identity_id' => ['required', 'integer', Rule::exists('sending_identities', 'id')->where('organisation_id', $organisation->id)], 'reply_to' => 'nullable|email:rfc|max:254', 'audience_type' => 'required|in:list,segment', 'audience_id' => 'required|integer', 'html' => 'required|string|max:200000', 'text_body' => 'required|string|max:100000']);
+        }$d = $r->validate(['delivery_mode' => 'sometimes|in:simulation,sendgrid_sandbox,sendgrid_live', 'open_tracking' => 'sometimes|boolean', 'click_tracking' => 'sometimes|boolean', 'name' => 'required|string|max:120', 'subject' => 'required|string|max:255', 'preview_text' => 'nullable|string|max:255', 'sending_identity_id' => ['required', 'integer', Rule::exists('sending_identities', 'id')->where('organisation_id', $organisation->id)], 'reply_to' => 'nullable|email:rfc|max:254', 'audience_type' => 'required|in:list,segment', 'audience_id' => 'required|integer', 'html' => 'required|string|max:200000', 'text_body' => 'required|string|max:100000']);
+        $d += ['delivery_mode' => 'simulation', 'open_tracking' => false, 'click_tracking' => false];
         app(AudienceService::class)->query($organisation->id, $d['audience_type'], $d['audience_id']);
         $d['html'] = app(EmailContentService::class)->clean($d['html']);
         $c = DB::transaction(function () use ($campaign, $organisation, $d, $r) {
@@ -112,11 +113,27 @@ class CampaignController extends Controller
     public function schedule(Request $r, Organisation $organisation, Campaign $campaign)
     {
         $this->scope($organisation, $campaign, 'manageCampaigns');
-        $d = $r->validate(['scheduled_at' => 'nullable|date|after_or_equal:now']);
+        $d = $r->validate(['scheduled_at' => 'nullable|date|after_or_equal:now', 'confirmation' => 'nullable|in:SEND']);
         $when = isset($d['scheduled_at']) ? Carbon::parse($d['scheduled_at']) : now();
-        app(CampaignService::class)->schedule($campaign, $when);
+        app(CampaignService::class)->schedule($campaign, $when, ($d['confirmation'] ?? '') === 'SEND');
 
         return back()->with('success', 'Immutable recipient and content snapshot created. Local simulation scheduled.');
+    }
+
+    public function pause(Organisation $organisation, Campaign $campaign)
+    {
+        $this->scope($organisation, $campaign, 'manageCampaigns');
+        app(CampaignService::class)->pause($campaign);
+
+        return back()->with('success', 'Campaign paused. In-flight requests cannot be recalled.');
+    }
+
+    public function resume(Organisation $organisation, Campaign $campaign)
+    {
+        $this->scope($organisation, $campaign, 'manageCampaigns');
+        app(CampaignService::class)->resume($campaign);
+
+        return back()->with('success', 'Campaign resumed.');
     }
 
     public function cancel(Organisation $organisation, Campaign $campaign)
@@ -130,7 +147,7 @@ class CampaignController extends Controller
     public function duplicate(Organisation $organisation, Campaign $campaign)
     {
         $this->scope($organisation, $campaign, 'manageCampaigns');
-        $copy = $campaign->replicate(['snapshot', 'scheduled_at', 'completed_at']);
+        $copy = $campaign->replicate(['snapshot', 'scheduled_at', 'completed_at', 'live_authorised_at']);
         $copy->status = 'draft';
         $copy->name .= ' (copy)';
         $copy->audience_count = 0;
@@ -166,7 +183,7 @@ class CampaignController extends Controller
         abort_unless($recipient->campaign_id === $campaign->id && $recipient->organisation_id === $organisation->id, 404);
         $c = Contact::where('organisation_id', $organisation->id)->where('email', $recipient->email)->findOrFail($recipient->contact_id);
 
-        return response()->json(['url' => app(UnsubscribeService::class)->url($c)]);
+        return response()->json(['url' => app(UnsubscribeService::class)->url($c, $recipient)]);
     }
 
     public function reporting(Organisation $organisation)

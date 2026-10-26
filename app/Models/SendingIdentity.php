@@ -10,6 +10,6 @@ class SendingIdentity extends Model
 
     protected function casts(): array
     {
-        return ['is_default' => 'boolean'];
+        return ['is_default' => 'boolean', 'provider_authorised' => 'boolean', 'verified_at' => 'datetime'];
     }
 }

@@ -12,6 +12,7 @@ use App\Models\Organisation;
 use App\Services\CampaignService;
 use App\Services\EligibilityService;
 use App\Services\EmailContentService;
+use App\Services\SendGridSubmissionService;
 use App\Services\UnsubscribeService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -35,6 +36,12 @@ class DeliverRecipient implements ShouldQueue
     public function handle(CampaignService $service): void
     {
         $initial = CampaignRecipient::findOrFail($this->recipientId);
+        $mode = Campaign::findOrFail($initial->campaign_id)->snapshot['delivery_mode'] ?? 'simulation';
+        if ($mode !== 'simulation') {
+            app(SendGridSubmissionService::class)->handle($this->recipientId);
+
+            return;
+        }
         DB::transaction(function () use ($initial, $service) {
             $c = Campaign::whereKey($initial->campaign_id)->lockForUpdate()->firstOrFail();
             $r = CampaignRecipient::whereKey($initial->id)->lockForUpdate()->firstOrFail();
@@ -51,7 +58,7 @@ class DeliverRecipient implements ShouldQueue
 
                 return;
             }
-            if (config('dispatch.provider') !== 'simulation' || ($c->snapshot['provider'] ?? null) !== 'simulation') {
+            if (config('dispatch.provider') === 'smtp' || ($c->snapshot['provider'] ?? null) !== 'simulation') {
                 throw new \RuntimeException('External delivery is not authorised.');
             }
             $number = $r->attempt_count + 1;
@@ -85,6 +92,10 @@ class DeliverRecipient implements ShouldQueue
                 return null;
             }$c = Campaign::whereKey($initial->campaign_id)->lockForUpdate()->firstOrFail();
             $r = CampaignRecipient::whereKey($initial->id)->lockForUpdate()->first();
+            if ($r->status === 'submitting') {
+                DeliveryAttempt::where('campaign_recipient_id', $r->id)->where('outcome', 'submitting')->update(['outcome' => 'uncertain', 'diagnostic_code' => 'worker_interrupted']);
+                $r->update(['status' => 'uncertain']);
+            }
             if (in_array($r->status, ['pending', 'deferred'])) {
                 $r->update(['status' => 'failed']);
                 app(CampaignService::class)->event($r, 'failed', 'worker-failed-'.$r->id, ['reason' => 'Worker retries exhausted.']);

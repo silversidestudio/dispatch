@@ -7,4 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class DeliveryAttempt extends Model
 {
     protected $guarded = ['id'];
+
+    protected function casts(): array
+    {
+        return ['started_at' => 'datetime', 'finished_at' => 'datetime'];
+    }
 }

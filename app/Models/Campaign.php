@@ -10,7 +10,7 @@ class Campaign extends Model
 
     protected function casts(): array
     {
-        return ['snapshot' => 'array', 'scheduled_at' => 'datetime', 'completed_at' => 'datetime'];
+        return ['snapshot' => 'array', 'live_authorised_at' => 'datetime', 'open_tracking' => 'boolean', 'click_tracking' => 'boolean', 'scheduled_at' => 'datetime', 'completed_at' => 'datetime'];
     }
 
     public function recipients()
