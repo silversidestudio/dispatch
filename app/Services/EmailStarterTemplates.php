@@ -5,6 +5,14 @@ namespace App\Services;
 /** Original, versioned designs. Creating one never updates an existing template. */
 class EmailStarterTemplates
 {
+    public function basic(array $branding = []): array
+    {
+        $signature = htmlspecialchars(trim($branding['signature_text'] ?? '') ?: '{{sender_name}}', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $html = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#202020;"><p>Hello {{first_name}},</p><p><span style="color:#0000cc;"><strong>Your email headline</strong></span></p><p>Write your message here. Change the font, size and colour to suit your usual style, and add links where you need them.</p><p>Please reply if you would like more information.</p><p>'.nl2br($signature).'</p><hr><p style="font-size:12px;color:#555555;">{{sender_name}}<br>{{sender_address}}</p><p style="font-size:12px;"><a href="{{unsubscribe_url}}">Unsubscribe from these emails</a></p></div>';
+
+        return ['name' => 'Basic email', 'category' => 'Basic', 'subject' => 'Your latest update', 'preview_text' => 'A message from our team', 'html' => $html, 'text_body' => app(EmailContentService::class)->text($html)];
+    }
+
     public function all(array $branding = []): array
     {
         $primary = preg_match('/^#[0-9a-f]{6}$/i', $branding['primary_color'] ?? '') ? $branding['primary_color'] : '#21564b';

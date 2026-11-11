@@ -12,6 +12,9 @@ class SendGridAuthChannel
         if (! config('dispatch.sendgrid.auth_enabled') || ! config('dispatch.sendgrid.enabled') || ! config('dispatch.sendgrid.live_enabled') || ! config('dispatch.sendgrid.api_key') || ! filter_var(config('dispatch.sendgrid.auth_from'), FILTER_VALIDATE_EMAIL)) {
             throw new \RuntimeException('Account email delivery is not authorised or configured.');
         }
+        if (config('dispatch.pilot.enabled')) {
+            throw new \RuntimeException('SendGrid account notifications are disabled during the restricted campaign pilot.');
+        }
         $mail = $notification->toMail($user);
         $markdown = app(Markdown::class);
         $data = $mail->data();

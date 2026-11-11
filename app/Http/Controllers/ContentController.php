@@ -8,6 +8,7 @@ use App\Models\Organisation;
 use App\Models\SendingIdentity;
 use App\Services\EmailContentService;
 use App\Services\EmailMarkup;
+use App\Services\EmailStarterTemplates;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -51,7 +52,26 @@ class ContentController extends Controller
     {
         Gate::authorize('view', $organisation);
 
-        return Inertia::render('templates', ['company' => $organisation, 'templates' => EmailTemplate::where('organisation_id', $organisation->id)->latest()->get(['id', 'name', 'category', 'subject', 'preview_text', 'text_body']), 'starters' => app(EmailContentService::class)->starters($organisation->email_branding ?? []), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+        return Inertia::render('templates', ['company' => $organisation, 'templates' => EmailTemplate::where('organisation_id', $organisation->id)->latest()->get(['id', 'name', 'category', 'subject', 'preview_text', 'text_body']), 'basic' => app(EmailStarterTemplates::class)->basic($organisation->email_branding ?? []), 'starters' => app(EmailContentService::class)->starters($organisation->email_branding ?? []), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+    }
+
+    public function basic(Request $r, Organisation $organisation)
+    {
+        Gate::authorize('manageCampaigns', $organisation);
+        $s = app(EmailStarterTemplates::class)->basic($organisation->email_branding ?? []);
+        $s['html'] = app(EmailContentService::class)->clean($s['html']);
+        $t = EmailTemplate::create(['organisation_id' => $organisation->id, ...$s]);
+        AuditLog::record('template.created', $organisation->id, ['template_id' => $t->id, 'design' => 'basic']);
+
+        return redirect("/organisations/$organisation->id/templates/$t->id");
+    }
+
+    public function plainText(Request $r, Organisation $organisation)
+    {
+        Gate::authorize('manageCampaigns', $organisation);
+        $d = $r->validate(['html' => 'required|string|max:400000']);
+
+        return response()->json(['text' => app(EmailContentService::class)->text($d['html'])])->header('Cache-Control', 'private, no-store');
     }
 
     public function starterPreview(Organisation $organisation, int $starter)
@@ -66,7 +86,7 @@ class ContentController extends Controller
     public function branding(Request $r, Organisation $organisation)
     {
         Gate::authorize('update', $organisation);
-        $d = $r->validate(['logo_url' => 'nullable|url:https|max:2000', 'primary_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'], 'secondary_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'], 'button_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'], 'footer_text' => 'nullable|string|max:1000']);
+        $d = $r->validate(['logo_url' => 'nullable|url:https|max:2000', 'primary_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'], 'secondary_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'], 'button_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'], 'footer_text' => 'nullable|string|max:1000', 'signature_text' => 'nullable|string|max:2000']);
         if (($d['logo_url'] ?? '') && ! app(EmailMarkup::class)->safeUrl($d['logo_url'], false)) {
             throw ValidationException::withMessages(['logo_url' => 'Use a public HTTPS URL without credentials.']);
         }

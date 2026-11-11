@@ -37,7 +37,20 @@ const style = (el: HTMLElement) => {
 };
 export const EmailTextStyle = Mark.create({
     name: 'emailTextStyle',
-    addAttributes: () => ({ style: { default: null, parseHTML: (el) => style(el) } }),
+    addAttributes: () => ({
+        style: { default: null, parseHTML: (el) => style(el) },
+        fontFamily: {
+            default: null,
+            parseHTML: (el) => el.style.fontFamily || null,
+            renderHTML: (a) => (a.fontFamily ? { style: `font-family:${a.fontFamily}` } : {}),
+        },
+        fontSize: {
+            default: null,
+            parseHTML: (el) => el.style.fontSize || null,
+            renderHTML: (a) => (a.fontSize ? { style: `font-size:${a.fontSize}` } : {}),
+        },
+        color: { default: null, parseHTML: (el) => el.style.color || null, renderHTML: (a) => (a.color ? { style: `color:${a.color}` } : {}) },
+    }),
     parseHTML: () => [{ tag: 'span[style]' }],
     renderHTML: ({ HTMLAttributes }) => ['span', HTMLAttributes, 0],
 });

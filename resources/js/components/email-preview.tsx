@@ -36,7 +36,7 @@ export function EmailPreview({
             .replaceAll('{{sender_address}}', postalAddress || '10 Example Street, London · demonstration address')
             .replaceAll('{{unsubscribe_url}}', '[Demonstration unsubscribe link]');
     return (
-        <section className="min-w-0 overflow-hidden rounded-xl border" aria-label="Email preview modes">
+        <section id="email-preview" className="min-w-0 overflow-hidden rounded-xl border" aria-label="Email preview modes">
             <div className="bg-background flex flex-wrap items-center justify-between gap-3 border-b p-3 sm:px-5">
                 <div>
                     <p className="text-sm font-medium">Preview your email</p>

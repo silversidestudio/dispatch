@@ -1,4 +1,5 @@
 import { EmailButton, EmailImage, EmailSection, EmailStyles, EmailTextStyle, safeHttps } from '@/components/email-nodes';
+import { EmailTypography } from '@/components/email-typography';
 import { Field, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -20,9 +21,6 @@ import { NodeSelection } from '@tiptap/pm/state';
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import {
-    AlignCenter,
-    AlignLeft,
-    AlignRight,
     Bold,
     Braces,
     ChevronDown,
@@ -38,6 +36,7 @@ import {
     Pilcrow,
     Redo2,
     Trash2,
+    Underline,
     Undo2,
     type LucideIcon,
 } from 'lucide-react';
@@ -173,6 +172,10 @@ export function EmailEditor({
             e
                 ? {
                       bold: e.isActive('bold'),
+                      underline: e.isActive('underline'),
+                      font: e.getAttributes('emailTextStyle').fontFamily ?? '',
+                      size: e.getAttributes('emailTextStyle').fontSize ?? '',
+                      color: e.getAttributes('emailTextStyle').color ?? '',
                       canBold: e.can().toggleBold(),
                       canItalic: e.can().toggleItalic(),
                       italic: e.isActive('italic'),
@@ -230,7 +233,11 @@ export function EmailEditor({
             setError('Use HTTPS image and destination URLs without credentials.');
             return;
         }
-        if (mode !== 'image' && !safeHttps(form.href) && !(mode === 'link' && form.href === '{{unsubscribe_url}}')) {
+        if (
+            mode !== 'image' &&
+            !safeHttps(form.href) &&
+            !(mode === 'link' && (form.href === '{{unsubscribe_url}}' || /^mailto:[^\s<>]+@[^\s<>]+$/i.test(form.href)))
+        ) {
             setError('Use an HTTPS destination URL without credentials.');
             return;
         }
@@ -279,8 +286,22 @@ export function EmailEditor({
                     <Ellipsis className="size-4" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="max-h-[70dvh] overflow-y-auto">
                 <DropdownMenuLabel>Insert & format</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => open('image')}>Insert image</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => editor.chain().focus().setParagraph().run()}>Paragraph</DropdownMenuItem>
+                {([1, 2, 3] as const).map((level) => (
+                    <DropdownMenuItem key={level} onSelect={() => editor.chain().focus().toggleHeading({ level }).run()}>
+                        Heading {level}
+                    </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                {variables.map(([label, token]) => (
+                    <DropdownMenuItem key={token} onSelect={() => editor.chain().focus().insertContent(`{{${token}}}`).run()}>
+                        Insert {label.toLowerCase()}
+                    </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => open('button')}>
                     <MousePointerClick className="mr-2 size-4" />
                     Call-to-action button
@@ -329,7 +350,8 @@ export function EmailEditor({
             {editable && (
                 <TooltipProvider delayDuration={250}>
                     <div role="toolbar" aria-label="Email formatting" className="bg-background flex flex-wrap items-center gap-0.5 border-b p-2">
-                        {typography}
+                        <EmailTypography editor={editor} font={state.font} size={state.size} color={state.color} />
+                        <div className="hidden sm:block">{typography}</div>
                         <Separator orientation="vertical" className="mx-1 hidden h-6 sm:block" />
                         <Tool
                             label="Bold"
@@ -348,54 +370,30 @@ export function EmailEditor({
                             shortcut="⌘/Ctrl I"
                         />
                         <Tool
-                            label="Bullet list"
-                            icon={List}
-                            active={state.bullet}
-                            action={() => editor.chain().focus().toggleBulletList().run()}
-                            className="hidden lg:inline-flex"
+                            label="Underline"
+                            icon={Underline}
+                            active={state.underline}
+                            action={() => editor.chain().focus().toggleUnderline().run()}
+                            shortcut="⌘/Ctrl U"
                         />
-                        <Tool
-                            label="Numbered list"
-                            icon={ListOrdered}
-                            active={state.ordered}
-                            action={() => editor.chain().focus().toggleOrderedList().run()}
-                            className="hidden lg:inline-flex"
-                        />
-                        <Separator orientation="vertical" className="mx-1 hidden h-6 lg:block" />
-                        <Tool
-                            label="Align left"
-                            icon={AlignLeft}
-                            active={state.left}
-                            action={() => editor.chain().focus().setTextAlign('left').run()}
-                            className="hidden xl:inline-flex"
-                        />
-                        <Tool
-                            label="Align centre"
-                            icon={AlignCenter}
-                            active={state.center}
-                            action={() => editor.chain().focus().setTextAlign('center').run()}
-                            className="hidden xl:inline-flex"
-                        />
-                        <Tool
-                            label="Align right"
-                            icon={AlignRight}
-                            active={state.right}
-                            action={() => editor.chain().focus().setTextAlign('right').run()}
-                            className="hidden xl:inline-flex"
-                        />
-                        <Separator orientation="vertical" className="mx-1 hidden h-6 lg:block" />
                         <Tool label="Insert link" icon={LinkIcon} action={() => open('link')} />
-                        <Tool label="Insert button" icon={MousePointerClick} action={() => open('button')} className="hidden lg:inline-flex" />
-                        <Tool label="Insert image" icon={ImageIcon} action={() => open('image')} />
+                        <Tool label="Insert button" icon={MousePointerClick} action={() => open('button')} className="hidden" />
+                        <Tool label="Insert image" icon={ImageIcon} action={() => open('image')} className="hidden sm:inline-flex" />
                         <Tool
                             label="Insert divider"
                             icon={Minus}
                             action={() => editor.chain().focus().setHorizontalRule().run()}
-                            className="hidden xl:inline-flex"
+                            className="hidden"
                         />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button type="button" variant="ghost" size="icon" aria-label="Insert variable" className="size-10">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label="Insert variable"
+                                    className="hidden size-10 sm:inline-flex"
+                                >
                                     <Braces className="size-4" />
                                 </Button>
                             </DropdownMenuTrigger>

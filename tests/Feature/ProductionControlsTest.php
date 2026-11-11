@@ -137,7 +137,7 @@ it('fails production requests closed for debug HTTP or insecure cookies', functi
 it('sends framework account notifications only through an explicitly authorised mocked auth channel', function () {
     Http::preventStrayRequests();
     $u = User::factory()->unverified()->create();
-    config(['dispatch.sendgrid.auth_enabled' => true, 'dispatch.sendgrid.auth_from' => 'accounts@example.test', 'dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.live_enabled' => true, 'dispatch.sendgrid.api_key' => 'test']);
+    config(['dispatch.pilot.enabled' => false, 'dispatch.sendgrid.auth_enabled' => true, 'dispatch.sendgrid.auth_from' => 'accounts@example.test', 'dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.live_enabled' => true, 'dispatch.sendgrid.api_key' => 'test']);
     Http::fake(['*' => Http::response([], 202)]);
     $u->sendEmailVerificationNotification();
     $u->sendPasswordResetNotification('test-reset-token');

@@ -127,7 +127,7 @@ test('polished email editing preserves blocks and supports narrow responsive pre
     await page.getByRole('menuitem', { name: 'Redo', exact: true }).click();
     await expect(canvas.locator('div[data-email-image]')).toHaveCount(0);
     await canvas.locator('p').first().click();
-    await page.getByRole('button', { name: 'Text style', exact: true }).click();
+    await page.getByRole('button', { name: 'More editor tools', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Heading 3', exact: true }).click();
     await expect(canvas.locator('h3')).toContainText('{{sender_name}}');
     await page.getByRole('button', { name: 'More editor tools', exact: true }).click();

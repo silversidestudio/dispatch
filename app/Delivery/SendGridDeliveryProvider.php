@@ -2,6 +2,7 @@
 
 namespace App\Delivery;
 
+use App\Services\SendGridPilotGuard;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
@@ -14,6 +15,9 @@ final class SendGridDeliveryProvider implements DeliveryProvider
         }
         if (! $m->sandbox && (! config('dispatch.sendgrid.live_enabled') || ! $m->liveAuthorised)) {
             throw new \RuntimeException('Live sending is disabled or unauthorised.');
+        }
+        if (! $m->sandbox) {
+            app(SendGridPilotGuard::class)->reserve($m->to, $m->idempotencyKey, $m->organisationId);
         }
         $payload = ['personalizations' => [['to' => [['email' => $m->to]], 'custom_args' => ['dispatch_attempt' => $m->idempotencyKey]]], 'from' => ['email' => $m->from, 'name' => $m->fromName], 'subject' => $m->subject, 'content' => [['type' => 'text/plain', 'value' => $m->text], ['type' => 'text/html', 'value' => $m->html]], 'mail_settings' => ['sandbox_mode' => ['enable' => $m->sandbox]], 'tracking_settings' => ['open_tracking' => ['enable' => $m->openTracking], 'click_tracking' => ['enable' => $m->clickTracking, 'enable_text' => $m->clickTracking], 'subscription_tracking' => ['enable' => false]], 'headers' => $m->headers];
         if ($m->replyTo) {
@@ -39,6 +43,6 @@ final class SendGridDeliveryProvider implements DeliveryProvider
             return new SubmissionResult('uncertain', $id, $status, 'provider_outcome_unknown');
         }
 
-        return new SubmissionResult('rejected', $id, $status, in_array($status,[401, 403]) ? 'provider_authentication_failed' : 'provider_request_rejected');
+        return new SubmissionResult('rejected', $id, $status, in_array($status, [401, 403]) ? 'provider_authentication_failed' : 'provider_request_rejected');
     }
 }

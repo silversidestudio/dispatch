@@ -10,5 +10,11 @@ return [
         'per_minute' => (int) env('SENDGRID_REQUESTS_PER_MINUTE', 60), 'timeout' => 15, 'max_attempts' => 5,
         'signature_tolerance' => 300, 'identity_max_age_days' => 7,
     ],
+    'pilot' => [
+        'enabled' => (bool) env('DISPATCH_PILOT_ENABLED', true),
+        'daily_limit' => (int) env('DISPATCH_PILOT_DAILY_LIMIT', 25),
+        'recipients' => array_values(array_filter(array_map('trim', explode(',', env('DISPATCH_PILOT_RECIPIENTS', ''))))),
+        'organisation_ids' => array_values(array_filter(array_map('trim', explode(',', env('DISPATCH_PILOT_ORGANISATION_IDS', ''))))),
+    ],
     'retention' => ['webhook_days' => (int) env('DISPATCH_WEBHOOK_RETENTION_DAYS', 14), 'engagement_days' => (int) env('DISPATCH_ENGAGEMENT_RETENTION_DAYS', 90)],
 ];

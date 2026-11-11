@@ -45,13 +45,27 @@ export default function Templates({
             subtitle="Thoughtful starting points. Your brand, your message, beautifully presented."
             actions={
                 canManage && (
-                    <Button onClick={() => router.post(base + '/starter', { starter: 4 })}>
+                    <Button onClick={() => router.post(base + '/basic')}>
                         <FilePlus2 className="mr-2 size-4" />
-                        Create a template
+                        Create basic email
                     </Button>
                 )
             }
         >
+            {canManage && (
+                <div className="bg-card flex flex-wrap items-center justify-between gap-4 rounded-xl border p-5">
+                    <div>
+                        <h2 className="font-semibold">Basic email</h2>
+                        <p className="text-muted-foreground mt-1 max-w-xl text-sm">
+                            A familiar, text-led email. Change fonts, sizes, colours and links, then reuse your signature. The designed templates
+                            below remain optional.
+                        </p>
+                    </div>
+                    <Button variant="outline" onClick={() => router.post(base + '/basic')}>
+                        Use basic email
+                    </Button>
+                </div>
+            )}
             <section className="min-w-0">
                 <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
                     <div>

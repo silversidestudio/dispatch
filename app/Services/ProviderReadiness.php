@@ -22,6 +22,7 @@ class ProviderReadiness
             $errors[] = 'SendGrid is not configured and enabled.';
         }
         if ($mode === 'sendgrid_live') {
+            $errors = [...$errors, ...app(SendGridPilotGuard::class)->configurationErrors($c->organisation_id)];
             $identity = SendingIdentity::where('organisation_id', $c->organisation_id)->find($c->sending_identity_id);
             if (! $identity || ! $identity->provider_authorised || $identity->verification_status !== 'verified' || ! $identity->verified_at || $identity->verified_at->lt(now()->subDays(config('dispatch.sendgrid.identity_max_age_days'))) || ($c->snapshot && $identity->email !== $c->snapshot['sender_email'])) {
                 $errors[] = 'A currently verified and platform-authorised SendGrid identity is required.';

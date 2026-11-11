@@ -1,6 +1,7 @@
 import { EmailEditor } from '@/components/email-editor';
 import { EmailPreview } from '@/components/email-preview';
 import { Company, Field } from '@/components/marketing';
+import { PlainTextAlternative } from '@/components/plain-text-alternative';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
 import { router, useForm } from '@inertiajs/react';
@@ -56,16 +57,13 @@ export default function Editor({ company, template, canManage }: { company: Comp
                         editable={canManage}
                         onChange={(v) => f.setData('html', v)}
                     />
-                    <label className="block text-sm font-medium">
-                        Plain-text alternative
-                        <textarea
-                            aria-label="Plain-text alternative"
-                            readOnly={!canManage}
-                            className="bg-background mt-2 min-h-40 w-full rounded-lg border p-3 font-mono text-sm"
-                            value={f.data.text_body}
-                            onChange={(e) => f.setData('text_body', e.target.value)}
-                        />
-                    </label>
+                    <PlainTextAlternative
+                        companyId={company.id}
+                        html={f.data.html}
+                        value={f.data.text_body}
+                        onChange={(v) => f.setData('text_body', v)}
+                        editable={canManage}
+                    />
                     <Errors errors={f.errors} />
                     {canManage && <Button disabled={f.processing}>Save template</Button>}
                 </form>

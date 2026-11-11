@@ -1,0 +1,75 @@
+import { expect, test } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
+test('basic email typography paste plain text and responsive preview work without delivery', async ({ page }) => {
+    test.setTimeout(90000);
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    const email = `basic-${Date.now()}@example.test`,
+        password = randomBytes(24).toString('hex');
+    const code = `$u=App\\Models\\User::factory()->create(['email'=>${JSON.stringify(email)},'password'=>${JSON.stringify(password)}]);$o=App\\Models\\Organisation::create(['name'=>'Basic Email Review','postal_address'=>'10 Example Road, London']);$o->forceFill(['email_branding'=>['signature_text'=>"Example team\\nTelephone: 020 0000 0000"]])->save();$o->members()->attach($u->id,['role'=>'owner']);echo $o->id;`;
+    const id = execFileSync('php', ['artisan', 'tinker', '--execute=' + code], { encoding: 'utf8' }).trim();
+    await page.goto('/login');
+    await page.getByLabel('Email address', { exact: true }).fill(email);
+    await page.getByLabel('Password', { exact: true }).fill(password);
+    await page.getByRole('button', { name: 'Log in', exact: true }).click();
+    await expect(page).toHaveURL(/dashboard/);
+    await page.goto(`/organisations/${id}/templates`);
+    await page.getByRole('button', { name: 'Create basic email', exact: true }).click();
+    const canvas = page.getByRole('textbox', { name: 'Email content', exact: true });
+    await expect(canvas).toContainText('Example team');
+    await canvas.locator('p').filter({ hasText: 'Write your message here.' }).click({ clickCount: 3 });
+    await page.getByRole('button', { name: 'Font family', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Georgia', exact: true }).click();
+    await page.getByRole('button', { name: 'Font size', exact: true }).click();
+    await page.getByRole('menuitem', { name: '20 px', exact: true }).click();
+    await page.getByLabel('Text colour', { exact: true }).fill('#cc0000');
+    await page.getByRole('button', { name: 'Underline', exact: true }).click();
+    const message = canvas.locator('p').filter({ hasText: 'Write your message here.' });
+    await expect(message.locator('span').last()).toHaveCSS('color', 'rgb(204, 0, 0)');
+    await expect(message.locator('span').last()).toHaveCSS('font-size', '20px');
+    await expect(message.locator('u')).toBeVisible();
+    await canvas.locator('p').filter({ hasText: 'Please reply if you would like more information.' }).click();
+    // Wait for the active-format UI to reflect the new caret, not the previous selected text.
+    await expect(page.getByRole('button', { name: 'Font size', exact: true })).toContainText('Size');
+    await page.keyboard.press('Enter');
+    await expect(canvas).toContainText('Write your message here.');
+    await canvas.evaluate((el) => {
+        const data = new DataTransfer();
+        data.setData('text/html', '<p><span style="font-family:Verdana;font-size:18px;color:#0000cc;">Pasted familiar message</span></p>');
+        el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+    });
+    await expect(canvas).toContainText('Pasted familiar message');
+    await expect(canvas).toContainText('Write your message here.');
+    await page.getByRole('button', { name: 'Save template', exact: true }).click();
+    await expect(page.getByText('Template saved and sanitised.', { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(canvas.locator('p').filter({ hasText: 'Write your message here.' }).locator('span').last()).toHaveCSS('font-size', '20px');
+    await expect(canvas.locator('p').filter({ hasText: 'Pasted familiar message' }).locator('span')).toHaveCSS('color', 'rgb(0, 0, 204)');
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByRole('button', { name: 'Update from email', exact: true }).click();
+    await expect(page.getByRole('textbox', { name: 'Plain-text alternative', exact: true })).toHaveValue(/Pasted familiar message/);
+    await page.getByRole('button', { name: 'Save template', exact: true }).click();
+    await expect(page.getByText('Template saved and sanitised.', { exact: true })).toBeVisible();
+    await expect(page.getByText('Template saved and sanitised.', { exact: true })).toBeHidden();
+    await page.locator('.email-editor').screenshot({ path: 'test-results/basic-email-desktop.png' });
+    await page.getByRole('button', { name: 'Mobile preview', exact: true }).click();
+    const frame = page.frameLocator('iframe[title="Template preview"]');
+    await expect(frame.getByText('Pasted familiar message', { exact: true })).toBeVisible();
+    expect(await frame.locator('html').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await page.getByRole('region', { name: 'Email preview modes' }).screenshot({ path: 'test-results/basic-email-preview.png' });
+    await page.getByRole('button', { name: 'Plain-text preview', exact: true }).click();
+    await expect(page.getByLabel('Plain-text email preview')).toContainText('Pasted familiar message');
+    for (const width of [390, 320]) {
+        await page.setViewportSize({ width, height: 844 });
+        await expect.poll(() => page.locator('html').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+        expect(await page.getByRole('toolbar', { name: 'Email formatting' }).evaluate((el) => el.clientHeight)).toBeLessThan(115);
+    }
+    await page.locator('.email-editor').screenshot({ path: 'test-results/basic-email-mobile.png' });
+    await page.getByRole('button', { name: 'Toggle theme', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Dark', exact: true }).click();
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    await expect(canvas).toHaveCSS('color', 'rgb(36, 52, 71)');
+    await page.locator('.email-editor').screenshot({ path: 'test-results/basic-email-dark.png' });
+    expect(errors).toEqual([]);
+});

@@ -38,15 +38,27 @@ class CampaignService
             $errors[] = 'Include {{sender_address}} in the HTML footer.';
         }
         $errors = [...$errors, ...app(ProviderReadiness::class)->errors($c)];
+        if (($c->snapshot['delivery_mode'] ?? $c->delivery_mode) === 'sendgrid_live' && (str_contains(strip_tags($c->snapshot['html'] ?? $c->html), 'Write your message here.') || str_contains(strip_tags($c->snapshot['html'] ?? $c->html), 'Your email headline'))) {
+            $errors[] = 'Replace the basic email demonstration headline and message before live sending.';
+        }
         $all = app(AudienceService::class)->query($o->id, $c->audience_type, $c->audience_id)->count();
         $eligible = app(AudienceService::class)->query($o->id, $c->audience_type, $c->audience_id, true)->count();
+        $pilot = app(SendGridPilotGuard::class);
+        if (($c->snapshot['delivery_mode'] ?? $c->delivery_mode) === 'sendgrid_live' && $pilot->enabled()) {
+            if (app(AudienceService::class)->query($o->id, $c->audience_type, $c->audience_id, true)->whereNotIn('email', array_map('strtolower', config('dispatch.pilot.recipients', [])))->exists()) {
+                $errors[] = 'The live audience includes recipients outside the approved pilot allowlist.';
+            }
+            if ($eligible > $pilot->remaining()) {
+                $errors[] = 'This audience exceeds the remaining pilot daily submission allowance.';
+            }
+        }
         if ($eligible === 0) {
             $errors[] = 'No eligible recipients in the selected audience.';
         }if ($eligible > config('dispatch.max_recipients')) {
-            $errors[] = 'Simulation limit is 10,000 recipients.';
+            $errors[] = 'Campaign recipient limit is 10,000.';
         }
 
-        return ['errors' => $errors, 'total' => $all, 'eligible' => $eligible, 'excluded' => $all - $eligible, 'provider' => $c->delivery_mode ?? 'simulation', 'sender_name' => $c->snapshot['sender_name'] ?? $identity?->name ?? 'Missing', 'sender_email' => $c->snapshot['sender_email'] ?? $identity?->email ?? 'preview@example.test', 'sender' => ($c->snapshot['sender_name'] ?? $identity?->name ?? 'Missing').' <'.($c->snapshot['sender_email'] ?? $identity?->email ?? 'missing').'>', 'tracking' => ['open' => (bool) ($c->snapshot['open_tracking'] ?? $c->open_tracking), 'click' => (bool) ($c->snapshot['click_tracking'] ?? $c->click_tracking)], 'postal_address' => $c->snapshot['sender_address'] ?? $o->postal_address];
+        return ['pilot' => ['enabled' => $pilot->enabled(), 'daily_limit' => (int) config('dispatch.pilot.daily_limit')], 'errors' => $errors, 'total' => $all, 'eligible' => $eligible, 'excluded' => $all - $eligible, 'provider' => $c->delivery_mode ?? 'simulation', 'sender_name' => $c->snapshot['sender_name'] ?? $identity?->name ?? 'Missing', 'sender_email' => $c->snapshot['sender_email'] ?? $identity?->email ?? 'preview@example.test', 'sender' => ($c->snapshot['sender_name'] ?? $identity?->name ?? 'Missing').' <'.($c->snapshot['sender_email'] ?? $identity?->email ?? 'missing').'>', 'tracking' => ['open' => (bool) ($c->snapshot['open_tracking'] ?? $c->open_tracking), 'click' => (bool) ($c->snapshot['click_tracking'] ?? $c->click_tracking)], 'postal_address' => $c->snapshot['sender_address'] ?? $o->postal_address];
     }
 
     public function ready(Campaign $campaign): void

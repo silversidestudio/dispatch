@@ -26,7 +26,7 @@ function sgFixture(): array
 {
     Queue::fake();
     Http::preventStrayRequests();
-    config(['dispatch.provider' => 'sendgrid', 'dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.api_key' => 'test-key-not-real', 'dispatch.sendgrid.live_enabled' => true, 'dispatch.sendgrid.webhook_key' => 'test-key', 'app.url' => 'https://dispatch.example.test']);
+    config(['dispatch.pilot.enabled' => false, 'dispatch.provider' => 'sendgrid', 'dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.api_key' => 'test-key-not-real', 'dispatch.sendgrid.live_enabled' => true, 'dispatch.sendgrid.webhook_key' => 'test-key', 'app.url' => 'https://dispatch.example.test']);
     [$u,$o,$c] = preparedCampaign();
     $o->forceFill(['open_tracking_enabled' => true, 'click_tracking_enabled' => true, 'tracking_reviewed_at' => now(), 'tracking_review_evidence' => 'Test approval fixture only'])->save();
     SendingIdentity::whereKey($c->sending_identity_id)->update(['provider_authorised' => true, 'verification_status' => 'verified', 'verified_at' => now()]);
@@ -69,7 +69,7 @@ it('builds a v3 sandbox request with explicit tracking and unsubscribe headers',
     Http::assertSent(fn ($r) => $r->url() === 'https://api.sendgrid.com/v3/mail/send' && $r['mail_settings']['sandbox_mode']['enable'] && $r['tracking_settings']['subscription_tracking']['enable'] === false && $r['tracking_settings']['open_tracking']['enable'] === false && $r['personalizations'][0]['custom_args']['dispatch_attempt'] === 'correlation');
 });
 it('classifies provider responses conservatively', function (int $code, string $outcome) {
-    config(['dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.api_key' => 'test', 'dispatch.sendgrid.live_enabled' => true]);
+    config(['dispatch.pilot.enabled' => false, 'dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.api_key' => 'test', 'dispatch.sendgrid.live_enabled' => true]);
     Http::fake(['*' => Http::response([], $code, ['X-Message-Id' => 'id', 'Retry-After' => '20'])]);
     $m = new DeliveryMessage('id', 'to@example.test', 'from@example.test', 'Subject', 'HTML', 'Text', null, false, true);
     expect(app(SendGridDeliveryProvider::class)->submit($m, 1)->outcome)->toBe($outcome);
@@ -205,8 +205,8 @@ it('processes signed one click POST without a session while GET is harmless', fu
     $url = app(UnsubscribeService::class)->oneClickUrl($contact, $r);
     $this->get($url)->assertOk();
     expect(app(EligibilityService::class)->eligible($contact))->toBeTrue();
-    $this->post($url,['List-Unsubscribe' => 'One-Click'])->assertNoContent();
-    $this->post($url,['List-Unsubscribe' => 'One-Click'])->assertNoContent();
+    $this->post($url, ['List-Unsubscribe' => 'One-Click'])->assertNoContent();
+    $this->post($url, ['List-Unsubscribe' => 'One-Click'])->assertNoContent();
     expect(app(EligibilityService::class)->eligible($contact))->toBeFalse();
-    expect(DeliveryEvent::where('type','unsubscribe')->count())->toBe(1);
+    expect(DeliveryEvent::where('type', 'unsubscribe')->count())->toBe(1);
 });

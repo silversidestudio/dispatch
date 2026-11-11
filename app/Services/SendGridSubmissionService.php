@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Delivery\DeliveryMessage;
 use App\Delivery\SendGridDeliveryProvider;
 use App\Delivery\SubmissionResult;
+use App\Exceptions\PilotSubmissionBlocked;
 use App\Jobs\DeliverRecipient;
 use App\Models\AuditLog;
 use App\Models\Campaign;
@@ -36,6 +37,13 @@ class SendGridSubmissionService
             if (! $contact || $contact->email !== $r->email || ! app(EligibilityService::class)->eligible($contact)) {
                 $r->update(['status' => 'suppressed']);
                 app(CampaignService::class)->event($r, 'suppressed', 'suppressed-'.$r->id);
+
+                return null;
+            }
+            $pilot = app(SendGridPilotGuard::class);
+            if (($c->snapshot['delivery_mode'] ?? '') === 'sendgrid_live' && $pilot->enabled() && ($pilot->configurationErrors($c->organisation_id) || ! $pilot->recipientAllowed($r->email) || $pilot->remaining() < 1)) {
+                $c->update(['status' => 'paused', 'paused_from' => 'processing']);
+                AuditLog::record('campaign.pilot_blocked', $c->organisation_id, ['campaign_id' => $c->id]);
 
                 return null;
             }
@@ -84,9 +92,11 @@ class SendGridSubmissionService
         if (! str_contains($c->snapshot['text_body'], '{{sender_address}}')) {
             $plain .= "\n\n".$c->snapshot['sender_name']."\n".$c->snapshot['sender_address'];
         }
-        $message = new DeliveryMessage($attempt->correlation_id, $r->email, $c->snapshot['sender_email'], $c->snapshot['subject'], $content->render($c->snapshot['html'], $values, $c->snapshot['preview_text'] ?? ''), $plain, $c->snapshot['reply_to'] ?? null, $c->snapshot['delivery_mode'] === 'sendgrid_sandbox', (bool) $c->live_authorised_at, (bool) $c->snapshot['open_tracking'], (bool) $c->snapshot['click_tracking'], ['List-Unsubscribe' => '<'.$oneClick.'>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'], $c->snapshot['sender_name']);
+        $message = new DeliveryMessage($attempt->correlation_id, $r->email, $c->snapshot['sender_email'], $c->snapshot['subject'], $content->render($c->snapshot['html'], $values, $c->snapshot['preview_text'] ?? ''), $plain, $c->snapshot['reply_to'] ?? null, $c->snapshot['delivery_mode'] === 'sendgrid_sandbox', (bool) $c->live_authorised_at, (bool) $c->snapshot['open_tracking'], (bool) $c->snapshot['click_tracking'], ['List-Unsubscribe' => '<'.$oneClick.'>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'], $c->snapshot['sender_name'], $c->organisation_id);
         try {
             $result = app(SendGridDeliveryProvider::class)->submit($message, $attempt->number);
+        } catch (PilotSubmissionBlocked $e) {
+            $result = new SubmissionResult('not_submitted', '', null, $e->getMessage());
         } catch (\Throwable) {
             $result = new SubmissionResult('uncertain', '', null, 'submission_interrupted');
         }
@@ -122,9 +132,9 @@ class SendGridSubmissionService
             $next = $status === 'deferred' ? now()->addSeconds(max($result->retryAfter ?? 0, min(900, 5 * (2 ** min(7, $a->number))) + random_int(0, 10))) : null;
             $r->update(['status' => $status, 'provider_message_id' => $result->messageId, 'next_attempt_at' => $next]);
             DeliveryEvent::firstOrCreate(['event_key' => 'sendgrid-attempt-'.$a->id], ['organisation_id' => $r->organisation_id, 'campaign_id' => $r->campaign_id, 'campaign_recipient_id' => $r->id, 'delivery_attempt_id' => $a->id, 'type' => $outcome, 'provider' => 'sendgrid', 'simulated' => $c->snapshot['delivery_mode'] !== 'sendgrid_live', 'occurred_at' => now(), 'provider_message_id' => $result->messageId, 'metadata' => ['http_status' => $result->httpStatus, 'diagnostic' => $result->diagnostic]]);
-            if ($result->diagnostic === 'provider_authentication_failed') {
+            if ($result->diagnostic === 'provider_authentication_failed' || str_starts_with($result->diagnostic ?? '', 'pilot_')) {
                 $c->update(['status' => 'paused', 'paused_from' => 'processing']);
-                AuditLog::record('campaign.provider_authentication_failed', $c->organisation_id, ['campaign_id' => $c->id]);
+                AuditLog::record($result->diagnostic === 'provider_authentication_failed' ? 'campaign.provider_authentication_failed' : 'campaign.pilot_blocked', $c->organisation_id, ['campaign_id' => $c->id]);
             }
             if ($next) {
                 DeliverRecipient::dispatch($r->id)->delay($next)->afterCommit();

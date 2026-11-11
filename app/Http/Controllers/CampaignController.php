@@ -17,6 +17,7 @@ use App\Services\AudienceService;
 use App\Services\CampaignService;
 use App\Services\EligibilityService;
 use App\Services\EmailContentService;
+use App\Services\EmailStarterTemplates;
 use App\Services\UnsubscribeService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -51,7 +52,7 @@ class CampaignController extends Controller
 
     private function form(Organisation $o, ?Campaign $c)
     {
-        return Inertia::render('campaign-editor', ['company' => $o, 'campaign' => $c, 'identities' => SendingIdentity::where('organisation_id', $o->id)->get(), 'lists' => MailingList::where('organisation_id', $o->id)->get(['id', 'name']), 'segments' => Segment::where('organisation_id', $o->id)->get(['id', 'name']), 'templates' => EmailTemplate::where('organisation_id', $o->id)->get(), 'canManage' => Gate::allows('manageCampaigns', $o)]);
+        return Inertia::render('campaign-editor', ['company' => $o, 'campaign' => $c, 'defaultEmail' => app(EmailStarterTemplates::class)->basic($o->email_branding ?? []), 'identities' => SendingIdentity::where('organisation_id', $o->id)->get(), 'lists' => MailingList::where('organisation_id', $o->id)->get(['id', 'name']), 'segments' => Segment::where('organisation_id', $o->id)->get(['id', 'name']), 'templates' => EmailTemplate::where('organisation_id', $o->id)->get(), 'canManage' => Gate::allows('manageCampaigns', $o)]);
     }
 
     public function edit(Organisation $organisation, Campaign $campaign)

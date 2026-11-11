@@ -20,6 +20,7 @@ export default function Detail({
     campaign: Campaign;
     preflight: {
         sender: string;
+        pilot?: { enabled: boolean; daily_limit: number };
         sender_name: string;
         sender_email: string;
         postal_address: string | null;
@@ -110,6 +111,12 @@ export default function Detail({
                     </form>
                 </Panel>
             )}
+            <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-3 text-sm">
+                <p>Save your draft → preview the email → review recipients → schedule</p>
+                <Button asChild size="sm" variant="outline">
+                    <a href="#email-preview">Review email preview</a>
+                </Button>
+            </div>
             <Panel title="Final campaign review">
                 <dl className="grid gap-4 text-sm md:grid-cols-2">
                     <div>
@@ -137,6 +144,12 @@ export default function Detail({
                         <dd>Visible footer + signed one-click headers · {preflight.postal_address ?? 'Postal address missing'}</dd>
                     </div>
                 </dl>
+                {preflight.pilot?.enabled && (
+                    <p className="bg-muted/40 mt-4 rounded-lg border p-3 text-xs">
+                        Restricted pilot controls are active for live sending: approved company and recipients only, up to{' '}
+                        {preflight.pilot.daily_limit} submission attempts per UTC day. Simulation remains local.
+                    </p>
+                )}
             </Panel>
             <Metrics data={stats} />
             {campaign.delivery_mode === 'simulation' && stats.eligible_at_snapshot > 0 && (
@@ -205,7 +218,9 @@ export default function Detail({
                                 value={f.data.scheduled_at}
                                 change={(v) => f.setData('scheduled_at', v)}
                             />
-                            <Field label="Type SEND for live delivery" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
+                            {campaign.delivery_mode === 'sendgrid_live' && (
+                                <Field label="Type SEND for live delivery" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
+                            )}
                             <Button>
                                 {campaign.delivery_mode === 'simulation'
                                     ? 'Schedule simulation'

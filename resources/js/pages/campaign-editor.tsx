@@ -1,5 +1,6 @@
 import { EmailEditor } from '@/components/email-editor';
 import { Company, Field, Select } from '@/components/marketing';
+import { PlainTextAlternative } from '@/components/plain-text-alternative';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
 import { useForm } from '@inertiajs/react';
@@ -14,6 +15,7 @@ export default function Editor({
     lists,
     segments,
     templates,
+    defaultEmail,
 }: {
     company: Company;
     campaign: Campaign | null;
@@ -21,9 +23,8 @@ export default function Editor({
     lists: { id: number; name: string }[];
     segments: { id: number; name: string }[];
     templates: Template[];
+    defaultEmail: { html: string; text_body: string };
 }) {
-    const footer =
-        '<h1>Hello {{first_name}}</h1><p>Write something useful for your audience.</p><p>{{sender_name}} · {{sender_address}}</p><p><a href="{{unsubscribe_url}}">Unsubscribe</a></p>';
     const f = useForm({
         delivery_mode: campaign?.delivery_mode ?? 'simulation',
         open_tracking: campaign?.open_tracking ?? false,
@@ -35,8 +36,8 @@ export default function Editor({
         reply_to: campaign?.reply_to ?? '',
         audience_type: campaign?.audience_type ?? 'list',
         audience_id: String(campaign?.audience_id ?? ''),
-        html: campaign?.html ?? footer,
-        text_body: campaign?.text_body ?? 'Hello {{first_name}}\n\n{{sender_name}} · {{sender_address}}\nUnsubscribe: {{unsubscribe_url}}',
+        html: campaign?.html ?? defaultEmail.html,
+        text_body: campaign?.text_body ?? defaultEmail.text_body,
     });
     const [count, setCount] = useState<{ total: number; eligible: number } | null>(null);
     const base = `/organisations/${company.id}`;
@@ -76,7 +77,7 @@ export default function Editor({
                             <option value="">Choose identity</option>
                             {identities.map((i) => (
                                 <option value={i.id} key={i.id}>
-                                    {i.name} · {i.email} · unverified, simulation only
+                                    {i.name} · {i.email} · {i.verification_status}
                                 </option>
                             ))}
                         </Select>
@@ -104,7 +105,7 @@ export default function Editor({
                 </Panel>
                 <Panel
                     title="2 · Audience"
-                    description="Unknown, archived or suppressed contacts are excluded centrally. Eligibility is checked again before each simulated submission."
+                    description="Unknown, archived or suppressed contacts are excluded centrally. Eligibility is checked again before each submission."
                 >
                     <div className="grid gap-4 md:grid-cols-2">
                         <Select
@@ -158,15 +159,12 @@ export default function Editor({
                             ))}
                         </Select>
                         <EmailEditor buttonColour={company.email_branding?.button_color} value={f.data.html} onChange={(v) => f.setData('html', v)} />
-                        <label className="block text-sm font-medium">
-                            Plain-text alternative
-                            <textarea
-                                aria-label="Plain-text alternative"
-                                className="bg-background mt-2 min-h-40 w-full rounded-lg border p-3 font-mono text-sm"
-                                value={f.data.text_body}
-                                onChange={(e) => f.setData('text_body', e.target.value)}
-                            />
-                        </label>
+                        <PlainTextAlternative
+                            companyId={company.id}
+                            html={f.data.html}
+                            value={f.data.text_body}
+                            onChange={(v) => f.setData('text_body', v)}
+                        />
                     </div>
                 </Panel>
                 <Errors errors={f.errors} />

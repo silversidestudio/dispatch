@@ -8,6 +8,7 @@ export type Branding = {
     secondary_color?: string | null;
     button_color?: string;
     footer_text?: string | null;
+    signature_text?: string | null;
 };
 export function EmailBranding({ id, branding, canUpdate }: { id: number; branding?: Branding | null; canUpdate: boolean }) {
     const f = useForm({
@@ -16,6 +17,7 @@ export function EmailBranding({ id, branding, canUpdate }: { id: number; brandin
         secondary_color: branding?.secondary_color ?? '#edf3ef',
         button_color: branding?.button_color ?? '#21564b',
         footer_text: branding?.footer_text ?? '',
+        signature_text: branding?.signature_text ?? '',
     });
     return (
         <Panel
@@ -39,6 +41,19 @@ export function EmailBranding({ id, branding, canUpdate }: { id: number; brandin
                         <Field label="Secondary colour" type="color" value={f.data.secondary_color} change={(v) => f.setData('secondary_color', v)} />
                         <Field label="Default button colour" type="color" value={f.data.button_color} change={(v) => f.setData('button_color', v)} />
                     </div>
+                    <label className="block text-sm font-medium">
+                        Default email signature
+                        <textarea
+                            aria-label="Default email signature"
+                            className="bg-background mt-2 min-h-24 w-full rounded-lg border p-3 font-normal"
+                            placeholder="Company or team name, telephone and website"
+                            value={f.data.signature_text}
+                            onChange={(e) => f.setData('signature_text', e.target.value)}
+                        />
+                        <span className="text-muted-foreground mt-1 block text-xs">
+                            Used for new basic emails. Existing templates and snapshots stay unchanged.
+                        </span>
+                    </label>
                     <Errors errors={f.errors} />
                     {canUpdate && <Button disabled={f.processing}>Save email branding</Button>}
                 </fieldset>

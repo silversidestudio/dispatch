@@ -15,6 +15,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')->group(function () {
+    Route::post('templates/basic', [ContentController::class, 'basic']);
+    Route::post('email-plain-text', [ContentController::class, 'plainText'])->middleware('throttle:30,1');
     Route::patch('email-branding', [ContentController::class, 'branding']);
     Route::get('starter-previews/{starter}', [ContentController::class, 'starterPreview'])->whereNumber('starter');
     Route::get('contacts', [C::class, 'index']);
