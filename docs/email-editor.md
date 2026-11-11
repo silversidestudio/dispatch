@@ -19,3 +19,7 @@ Campaign detail now offers a single-recipient test preparation form. It accepts 
 ## Studio v2 editor refinement
 
 See [refinement handover](email-editor-refinement-handover.md) for the icon toolbar, selectable CTA/image blocks, new starter catalogue, creation-time branding, shared responsive previews, tests and screenshots. Existing saved designs are preserved. HTMLPurifier, DOM-based email presentation and the Blade document wrapper are shared by previews and SendGrid submission; outbound styling does not depend on application Tailwind classes. Actual Gmail/Outlook rendering remains unverified. Image uploads are deferred; use HTTPS URLs or the bundled original illustration. Review the separate plain-text alternative after changing HTML.
+
+## Basic email update — 11 November 2026
+
+The primary Create basic email action adds a new text-led template without overwriting saved templates. New campaign drafts use this starter. Select text to change font, size, colour or underline; use More for secondary actions. Organisation branding can store a reusable signature. Update from email regenerates the plain-text alternative after confirmation; save afterwards. Existing Studio templates and campaign snapshots remain intact. See [handover](basic-email-pilot-handover.md) for screenshots, tests and client-rendering limits.

@@ -41,3 +41,5 @@ npx playwright test
 Browser tests require the development server, database, Redis and Chromium (`npx playwright install chromium`). They create clearly named browser demonstration accounts and workspaces in the local database. Do not run them against shared or production data. The test passwords are generated at runtime and never printed.
 
 Email Studio refinement: [handover and screenshots](docs/email-editor-refinement-handover.md). Includes responsive icon tools, editable CTA/images, five versioned starter designs, organisation branding and shared desktop/mobile/plain-text previews. Existing templates/snapshots and closed live-delivery gates are preserved.
+
+Basic email and restricted pilot preparation (11 November): [handover](docs/basic-email-pilot-handover.md), [Plesk staging instructions](docs/plesk-staging-setup.md). Font/size/colour controls and a plain email starter are available; live sending remains disabled.

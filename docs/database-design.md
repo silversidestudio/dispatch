@@ -43,3 +43,7 @@ Encrypted webhook envelopes require the retained APP_KEY. Engagement pruning int
 ## Email editor refinement
 
 Additive migration `2026_10_26_000002_add_email_branding_to_organisations.php` adds nullable JSON email_branding with validated logo URL, primary/secondary/button colours and footer information. Company name/postal address reuse existing fields. Owner/admin policy protects updates. Values are applied only when creating a new versioned starter; no existing template or campaign snapshot is updated. SQLite/MariaDB migration and snapshot-preservation tests are in EmailEditorTest.php.
+
+## Restricted pilot ledger — 11 November 2026
+
+Migration 2026_11_11_000001 adds sendgrid_pilot_budgets (unique UTC day, reserved count) and sendgrid_pilot_reservations (budget foreign key, globally unique correlation hash). All companies share the conservative live-attempt budget; reservations contain no recipient PII and persist across cache flush/restart. Replay reservations are retained; do not reset them to obtain quota. Existing business data and snapshots are unchanged.

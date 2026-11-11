@@ -63,3 +63,7 @@ ContactPrivacyController provides restricted export and audited erasure with sup
 ## Email presentation refinement
 
 EmailContentService remains the shared contract. EmailMarkup uses a DOM tree to validate/normalise safe fragments, apply inline presentation and render a CTA table-cell fallback. A separate Blade email document supplies fluid widths/media CSS and an MSO wrapper. EmailStarterTemplates supplies original versioned designs; optional organisation branding is applied on creation. Tiptap retains table/section/inline styles and editable atomic CTA/image nodes; app controls remain shadcn/Lucide. Saved preview iframes stay sandboxed with script/form restrictions. Existing campaign snapshots are never rewritten. See email-editor-refinement-handover.md for tests, visual evidence and outstanding actual-client checks.
+
+## Restricted pilot and basic editor — 11 November 2026
+
+SendGridPilotGuard adds exact server-side company/recipient scope and a durable row-locked global UTC daily attempt budget before live API submission. Readiness/pre-flight and submission checks fail closed; the adapter rechecks and reserves before HTTP. Simulation/sandbox do not spend live capacity. SendGridAuthChannel is blocked while restricted pilot mode is enabled. Existing provider contracts, snapshots and webhooks remain. Basic typography uses inline styles through existing sanitisation/rendering; plain text is generated through an authorised server route. See basic-email-pilot-handover.md.
