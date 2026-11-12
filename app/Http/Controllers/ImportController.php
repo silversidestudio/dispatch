@@ -75,7 +75,7 @@ class ImportController extends Controller
             ProcessContactImport::dispatch($i->id)->afterCommit();
         });
 
-        return redirect("/organisations/$organisation->id/imports/$import->id")->with('success', 'Import queued. New contacts remain ineligible until evidence is recorded.');
+        return redirect("/organisations/$organisation->id/imports/$import->id")->with('success', 'Import queued. New CSV contacts become eligible automatically; existing contacts and suppressions are preserved.');
     }
 
     public function errors(Organisation $organisation, ContactImport $import)

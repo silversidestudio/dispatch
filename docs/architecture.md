@@ -67,3 +67,7 @@ EmailContentService remains the shared contract. EmailMarkup uses a DOM tree to 
 ## Restricted pilot and basic editor — 11 November 2026
 
 SendGridPilotGuard adds exact server-side company/recipient scope and a durable row-locked global UTC daily attempt budget before live API submission. Readiness/pre-flight and submission checks fail closed; the adapter rechecks and reserves before HTTP. Simulation/sandbox do not spend live capacity. SendGridAuthChannel is blocked while restricted pilot mode is enabled. Existing provider contracts, snapshots and webhooks remain. Basic typography uses inline styles through existing sanitisation/rendering; plain text is generated through an authorised server route. See basic-email-pilot-handover.md.
+
+## CSV eligibility policy — 12 November 2026
+
+At the operator’s explicit request, newly created CSV contacts are automatically eligible using the distinct csv_import state and an automatic provenance record (import/user/source/row/time). No manual evidence form is needed. This does not fabricate consent or a lawful-basis assessment. Central eligibility continues to require an active tenant-scoped contact, a matching record and no organisation suppression. Duplicates preserve existing status; historical records are not backfilled. No schema migration or live-send setting change is required.

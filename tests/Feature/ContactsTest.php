@@ -3,9 +3,11 @@
 use App\Jobs\ProcessContactImport;
 use App\Models\Contact;
 use App\Models\ContactImport;
+use App\Models\EligibilityRecord;
 use App\Models\ImportRow;
 use App\Models\MailingList;
 use App\Models\Segment;
+use App\Models\Suppression;
 use App\Models\User;
 use App\Services\AudienceService;
 use App\Services\CsvImportService;
@@ -82,9 +84,43 @@ it('imports through a queued mapping workflow with validation duplicates and ret
     expect($i->successful)->toBe(1);
     expect($i->rejected)->toBe(2);
     expect(Contact::count())->toBe(2);
-    expect(Contact::where('email', 'new@example.test')->first()->eligibility)->toBe('unknown');
+    $new = Contact::where('email', 'new@example.test')->first();
+    expect($new->eligibility)->toBe('csv_import');
+    expect(app(EligibilityService::class)->eligible($new))->toBeTrue();
+    $record = EligibilityRecord::where('contact_id', $new->id)->sole();
+    expect($record->user_id)->toBe($u->id);
+    expect($record->metadata['import_id'])->toBe($i->id);
+    expect($record->basis)->toBe('csv_import');
+    expect(app(EligibilityService::class)->eligible(Contact::where('email', 'existing@example.test')->first()))->toBeFalse();
     $i->update(['status' => 'failed']);
     app(CsvImportService::class)->process($i->fresh());
+    expect(EligibilityRecord::where('contact_id', $new->id)->count())->toBe(1);
     expect(ImportRow::count())->toBe(3);
     expect(Contact::count())->toBe(2);
+});
+
+it('never restores suppressed addresses through CSV import and keeps eligibility tenant scoped', function () {
+    Storage::fake();
+    $u = User::factory()->create();
+    $o = workspaceFor($u);
+    $other = workspaceFor($u);
+    foreach (['unsubscribed', 'hard_bounce', 'complaint', 'administratively_blocked'] as $reason) {
+        Suppression::create(['organisation_id' => $o->id, 'email' => $reason.'@example.test', 'reason' => $reason]);
+    }
+    $path = 'imports/policy.csv';
+    Storage::put($path, "email\nunsubscribed@example.test\nhard_bounce@example.test\ncomplaint@example.test\nadministratively_blocked@example.test\nnew@example.test\n");
+    $import = ContactImport::create(['organisation_id' => $o->id, 'user_id' => $u->id, 'path' => $path, 'source' => 'User CSV', 'headers' => ['email'], 'mapping' => ['email' => 0], 'status' => 'queued', 'total' => 5]);
+    app(CsvImportService::class)->process($import);
+    expect($import->fresh()->successful)->toBe(5);
+    expect(app(EligibilityService::class)->query($o->id)->pluck('email')->all())->toBe(['new@example.test']);
+    foreach (['unsubscribed', 'hard_bounce', 'complaint', 'administratively_blocked'] as $reason) {
+        expect(Contact::where('organisation_id', $o->id)->where('email', $reason.'@example.test')->value('eligibility'))->toBe($reason);
+    }
+    expect(EligibilityRecord::where('organisation_id', $o->id)->count())->toBe(1);
+    $importB = ContactImport::create(['organisation_id' => $other->id, 'user_id' => $u->id, 'path' => $path, 'source' => 'Other company CSV', 'headers' => ['email'], 'mapping' => ['email' => 0], 'status' => 'queued', 'total' => 5]);
+    app(CsvImportService::class)->process($importB);
+    expect(app(EligibilityService::class)->query($other->id)->count())->toBe(5);
+    $new = Contact::where('organisation_id', $o->id)->where('email', 'new@example.test')->firstOrFail();
+    app(EligibilityService::class)->suppress($new, 'unsubscribed');
+    expect(app(EligibilityService::class)->eligible($new))->toBeFalse();
 });

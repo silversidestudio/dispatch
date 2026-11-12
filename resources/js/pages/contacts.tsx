@@ -52,11 +52,20 @@ export default function Contacts({
                     </Select>
                     <Select label="Eligibility" value={search.data.eligibility} change={(v) => search.setData('eligibility', v)}>
                         <option value="">All eligibility</option>
-                        {['unknown', 'consent', 'documented_basis', 'unsubscribed', 'hard_bounce', 'complaint', 'administratively_blocked'].map(
-                            (v) => (
-                                <option key={v}>{v}</option>
-                            ),
-                        )}
+                        {[
+                            'unknown',
+                            'consent',
+                            'documented_basis',
+                            'csv_import',
+                            'unsubscribed',
+                            'hard_bounce',
+                            'complaint',
+                            'administratively_blocked',
+                        ].map((v) => (
+                            <option key={v} value={v}>
+                                {v === 'csv_import' ? 'Eligible · CSV import' : v}
+                            </option>
+                        ))}
                     </Select>
                     <div className="flex items-end gap-2">
                         <Select label="Sort" value={search.data.sort} change={(v) => search.setData('sort', v)}>

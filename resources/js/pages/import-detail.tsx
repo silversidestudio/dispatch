@@ -42,7 +42,10 @@ export default function ImportDetail({
                 </p>
             )}
             {job.status === 'preview' && canManage && (
-                <Panel title="Map columns" description="Map only profile data. Eligibility must be recorded separately with supporting evidence.">
+                <Panel
+                    title="Map columns"
+                    description="Map your contact columns. New contacts become eligible automatically; no separate evidence entry is needed. Existing contacts and suppressions stay unchanged."
+                >
                     <form
                         className="space-y-4"
                         onSubmit={(e) => {

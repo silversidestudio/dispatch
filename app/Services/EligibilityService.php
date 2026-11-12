@@ -14,7 +14,7 @@ class EligibilityService
 {
     public function query(int $organisationId): Builder
     {
-        return Contact::where('organisation_id', $organisationId)->where('status', 'active')->whereIn('eligibility', ['consent', 'documented_basis'])
+        return Contact::where('organisation_id', $organisationId)->where('status', 'active')->whereIn('eligibility', ['consent', 'documented_basis', 'csv_import'])
             ->whereExists(fn ($q) => $q->selectRaw('1')->from('eligibility_records')->whereColumn('eligibility_records.contact_id', 'contacts.id')->whereColumn('eligibility_records.organisation_id', 'contacts.organisation_id')->whereColumn('eligibility_records.basis', 'contacts.eligibility'))
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('suppressions')->whereColumn('suppressions.organisation_id', 'contacts.organisation_id')->whereColumn('suppressions.email', 'contacts.email'));
     }

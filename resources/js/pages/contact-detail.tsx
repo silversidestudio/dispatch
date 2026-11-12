@@ -39,7 +39,7 @@ export default function Detail({
     return (
         <Workspace
             title={contact.email}
-            subtitle={`${company.name} · ${eligible ? 'Eligible for local campaign simulation' : 'Not eligible for marketing'}${suppression ? ' · Suppressed: ' + suppression.reason : ''}`}
+            subtitle={`${company.name} · ${eligible ? 'Eligible for marketing' : 'Not eligible for marketing'}${suppression ? ' · Suppressed: ' + suppression.reason : ''}`}
         >
             <Panel title="Contact profile">
                 <form

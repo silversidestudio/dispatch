@@ -22,7 +22,7 @@ export default function Imports({ company, imports, canManage }: { company: Comp
     return (
         <Workspace
             title="Contact imports"
-            subtitle="CSV imports preserve existing contacts and suppression. Imported addresses are never automatically opted in."
+            subtitle="New CSV contacts become eligible automatically. Existing contacts and suppressions are preserved."
         >
             {canManage && (
                 <Panel

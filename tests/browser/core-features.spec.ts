@@ -52,15 +52,13 @@ test('platform company to owner contacts import campaign simulation and reportin
     await owner.goto(base);
     await expect(owner.getByText(teamEmail, { exact: true })).toBeVisible();
     await owner.goto(base + '/imports');
-    await owner
-        .getByLabel('CSV file')
-        .setInputFiles({
-            name: 'company-contacts.csv',
-            mimeType: 'text/csv',
-            buffer: Buffer.from(
-                `email,first_name\nsuccess-${stamp}@example.test,Alex\ntemporary-${stamp}@example.test,Taylor\npermanent-${stamp}@example.test,Jordan\ninvalid,Bad\n`,
-            ),
-        });
+    await owner.getByLabel('CSV file').setInputFiles({
+        name: 'company-contacts.csv',
+        mimeType: 'text/csv',
+        buffer: Buffer.from(
+            `email,first_name\nsuccess-${stamp}@example.test,Alex\ntemporary-${stamp}@example.test,Taylor\npermanent-${stamp}@example.test,Jordan\ninvalid,Bad\n`,
+        ),
+    });
     await owner.getByRole('button', { name: 'Upload and preview' }).click();
     await expect(owner).toHaveURL(/imports\/\d+/);
     await owner.getByRole('button', { name: 'Start background import' }).click();
@@ -69,11 +67,12 @@ test('platform company to owner contacts import campaign simulation and reportin
     for (const local of ['success', 'temporary', 'permanent']) {
         await owner.goto(base + '/contacts');
         await owner.getByRole('link', { name: `${local}-${stamp}@example.test`, exact: true }).click();
-        await owner.getByLabel('Evidence', { exact: true }).fill('Explicit email consent recorded for this demonstration company');
-        await owner.getByLabel('Method', { exact: true }).fill('Demonstration signup form');
-        await owner.getByLabel('Evidence timestamp').fill(new Date(Date.now() - 86400000).toISOString().slice(0, 16));
-        await owner.getByRole('button', { name: 'Record evidence' }).click();
-        await expect(owner.getByText('Eligibility evidence recorded.', { exact: true })).toBeVisible();
+        await expect(owner.getByText(/Eligible for marketing/)).toBeVisible();
+        await expect(
+            owner.getByText('Eligibility assigned automatically by the configured CSV import policy; no separate consent evidence was supplied.', {
+                exact: true,
+            }),
+        ).toBeVisible();
     }
     await owner.goto(base + '/audiences');
     await owner.getByLabel('List name', { exact: true }).fill('Company newsletter');

@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Models\AuditLog;
 use App\Models\Contact;
 use App\Models\ContactImport;
+use App\Models\EligibilityRecord;
 use App\Models\ImportRow;
 use App\Models\Organisation;
+use App\Models\Suppression;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -78,7 +80,19 @@ class CsvImportService
                 }
                 if (! $error) {
                     try {
-                        Contact::create($data);
+                        $suppression = Suppression::where('organisation_id', $import->organisation_id)->where('email', $data['email'])->first();
+                        $data['eligibility'] = $suppression?->reason ?? 'csv_import';
+                        $contact = Contact::create($data);
+                        if (! $suppression) {
+                            EligibilityRecord::create([
+                                'organisation_id' => $import->organisation_id, 'contact_id' => $contact->id,
+                                'user_id' => $import->user_id, 'basis' => 'csv_import',
+                                'evidence' => 'Eligibility assigned automatically by the configured CSV import policy; no separate consent evidence was supplied.',
+                                'method' => 'csv_import', 'recorded_at' => now(),
+                                'metadata' => ['source' => $import->source, 'import_id' => $import->id, 'row_number' => $i + 2],
+                            ]);
+                            AuditLog::create(['action' => 'contact.import_eligibility_assigned', 'organisation_id' => $import->organisation_id, 'user_id' => $import->user_id, 'metadata' => ['contact_id' => $contact->id, 'import_id' => $import->id, 'basis' => 'csv_import']]);
+                        }
                     } catch (UniqueConstraintViolationException) {
                         $error = 'Duplicate email; existing record preserved.';
                     }
