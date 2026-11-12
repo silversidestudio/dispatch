@@ -27,6 +27,7 @@ export default function Identities({
     canVerify: boolean;
 }) {
     const f = useForm({ name: '', email: '', reply_to: '', is_default: false as boolean });
+    const credentials = useForm({ sendgrid_api_key: '', sendgrid_webhook_key: '' });
     const [id, setId] = useState<number | null>(null);
     const base = `/organisations/${company.id}/identities`;
     return (
@@ -34,6 +35,40 @@ export default function Identities({
             title="Sending identities"
             subtitle="Identity verification and provider readiness. Configuration does not authorise a production launch."
         >
+            {canManage && (
+                <Panel
+                    title="Company SendGrid credentials"
+                    description="Keys are stored for this company only. Saving them requires sender re-verification and does not enable live sending."
+                >
+                    <form
+                        className="space-y-4"
+                        autoComplete="off"
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            credentials.patch(`/organisations/${company.id}/sendgrid-credentials`, { onSuccess: () => credentials.reset() });
+                        }}
+                    >
+                        <Field
+                            label="SendGrid API key"
+                            type="password"
+                            required
+                            value={credentials.data.sendgrid_api_key}
+                            change={(v) => credentials.setData('sendgrid_api_key', v)}
+                        />
+                        <Field
+                            label="Webhook verification key (optional for sandbox)"
+                            type="password"
+                            value={credentials.data.sendgrid_webhook_key}
+                            change={(v) => credentials.setData('sendgrid_webhook_key', v)}
+                        />
+                        <p className="text-sm">
+                            Webhook endpoint: <code>/webhooks/sendgrid/{company.id}</code>. Leaving the verification key blank clears it.
+                        </p>
+                        <Errors errors={credentials.errors} />
+                        <Button disabled={credentials.processing}>Save company credentials</Button>
+                    </form>
+                </Panel>
+            )}
             <Panel title="Provider readiness">
                 <p className="text-sm">
                     Provider: {readiness.provider} · API configuration: {readiness.enabled && readiness.configured ? 'Configured' : 'Not configured'}{' '}

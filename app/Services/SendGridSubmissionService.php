@@ -52,15 +52,16 @@ class SendGridSubmissionService
 
                 return null;
             }
-            $allowed = Cache::lock('sendgrid-rate-reservation', 5)->block(2, function () {
-                if (RateLimiter::tooManyAttempts('sendgrid-submissions', config('dispatch.sendgrid.per_minute'))) {
+            $rateKey = 'sendgrid-submissions:'.$c->organisation_id;
+            $allowed = Cache::lock($rateKey.':reservation', 5)->block(2, function () use ($rateKey) {
+                if (RateLimiter::tooManyAttempts($rateKey, config('dispatch.sendgrid.per_minute'))) {
                     return false;
-                }RateLimiter::hit('sendgrid-submissions', 60);
+                }RateLimiter::hit($rateKey, 60);
 
                 return true;
             });
             if (! $allowed) {
-                $r->update(['status' => 'deferred', 'next_attempt_at' => now()->addSeconds(max(5, RateLimiter::availableIn('sendgrid-submissions')))]);
+                $r->update(['status' => 'deferred', 'next_attempt_at' => now()->addSeconds(max(5, RateLimiter::availableIn($rateKey)))]);
 
                 return null;
             }
@@ -92,7 +93,7 @@ class SendGridSubmissionService
         if (! str_contains($c->snapshot['text_body'], '{{sender_address}}')) {
             $plain .= "\n\n".$c->snapshot['sender_name']."\n".$c->snapshot['sender_address'];
         }
-        $message = new DeliveryMessage($attempt->correlation_id, $r->email, $c->snapshot['sender_email'], $c->snapshot['subject'], $content->render($c->snapshot['html'], $values, $c->snapshot['preview_text'] ?? ''), $plain, $c->snapshot['reply_to'] ?? null, $c->snapshot['delivery_mode'] === 'sendgrid_sandbox', (bool) $c->live_authorised_at, (bool) $c->snapshot['open_tracking'], (bool) $c->snapshot['click_tracking'], ['List-Unsubscribe' => '<'.$oneClick.'>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'], $c->snapshot['sender_name'], $c->organisation_id);
+        $message = new DeliveryMessage($attempt->correlation_id, $r->email, $c->snapshot['sender_email'], $c->snapshot['subject'], $content->render($c->snapshot['html'], $values, $c->snapshot['preview_text'] ?? ''), $plain, $c->snapshot['reply_to'] ?? null, $c->snapshot['delivery_mode'] === 'sendgrid_sandbox', (bool) $c->live_authorised_at, (bool) $c->snapshot['open_tracking'], (bool) $c->snapshot['click_tracking'], ['List-Unsubscribe' => '<'.$oneClick.'>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'], $c->snapshot['sender_name'], $c->organisation_id, $c->snapshot['sendgrid_credential'] ?? null);
         try {
             $result = app(SendGridDeliveryProvider::class)->submit($message, $attempt->number);
         } catch (PilotSubmissionBlocked $e) {

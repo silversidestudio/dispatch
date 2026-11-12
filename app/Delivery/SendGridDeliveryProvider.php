@@ -2,6 +2,7 @@
 
 namespace App\Delivery;
 
+use App\Models\Organisation;
 use App\Services\SendGridPilotGuard;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -10,8 +11,13 @@ final class SendGridDeliveryProvider implements DeliveryProvider
 {
     public function submit(DeliveryMessage $m, int $attempt): SubmissionResult
     {
-        if (! config('dispatch.sendgrid.enabled') || ! config('dispatch.sendgrid.api_key')) {
+        $organisation = $m->organisationId ? Organisation::find($m->organisationId) : null;
+        $key = $organisation?->sendgrid_api_key;
+        if (! config('dispatch.sendgrid.enabled') || ! $key) {
             throw new \RuntimeException('SendGrid is not configured.');
+        }
+        if (! $m->credentialFingerprint || $m->credentialFingerprint !== $organisation->sendGridCredentialFingerprint()) {
+            return new SubmissionResult('not_submitted', '', null, 'company_credentials_changed');
         }
         if (! $m->sandbox && (! config('dispatch.sendgrid.live_enabled') || ! $m->liveAuthorised)) {
             throw new \RuntimeException('Live sending is disabled or unauthorised.');
@@ -24,7 +30,7 @@ final class SendGridDeliveryProvider implements DeliveryProvider
             $payload['reply_to'] = ['email' => $m->replyTo];
         }
         try {
-            $response = Http::withToken(config('dispatch.sendgrid.api_key'))->acceptJson()->connectTimeout(5)->timeout(config('dispatch.sendgrid.timeout'))->post('https://api.sendgrid.com/v3/mail/send', $payload);
+            $response = Http::withToken($key)->acceptJson()->connectTimeout(5)->timeout(config('dispatch.sendgrid.timeout'))->post('https://api.sendgrid.com/v3/mail/send', $payload);
         } catch (ConnectionException) {
             return new SubmissionResult('uncertain', '', null, 'network_outcome_unknown');
         }

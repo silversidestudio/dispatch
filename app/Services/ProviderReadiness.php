@@ -18,8 +18,12 @@ class ProviderReadiness
         if (! in_array($mode, ['sendgrid_sandbox', 'sendgrid_live'], true)) {
             return ['Unsupported delivery mode.'];
         }
-        if (config('dispatch.provider') !== 'sendgrid' || ! config('dispatch.sendgrid.enabled') || ! config('dispatch.sendgrid.api_key')) {
+        $o = Organisation::findOrFail($c->organisation_id);
+        if (config('dispatch.provider') !== 'sendgrid' || ! config('dispatch.sendgrid.enabled') || ! $o->sendgrid_api_key) {
             $errors[] = 'SendGrid is not configured and enabled.';
+        }
+        if ($c->snapshot && (! isset($c->snapshot['sendgrid_credential']) || $c->snapshot['sendgrid_credential'] !== $o->sendGridCredentialFingerprint())) {
+            $errors[] = 'The SendGrid account credentials changed. Cancel and recreate this campaign.';
         }
         if ($mode === 'sendgrid_live') {
             $errors = [...$errors, ...app(SendGridPilotGuard::class)->configurationErrors($c->organisation_id)];
@@ -36,11 +40,10 @@ class ProviderReadiness
             if (! str_starts_with(config('app.url'), 'https://')) {
                 $errors[] = 'Public HTTPS application URL is required for live sending.';
             }
-            if (! config('dispatch.sendgrid.webhook_key')) {
+            if (! $o->sendgrid_webhook_key) {
                 $errors[] = 'Signed webhook configuration is required.';
             }
         }
-        $o = Organisation::findOrFail($c->organisation_id);
         $open = $c->snapshot['open_tracking'] ?? $c->open_tracking;
         $click = $c->snapshot['click_tracking'] ?? $c->click_tracking;
         if (($open || $click) && (! $o->tracking_reviewed_at || ($open && ! $o->open_tracking_enabled) || ($click && ! $o->click_tracking_enabled))) {

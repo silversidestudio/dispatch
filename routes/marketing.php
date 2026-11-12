@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')->group(function () {
+    Route::patch('sendgrid-credentials', [ProviderController::class, 'credentials'])->middleware('throttle:10,1');
     Route::post('templates/basic', [ContentController::class, 'basic']);
     Route::post('email-plain-text', [ContentController::class, 'plainText'])->middleware('throttle:30,1');
     Route::patch('email-branding', [ContentController::class, 'branding']);
@@ -73,7 +74,7 @@ Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')-
     Route::get('audience-preview', [$c, 'audience']);
     Route::get('reports', [$c, 'reporting']);
 });
-Route::post('/webhooks/sendgrid', SendGridWebhookController::class)->middleware('throttle:300,1');
+Route::post('/webhooks/sendgrid/{organisation}', SendGridWebhookController::class)->middleware('throttle:300,1');
 Route::get('/one-click/{token}', fn () => response('Use the visible unsubscribe link to confirm your preference.', 200))->middleware(['signed:relative', 'throttle:30,1'])->name('unsubscribe.oneclick');
 Route::post('/one-click/{token}', function (Request $request, string $token) {
     abort_unless($request->input('List-Unsubscribe') === 'One-Click', 422);

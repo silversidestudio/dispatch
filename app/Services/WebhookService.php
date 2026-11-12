@@ -14,12 +14,11 @@ use Illuminate\Support\Facades\DB;
 
 class WebhookService
 {
-    public function verify(string $body, string $timestamp, string $signature): bool
+    public function verify(string $body, string $timestamp, string $signature, ?string $key): bool
     {
         if (! ctype_digit($timestamp) || abs(time() - (int) $timestamp) > config('dispatch.sendgrid.signature_tolerance')) {
             return false;
         }
-        $key = config('dispatch.sendgrid.webhook_key');
         if (! $key) {
             return false;
         }
@@ -66,9 +65,9 @@ class WebhookService
 
     public function ingest(array $e): void
     {
-        $key = hash('sha256', $e['event_id'] ?: json_encode($e));
+        $key = hash('sha256', (isset($e['organisation_id']) ? $e['organisation_id'].':' : '').($e['event_id'] ?: json_encode($e)));
         DB::transaction(function () use ($e, $key) {
-            $a = DeliveryAttempt::where('correlation_id', $e['correlation'])->where('provider', 'sendgrid')->first();
+            $a = DeliveryAttempt::where('correlation_id', $e['correlation'])->where('provider', 'sendgrid')->when(isset($e['organisation_id']), fn ($q) => $q->where('organisation_id', $e['organisation_id']))->first();
             if (! $a) {
                 WebhookReceipt::firstOrCreate(['event_key' => $key], ['status' => 'quarantined', 'reason' => 'unmatched_correlation']);
 

@@ -22,7 +22,7 @@ class ContentController extends Controller
     {
         Gate::authorize('view', $organisation);
 
-        return Inertia::render('identities', ['company' => $organisation, 'identities' => SendingIdentity::where('organisation_id', $organisation->id)->get(), 'canManage' => Gate::allows('update', $organisation), 'readiness' => ['provider' => config('dispatch.provider'), 'enabled' => (bool) config('dispatch.sendgrid.enabled'), 'configured' => (bool) config('dispatch.sendgrid.api_key'), 'live_enabled' => (bool) config('dispatch.sendgrid.live_enabled')], 'canVerify' => Gate::allows('platform')]);
+        return Inertia::render('identities', ['company' => $organisation, 'identities' => SendingIdentity::where('organisation_id', $organisation->id)->get(), 'canManage' => Gate::allows('update', $organisation), 'readiness' => ['provider' => config('dispatch.provider'), 'enabled' => (bool) config('dispatch.sendgrid.enabled'), 'configured' => (bool) $organisation->sendgrid_api_key, 'live_enabled' => (bool) config('dispatch.sendgrid.live_enabled')], 'canVerify' => Gate::allows('platform')]);
     }
 
     public function identitySave(Request $r, Organisation $organisation, ?SendingIdentity $identity = null)

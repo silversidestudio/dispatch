@@ -28,7 +28,7 @@ function sgFixture(): array
     Http::preventStrayRequests();
     config(['dispatch.pilot.enabled' => false, 'dispatch.provider' => 'sendgrid', 'dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.api_key' => 'test-key-not-real', 'dispatch.sendgrid.live_enabled' => true, 'dispatch.sendgrid.webhook_key' => 'test-key', 'app.url' => 'https://dispatch.example.test']);
     [$u,$o,$c] = preparedCampaign();
-    $o->forceFill(['open_tracking_enabled' => true, 'click_tracking_enabled' => true, 'tracking_reviewed_at' => now(), 'tracking_review_evidence' => 'Test approval fixture only'])->save();
+    $o->forceFill(['sendgrid_api_key' => 'test-key-not-real', 'sendgrid_webhook_key' => 'test-key', 'open_tracking_enabled' => true, 'click_tracking_enabled' => true, 'tracking_reviewed_at' => now(), 'tracking_review_evidence' => 'Test approval fixture only'])->save();
     SendingIdentity::whereKey($c->sending_identity_id)->update(['provider_authorised' => true, 'verification_status' => 'verified', 'verified_at' => now()]);
     $c->update(['delivery_mode' => 'sendgrid_live', 'open_tracking' => true, 'click_tracking' => true]);
     $s = app(CampaignService::class);
@@ -63,21 +63,28 @@ it('builds a v3 sandbox request with explicit tracking and unsubscribe headers',
     Http::preventStrayRequests();
     config(['dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.api_key' => 'test', 'dispatch.sendgrid.live_enabled' => false]);
     Http::fake(['api.sendgrid.com/v3/mail/send' => Http::response([], 200)]);
-    $m = new DeliveryMessage('correlation', 'to@example.test', 'from@example.test', 'Subject', '<p>Safe</p>', 'Safe', null, true, false, false, false, ['List-Unsubscribe' => '<https://example.test/one-click/token>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click']);
+    $o = Organisation::create(['name' => 'Sandbox']);
+    $o->forceFill(['sendgrid_api_key' => 'company-test'])->save();
+    $m = new DeliveryMessage('correlation', 'to@example.test', 'from@example.test', 'Subject', '<p>Safe</p>', 'Safe', null, true, false, false, false, ['List-Unsubscribe' => '<https://example.test/one-click/token>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'], organisationId: $o->id, credentialFingerprint: $o->sendGridCredentialFingerprint());
     $result = app(SendGridDeliveryProvider::class)->submit($m, 1);
     expect($result->outcome)->toBe('sandbox_validated');
-    Http::assertSent(fn ($r) => $r->url() === 'https://api.sendgrid.com/v3/mail/send' && $r['mail_settings']['sandbox_mode']['enable'] && $r['tracking_settings']['subscription_tracking']['enable'] === false && $r['tracking_settings']['open_tracking']['enable'] === false && $r['personalizations'][0]['custom_args']['dispatch_attempt'] === 'correlation');
+    Http::assertSent(fn ($r) => $r->url() === 'https://api.sendgrid.com/v3/mail/send' && $r->hasHeader('Authorization', 'Bearer company-test') && $r['mail_settings']['sandbox_mode']['enable'] && $r['tracking_settings']['subscription_tracking']['enable'] === false && $r['tracking_settings']['open_tracking']['enable'] === false && $r['personalizations'][0]['custom_args']['dispatch_attempt'] === 'correlation');
 });
 it('classifies provider responses conservatively', function (int $code, string $outcome) {
     config(['dispatch.pilot.enabled' => false, 'dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.api_key' => 'test', 'dispatch.sendgrid.live_enabled' => true]);
     Http::fake(['*' => Http::response([], $code, ['X-Message-Id' => 'id', 'Retry-After' => '20'])]);
-    $m = new DeliveryMessage('id', 'to@example.test', 'from@example.test', 'Subject', 'HTML', 'Text', null, false, true);
+    $o = Organisation::create(['name' => 'Live test']);
+    $o->forceFill(['sendgrid_api_key' => 'company-test'])->save();
+    $m = new DeliveryMessage('id', 'to@example.test', 'from@example.test', 'Subject', 'HTML', 'Text', null, false, true, organisationId: $o->id, credentialFingerprint: $o->sendGridCredentialFingerprint());
     expect(app(SendGridDeliveryProvider::class)->submit($m, 1)->outcome)->toBe($outcome);
 })->with([[202, 'accepted'], [401, 'rejected'], [403, 'rejected'], [400, 'rejected'], [429, 'deferred'], [500, 'uncertain'], [408, 'uncertain']]);
 it('blocks unapproved live calls before any request', function () {
     Http::preventStrayRequests();
     config(['dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.api_key' => 'test']);
-    expect(fn () => app(SendGridDeliveryProvider::class)->submit(new DeliveryMessage('id', 'to@example.test', 'from@example.test', 's', 'h', 't', null, false, true), 1))->toThrow(RuntimeException::class);
+    $o = Organisation::create(['name' => 'Live disabled']);
+    $o->forceFill(['sendgrid_api_key' => 'company-test'])->save();
+    $message = new DeliveryMessage('id', 'to@example.test', 'from@example.test', 's', 'h', 't', null, false, true, organisationId: $o->id, credentialFingerprint: $o->sendGridCredentialFingerprint());
+    expect(fn () => app(SendGridDeliveryProvider::class)->submit($message, 1))->toThrow(RuntimeException::class, 'Live sending is disabled or unauthorised.');
     Http::assertNothingSent();
 });
 it('durably records accepted attempts and never replays them', function () {
@@ -137,15 +144,16 @@ it('verifies raw ECDSA signatures and rejects stale altered or unsigned bodies',
     Queue::fake();
     $key = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);
     $details = openssl_pkey_get_details($key);
-    config(['dispatch.sendgrid.webhook_key' => $details['key']]);
+    $o = Organisation::create(['name' => 'Webhook test']);
+    $o->forceFill(['sendgrid_webhook_key' => $details['key']])->save();
     $body = '[{"event":"processed","sg_event_id":"sample","dispatch_attempt":"unmatched"}]';
     $ts = (string) time();
     openssl_sign($ts.$body, $sig, $key, OPENSSL_ALGO_SHA256);
     $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_X_TWILIO_EMAIL_EVENT_WEBHOOK_TIMESTAMP' => $ts, 'HTTP_X_TWILIO_EMAIL_EVENT_WEBHOOK_SIGNATURE' => base64_encode($sig)];
-    $this->call('POST', '/webhooks/sendgrid', [], [], [], $headers, $body)->assertStatus(202);
-    $this->call('POST', '/webhooks/sendgrid', [], [], [], $headers, $body.' ')->assertUnauthorized();
+    $this->call('POST', "/webhooks/sendgrid/$o->id", [], [], [], $headers, $body)->assertStatus(202);
+    $this->call('POST', "/webhooks/sendgrid/$o->id", [], [], [], $headers, $body.' ')->assertUnauthorized();
     $headers['HTTP_X_TWILIO_EMAIL_EVENT_WEBHOOK_TIMESTAMP'] = (string) (time() - 600);
-    $this->call('POST', '/webhooks/sendgrid', [], [], [], $headers, $body)->assertUnauthorized();
+    $this->call('POST', "/webhooks/sendgrid/$o->id", [], [], [], $headers, $body)->assertUnauthorized();
     (new ProcessSendGridWebhook(WebhookBatch::first()->id))->handle(app(WebhookService::class));
     expect(WebhookReceipt::first()->status)->toBe('quarantined');
 });
@@ -209,4 +217,45 @@ it('processes signed one click POST without a session while GET is harmless', fu
     $this->post($url, ['List-Unsubscribe' => 'One-Click'])->assertNoContent();
     expect(app(EligibilityService::class)->eligible($contact))->toBeFalse();
     expect(DeliveryEvent::where('type', 'unsubscribe')->count())->toBe(1);
+});
+
+it('does not use the platform notification key for a company without credentials', function () {
+    Http::preventStrayRequests();
+    config(['dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.api_key' => 'platform-notification-key']);
+    $o = Organisation::create(['name' => 'Unconfigured company']);
+    $message = new DeliveryMessage('id', 'to@example.test', 'from@example.test', 's', 'h', 't', organisationId: $o->id);
+    expect(fn () => app(SendGridDeliveryProvider::class)->submit($message, 1))->toThrow(RuntimeException::class, 'SendGrid is not configured.');
+    Http::assertNothingSent();
+});
+
+it('stores company secrets encrypted and hidden, rejects cross-company changes and invalidates old snapshots', function () {
+    [$u, $o, $c, $r] = sgFixture();
+    $other = Organisation::create(['name' => 'Other company']);
+    $this->actingAs($u)->patch("/organisations/$other->id/sendgrid-credentials", ['sendgrid_api_key' => 'blocked'])->assertForbidden();
+    $this->patch("/organisations/$o->id/sendgrid-credentials", ['sendgrid_api_key' => 'updated-key', 'sendgrid_webhook_key' => 'updated-webhook'])->assertRedirect();
+    $fresh = $o->fresh();
+    expect($fresh->sendgrid_api_key)->toBe('updated-key');
+    expect($fresh->getRawOriginal('sendgrid_api_key'))->not->toBe('updated-key');
+    expect($fresh->toArray())->not->toHaveKeys(['sendgrid_api_key', 'sendgrid_webhook_key']);
+    expect(SendingIdentity::find($c->sending_identity_id)->provider_authorised)->toBeFalse();
+    app(SendGridSubmissionService::class)->handle($r->id);
+    Http::assertNothingSent();
+    expect($r->fresh()->status)->toBe('deferred');
+});
+
+it('binds signed webhook batches to the endpoint company even when a different company correlation is supplied', function () {
+    [$u, $o, $c, $r] = sgFixture();
+    $attempt = sgAttempt($r);
+    $other = Organisation::create(['name' => 'Other company']);
+    $key = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);
+    $other->forceFill(['sendgrid_webhook_key' => openssl_pkey_get_details($key)['key']])->save();
+    $body = json_encode([sgEvent($attempt, 'delivered', ['organisation_id' => $o->id])]);
+    $ts = (string) time();
+    openssl_sign($ts.$body, $sig, $key, OPENSSL_ALGO_SHA256);
+    $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_X_TWILIO_EMAIL_EVENT_WEBHOOK_TIMESTAMP' => $ts, 'HTTP_X_TWILIO_EMAIL_EVENT_WEBHOOK_SIGNATURE' => base64_encode($sig)];
+    $this->call('POST', "/webhooks/sendgrid/$o->id", [], [], [], $headers, $body)->assertUnauthorized();
+    $this->call('POST', "/webhooks/sendgrid/$other->id", [], [], [], $headers, $body)->assertStatus(202);
+    (new ProcessSendGridWebhook(WebhookBatch::first()->id))->handle(app(WebhookService::class));
+    expect(WebhookReceipt::first()->status)->toBe('quarantined');
+    $this->assertDatabaseMissing('delivery_events', ['campaign_recipient_id' => $r->id, 'type' => 'delivered']);
 });

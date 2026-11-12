@@ -98,7 +98,7 @@ it('does not refund uncertain attempts or permit a reserved correlation to repla
     expect($r->fresh()->status)->toBe('uncertain');
     expect(app(SendGridPilotGuard::class)->remaining())->toBe(1);
     $a = DeliveryAttempt::firstOrFail();
-    $m = new DeliveryMessage($a->correlation_id, $r->email, 'from@example.test', 's', 'h', 't', null, false, true, false, false, [], '', $o->id);
+    $m = new DeliveryMessage($a->correlation_id, $r->email, 'from@example.test', 's', 'h', 't', null, false, true, false, false, [], '', $o->id, $o->sendGridCredentialFingerprint());
     expect(fn () => app(SendGridDeliveryProvider::class)->submit($m, 1))->toThrow(PilotSubmissionBlocked::class);
     expect($calls)->toBe(1);
 });

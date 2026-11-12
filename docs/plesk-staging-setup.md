@@ -25,8 +25,8 @@ DISPATCH_DELIVERY_PROVIDER=simulation
 SENDGRID_ENABLED=false
 SENDGRID_LIVE_SENDING_ENABLED=false
 SENDGRID_AUTH_ENABLED=false
+# Optional platform account notifications only.
 SENDGRID_API_KEY=
-SENDGRID_WEBHOOK_VERIFICATION_KEY=
 DISPATCH_PILOT_ENABLED=true
 DISPATCH_PILOT_DAILY_LIMIT=25
 DISPATCH_PILOT_RECIPIENTS=
@@ -87,3 +87,5 @@ Follow production-deployment.md for backup, restore and rollback detail. A rollb
 - [SendGrid sandbox mode](https://www.twilio.com/docs/sendgrid/for-developers/sending-email/sandbox-mode)
 
 Consult these against the supplied server version before applying commands. Plesk access, DNS, real sandbox/live calls, external webhook verification, email-client checks, monitoring and restore evidence remain outstanding.
+
+Public registration is closed. For a fresh installation, run `php artisan platform:bootstrap` interactively. Create the company and invite approved staff from Platform administration. For the pilot, enter company keys on the approved HTTPS site under **Sending identities**; use the company-specific webhook endpoint shown there. No campaign falls back to an environment API key.

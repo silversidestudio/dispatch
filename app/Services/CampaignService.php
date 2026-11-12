@@ -93,6 +93,9 @@ class CampaignService
             $c->snapshot = ['subject' => $c->subject, 'preview_text' => $c->preview_text, 'html' => app(EmailContentService::class)->clean($c->html), 'text_body' => $c->text_body, 'sender_name' => $identity->name, 'sender_email' => $identity->email, 'reply_to' => $c->reply_to ?: $identity->reply_to, 'sender_address' => $o->postal_address, 'provider' => $c->delivery_mode === 'simulation' ? 'simulation' : 'sendgrid', 'delivery_mode' => $c->delivery_mode ?? 'simulation', 'open_tracking' => (bool) $c->open_tracking, 'click_tracking' => (bool) $c->click_tracking, 'unsubscribe_base' => rtrim(config('app.url'), '/')];
             $suppressed = app(AudienceService::class)->query($c->organisation_id, $c->audience_type, $c->audience_id)->whereExists(fn ($q) => $q->selectRaw('1')->from('suppressions')->whereColumn('suppressions.organisation_id', 'contacts.organisation_id')->whereColumn('suppressions.email', 'contacts.email'))->count();
             $snapshot = $c->snapshot;
+            if ($snapshot['provider'] === 'sendgrid') {
+                $snapshot['sendgrid_credential'] = $o->sendGridCredentialFingerprint();
+            }
             $snapshot['suppressed_at_snapshot'] = $suppressed;
             $snapshot['other_ineligible_at_snapshot'] = $p['excluded'] - $suppressed;
             $snapshot['audience'] = ['type' => $c->audience_type, 'id' => $c->audience_id, 'rules' => $c->audience_type === 'segment' ? Segment::findOrFail($c->audience_id)->rules : null];

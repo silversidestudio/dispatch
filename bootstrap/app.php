@@ -19,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         if ($trusted) {
             $middleware->trustProxies(at: $trusted);
         }
-        $middleware->validateCsrfTokens(except: ['webhooks/sendgrid', 'one-click/*']);
+        $middleware->validateCsrfTokens(except: ['webhooks/sendgrid/*', 'one-click/*']);
         $middleware->web(append: [
             ProductionSafety::class,
             EnsureActiveAccount::class,
@@ -28,5 +28,5 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->dontFlash(['sendgrid_api_key', 'sendgrid_webhook_key']);
     })->create();
