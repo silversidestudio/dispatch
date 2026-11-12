@@ -12,10 +12,31 @@ use App\Services\SendGridSubmissionService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
+Artisan::command('platform:bootstrap', function () {
+    if (User::where('is_platform_admin', true)->exists()) {
+        $this->error('A platform administrator already exists.');
+
+        return 1;
+    }
+    $data = validator([
+        'name' => $this->ask('Administrator name'),
+        'email' => strtolower(trim((string) $this->ask('Administrator email'))),
+        'password' => $this->secret('Password (at least 12 characters)'),
+        'password_confirmation' => $this->secret('Confirm password'),
+    ], [
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|max:255|unique:users,email',
+        'password' => 'required|string|min:12|confirmed',
+    ])->validate();
+    $u = new User;
+    $u->forceFill(['name' => $data['name'], 'email' => $data['email'], 'password' => $data['password'], 'email_verified_at' => now(), 'is_platform_admin' => true])->save();
+    AuditLog::create(['user_id' => $u->id, 'action' => 'platform.admin_bootstrapped']);
+    $this->info('Initial platform administrator created. Sign in to provision the company.');
+})->purpose('Create the first platform administrator interactively');
 Artisan::command('platform:promote {email}', function () {
     $u = User::where('email', $this->argument('email'))->first();
     if (! $u) {
-        $this->error('Register this account locally first.');
+        $this->error('No account exists for that email. Use an invitation or bootstrap the first administrator.');
 
         return 1;
     }

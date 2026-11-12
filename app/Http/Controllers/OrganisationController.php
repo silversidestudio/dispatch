@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\Organisation;
+use App\Models\User;
 use App\Services\MembershipService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,11 +15,12 @@ class OrganisationController extends Controller
 {
     public function index(Request $r)
     {
-        return Inertia::render('organisations', ['organisationList' => $r->user()->organisations()->get()->map(fn ($o) => ['id' => $o->id, 'name' => $o->name, 'status' => $o->status, 'role' => $o->pivot->role])]);
+        return Inertia::render('organisations', ['canCreate' => Gate::allows('platform'), 'organisationList' => $r->user()->organisations()->get()->map(fn ($o) => ['id' => $o->id, 'name' => $o->name, 'status' => $o->status, 'role' => $o->pivot->role])]);
     }
 
     public function store(Request $r)
     {
+        Gate::authorize('platform');
         $data = $r->validate(['name' => 'required|string|max:120', 'website' => 'nullable|url:http,https|max:255', 'postal_address' => 'nullable|string|max:2000']);
         $o = DB::transaction(function () use ($r, $data) {
             $o = Organisation::create($data);
@@ -62,11 +64,31 @@ class OrganisationController extends Controller
 
     public function invite(Request $r, Organisation $organisation)
     {
-        Gate::authorize('manageMembers', $organisation);
+        Gate::authorize('platform');
         $data = $r->validate(['email' => 'required|email|max:255', 'role' => 'required|in:administrator,campaign_manager,viewer']);
         $url = app(MembershipService::class)->invite($organisation, $data['email'], $data['role']);
 
         return back()->with('success', 'Invitation created. Share securely.')->with('invitation_url', $url);
+    }
+
+    public function invitation(Request $r, string $token)
+    {
+        $invite = app(MembershipService::class)->pending($token);
+        abort_unless($invite, 404);
+        if (! $r->user()) {
+            if (User::where('email', $invite->email)->exists()) {
+                return redirect()->guest(route('login'));
+            }
+            $r->session()->put('registration_invite', $token);
+
+            return to_route('register');
+        }
+        abort_unless(strtolower($r->user()->email) === $invite->email, 403);
+        if (! $r->user()->hasVerifiedEmail()) {
+            return redirect()->guest(route('verification.notice'));
+        }
+
+        return Inertia::render('accept-invitation', ['token' => $token]);
     }
 
     public function accept(Request $r, string $token)

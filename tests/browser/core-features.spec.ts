@@ -43,9 +43,9 @@ test('platform company to owner contacts import campaign simulation and reportin
     await owner.getByLabel('Sender postal address').fill('10 Example Road, London, UK');
     await owner.getByRole('button', { name: 'Save changes', exact: true }).click();
     await expect(owner.getByText('Organisation updated.', { exact: true })).toBeVisible();
-    await owner.getByLabel('Email address', { exact: true }).fill(teamEmail);
-    await owner.getByRole('button', { name: 'Create invitation', exact: true }).click();
-    const invitation = await owner.getByLabel('Local acceptance link · share securely').inputValue();
+    await admin.getByLabel('Invitation email', { exact: true }).fill(teamEmail);
+    await admin.getByRole('button', { name: 'Create invitation', exact: true }).click();
+    const invitation = await admin.getByLabel('Invitation link', { exact: true }).inputValue();
     await team.goto(invitation);
     await team.getByRole('button', { name: 'Accept invitation' }).click();
     await expect(team).toHaveURL(/dashboard/);

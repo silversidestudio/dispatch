@@ -7,7 +7,9 @@ import { Building2, Plus } from 'lucide-react';
 import { useState } from 'react';
 export default function Organisations({
     organisationList: organisations,
+    canCreate,
 }: {
+    canCreate: boolean;
     organisationList: { id: number; name: string; role: string; status: string }[];
 }) {
     const f = useForm({ name: '' });
@@ -49,36 +51,40 @@ export default function Organisations({
                                 </div>
                             ))}
                         {!organisations.length && (
-                            <p className="text-muted-foreground py-10 text-center text-sm">Create your first organisation to get started.</p>
+                            <p className="text-muted-foreground py-10 text-center text-sm">
+                                No workspaces yet. Ask your platform administrator for a company invitation.
+                            </p>
                         )}
                     </div>
                 </Panel>
-                <Panel title="Create an organisation" description="You will become the owner of this workspace.">
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            f.post('/organisations');
-                        }}
-                        className="space-y-4"
-                    >
-                        <div className="space-y-2">
-                            <Label htmlFor="organisation-name">Organisation name</Label>
-                            <Input
-                                id="organisation-name"
-                                value={f.data.name}
-                                onChange={(e) => f.setData('name', e.target.value)}
-                                required
-                                maxLength={120}
-                                placeholder="e.g. Acorn Studio"
-                            />
-                        </div>
-                        <Errors errors={f.errors} />
-                        <Button disabled={f.processing}>
-                            <Plus className="size-4" />
-                            Create organisation
-                        </Button>
-                    </form>
-                </Panel>
+                {canCreate && (
+                    <Panel title="Create an organisation" description="You will become the owner of this workspace.">
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                f.post('/organisations');
+                            }}
+                            className="space-y-4"
+                        >
+                            <div className="space-y-2">
+                                <Label htmlFor="organisation-name">Organisation name</Label>
+                                <Input
+                                    id="organisation-name"
+                                    value={f.data.name}
+                                    onChange={(e) => f.setData('name', e.target.value)}
+                                    required
+                                    maxLength={120}
+                                    placeholder="e.g. Acorn Studio"
+                                />
+                            </div>
+                            <Errors errors={f.errors} />
+                            <Button disabled={f.processing}>
+                                <Plus className="size-4" />
+                                Create organisation
+                            </Button>
+                        </form>
+                    </Panel>
+                )}
             </div>
         </Workspace>
     );

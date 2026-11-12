@@ -16,10 +16,10 @@ type RegisterForm = {
     password_confirmation: string;
 };
 
-export default function Register() {
+export default function Register({ email }: { email: string }) {
     const { data, setData, post, processing, errors, reset } = useForm<RegisterForm>({
         name: '',
-        email: '',
+        email,
         password: '',
         password_confirmation: '',
     });
@@ -62,7 +62,7 @@ export default function Register() {
                             tabIndex={2}
                             autoComplete="email"
                             value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
+                            readOnly
                             disabled={processing}
                             placeholder="email@example.com"
                         />

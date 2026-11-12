@@ -20,13 +20,15 @@ it('requires verification for organisation and platform operations', function ()
     $this->post('/organisations', ['name' => 'Blocked'])->assertRedirect('/verify-email');
     $this->get('/platform')->assertRedirect('/verify-email');
 });
-it('onboards verified users and creates an audited owner membership', function () {
+it('restricts organisation creation to platform administrators and audits the owner membership', function () {
     $u = User::factory()->create();
     $this->actingAs($u)->get('/dashboard')->assertRedirect('/organisations');
-    $this->post('/organisations', ['name' => 'New workspace', 'is_platform_admin' => true])->assertRedirect('/dashboard');
+    $this->post('/organisations', ['name' => 'New workspace', 'is_platform_admin' => true])->assertForbidden();
+    expect($u->fresh()->is_platform_admin)->toBeFalse();
+    $u->forceFill(['is_platform_admin' => true])->save();
+    $this->post('/organisations', ['name' => 'New workspace'])->assertRedirect('/dashboard');
     $o = Organisation::first();
     expect($o->members()->first()->pivot->role)->toBe('owner');
-    expect($u->fresh()->is_platform_admin)->toBeFalse();
     $this->assertDatabaseHas('audit_logs', ['action' => 'organisation.created', 'organisation_id' => $o->id]);
     $this->get('/dashboard')->assertInertia(fn (Assert $p) => $p->component('dashboard')->where('organisation.id', $o->id));
 });
@@ -68,6 +70,8 @@ it('accepts invitations once only for the verified matching account', function (
     $owner = User::factory()->create();
     $invitee = User::factory()->create();
     $o = workspaceFor($owner);
+    $this->actingAs($owner)->post("/organisations/{$o->id}/invitations", ['email' => $invitee->email, 'role' => 'viewer'])->assertForbidden();
+    $owner->forceFill(['is_platform_admin' => true])->save();
     $response = $this->actingAs($owner)->post("/organisations/{$o->id}/invitations", ['email' => $invitee->email, 'role' => 'viewer']);
     $url = session('invitation_url');
     $token = basename($url);
@@ -81,6 +85,7 @@ it('rejects expired invitations and owner role changes', function () {
     $owner = User::factory()->create();
     $i = User::factory()->create();
     $o = workspaceFor($owner);
+    $owner->forceFill(['is_platform_admin' => true])->save();
     $this->actingAs($owner)->post("/organisations/{$o->id}/invitations", ['email' => $i->email, 'role' => 'viewer']);
     $token = basename(session('invitation_url'));
     DB::table('organisation_invitations')->update(['expires_at' => now()->subMinute()]);

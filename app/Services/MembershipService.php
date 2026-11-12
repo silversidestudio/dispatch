@@ -10,6 +10,17 @@ use Illuminate\Validation\ValidationException;
 
 class MembershipService
 {
+    public function pending(string $token): ?object
+    {
+        if (! preg_match('/^[A-Za-z0-9]{64}$/D', $token)) {
+            return null;
+        }
+
+        return DB::table('organisation_invitations')->join('organisations', 'organisations.id', '=', 'organisation_invitations.organisation_id')
+            ->where('organisations.status', 'active')->where('token_hash', hash('sha256', $token))
+            ->where('expires_at', '>', now())->first(['organisation_invitations.*']);
+    }
+
     public function invite(Organisation $o, string $email, string $role): string
     {
         $email = strtolower(trim($email));
@@ -50,7 +61,7 @@ class MembershipService
             $new = $o->members()->where('users.id', $id)->where('status', 'active')->firstOrFail();
             $o->members()->wherePivot('role', 'owner')->get()->each(fn ($u) => $o->members()->updateExistingPivot($u->id, ['role' => 'administrator']));
             $o->members()->updateExistingPivot($new->id, ['role' => 'owner']);
-            AuditLog::record('ownership.transferred',$o->id,['new_owner_id' => $id]);
+            AuditLog::record('ownership.transferred', $o->id, ['new_owner_id' => $id]);
         });
     }
 }

@@ -21,7 +21,7 @@ npm run build
 php artisan serve --host=127.0.0.1 --port=8012
 ```
 
-Run `php artisan horizon` and `php artisan schedule:work` in separate terminals. Register your own account in the browser. Verification and reset messages are written to `storage/logs/laravel.log`; these logs are sensitive and ignored by Git. Alternatively verify locally with `php artisan development:verify your-address@example.test`. Promote an existing account with `php artisan platform:promote your-address@example.test`. Passwords are chosen in the registration form, never seeded or committed.
+Run `php artisan horizon` and `php artisan schedule:work` in separate terminals. For a fresh installation, run `php artisan platform:bootstrap` interactively to create the first administrator. Public registration is closed. Create companies and invitations in Platform administration; new users set their password through a valid invitation, verify their address and accept it. Verification and reset messages are written to `storage/logs/laravel.log`; these logs are sensitive and ignored by Git. Alternatively verify locally with `php artisan development:verify your-address@example.test`. Promote an existing account with `php artisan platform:promote your-address@example.test`. Passwords are chosen in the registration form, never seeded or committed.
 
 See [Phase 1B handover](docs/phase-1b-handover.md), [contact eligibility](docs/contact-eligibility.md), [campaign lifecycle](docs/campaign-lifecycle.md), [simulation](docs/simulated-delivery.md) and [editor](docs/email-editor.md).
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\MembershipService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,9 +20,12 @@ class RegisteredUserController extends Controller
     /**
      * Show the registration page.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('auth/register');
+        $invite = app(MembershipService::class)->pending((string) $request->session()->get('registration_invite'));
+        abort_unless($invite, 404);
+
+        return Inertia::render('auth/register', ['email' => $invite->email]);
     }
 
     /**
@@ -31,6 +35,10 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $token = (string) $request->session()->get('registration_invite');
+        $invite = app(MembershipService::class)->pending($token);
+        abort_unless($invite, 404);
+        $request->merge(['email' => $invite->email]);
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
@@ -47,6 +55,9 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return to_route('dashboard');
+        $request->session()->forget('registration_invite');
+        $request->session()->put('url.intended', url('/invitations/'.$token));
+
+        return to_route('verification.notice');
     }
 }
