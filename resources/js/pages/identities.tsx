@@ -76,7 +76,7 @@ export default function Identities({
                 </p>
                 <p className="text-muted-foreground mt-3 text-xs">
                     Cloudflare: add the exact CNAME records from SendGrid Sender Authentication as DNS-only, not proxied. DMARC requires a separate
-                    business policy review. No DNS changes are made by Dispatch.
+                    business policy review. Make DNS changes at your DNS provider.
                 </p>
             </Panel>
             <Panel title="Company identities">

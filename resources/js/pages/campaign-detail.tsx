@@ -36,6 +36,15 @@ export default function Detail({
     history: { id: number; action: string; created_at: string }[];
     canManage: boolean;
 }) {
+    const mode = campaign.delivery_mode;
+    const deliveryLabel =
+        mode === 'sendgrid_live' ? 'Live sending' : mode === 'sendgrid_sandbox' ? 'SendGrid sandbox validation' : 'Local simulation only';
+    const deliveryNotice =
+        mode === 'sendgrid_live'
+            ? 'This campaign sends real emails to eligible recipients.'
+            : mode === 'sendgrid_sandbox'
+              ? 'SendGrid checks the request without delivering email.'
+              : 'Jobs run in simulation. No email is sent.';
     const base = `/organisations/${company.id}/campaigns/${campaign.id}`;
     const f = useForm({ scheduled_at: '', confirmation: '' });
     const test = useForm({ email: '', mode: 'simulation', confirmation: 'PREPARE' });
@@ -49,7 +58,7 @@ export default function Detail({
     return (
         <Workspace
             title={campaign.name}
-            subtitle={`${campaign.status.toUpperCase()} · ${campaign.delivery_mode === 'simulation' ? 'Local simulation only' : campaign.delivery_mode} · ${campaign.subject}`}
+            subtitle={`${campaign.status.toUpperCase()} · ${deliveryLabel} · ${campaign.subject}`}
             actions={
                 canManage && (
                     <div className="flex flex-wrap gap-2">
@@ -118,10 +127,20 @@ export default function Detail({
                 </Button>
             </div>
             <Panel title="Final campaign review">
+                <div
+                    className={
+                        mode === 'sendgrid_live'
+                            ? 'mb-5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm'
+                            : 'bg-muted/40 mb-5 rounded-lg border p-3 text-sm'
+                    }
+                >
+                    <p className="font-semibold">{deliveryLabel}</p>
+                    <p className="text-muted-foreground mt-1">{deliveryNotice}</p>
+                </div>
                 <dl className="grid gap-4 text-sm md:grid-cols-2">
                     <div>
                         <dt className="text-muted-foreground">Sender</dt>
-                        <dd>{preflight.sender}</dd>
+                        <dd className="break-words">{preflight.sender}</dd>
                     </div>
                     <div>
                         <dt className="text-muted-foreground">Subject</dt>
@@ -144,7 +163,7 @@ export default function Detail({
                         <dd>Visible footer + signed one-click headers · {preflight.postal_address ?? 'Postal address missing'}</dd>
                     </div>
                 </dl>
-                {preflight.pilot?.enabled && (
+                {mode === 'sendgrid_live' && preflight.pilot?.enabled && (
                     <p className="bg-muted/40 mt-4 rounded-lg border p-3 text-xs">
                         Restricted pilot controls are active for live sending: approved company and recipients only, up to{' '}
                         {preflight.pilot.daily_limit} submission attempts per UTC day. Simulation remains local.
@@ -212,6 +231,13 @@ export default function Detail({
                                 router.post(base + '/schedule', { scheduled_at: utc, confirmation: f.data.confirmation });
                             }}
                         >
+                            <div className="bg-muted/40 w-full min-w-0 rounded-lg border p-3 text-sm">
+                                <p className="font-semibold">
+                                    {deliveryLabel} · {preflight.eligible} eligible {preflight.eligible === 1 ? 'recipient' : 'recipients'}
+                                </p>
+                                <p className="mt-1 break-words">From: {preflight.sender}</p>
+                                <p className="text-muted-foreground mt-1">{deliveryNotice}</p>
+                            </div>
                             <Field
                                 label="Schedule in your local time (optional)"
                                 type="datetime-local"
@@ -299,7 +325,11 @@ export default function Detail({
                 <Panel title={campaign.delivery_mode === 'simulation' ? 'Simulated delivery events' : 'Submission and provider events'}>
                     {events.map((e) => (
                         <p className="border-b py-3 text-sm" key={e.id}>
-                            {e.simulated ? 'Simulated' : 'SendGrid'} {e.type} · {new Date(e.created_at).toLocaleString()}
+                            {e.type === 'sandbox_validated'
+                                ? 'Sandbox validated — no email sent'
+                                : `${mode === 'sendgrid_sandbox' ? 'Sandbox' : e.simulated ? 'Simulated' : 'SendGrid'} ${e.type.replaceAll('_', ' ')}`}
+                            {' · '}
+                            {new Date(e.created_at).toLocaleString()}
                         </p>
                     ))}
                     {!events.length && <p className="text-muted-foreground text-sm">No delivery events yet.</p>}

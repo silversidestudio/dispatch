@@ -103,7 +103,11 @@ test('platform company to owner contacts import campaign simulation and reportin
     await owner.getByRole('button', { name: 'Mobile preview' }).click();
     await owner.screenshot({ path: 'test-results/company-campaign-preview.png', fullPage: true, animations: 'disabled' });
     await owner.getByRole('button', { name: 'Mark ready' }).click();
+    await expect(owner.getByText('Local simulation only · 3 eligible recipients', { exact: true })).toBeVisible();
+    await owner.setViewportSize({ width: 390, height: 844 });
+    expect(await owner.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
     await owner.getByRole('button', { name: 'Schedule simulation', exact: true }).click();
+    await owner.setViewportSize({ width: 1440, height: 1000 });
     await expect(owner.getByText(/COMPLETED · Local simulation only/)).toBeVisible({ timeout: 90000 });
     await expect(owner.getByText('Simulated accepted', { exact: false }).first()).toBeVisible();
     await owner.screenshot({ path: 'test-results/company-campaign-results.png', fullPage: true, animations: 'disabled' });

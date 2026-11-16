@@ -92,7 +92,7 @@ export default function Detail({
                 <div className="grid gap-6 lg:grid-cols-2">
                     <Panel
                         title="Record eligibility evidence"
-                        description="Document the actual permission or assessment. Dispatch does not infer a lawful basis."
+                        description="Document the actual permission or assessment. An eligibility record does not establish a lawful basis by itself."
                     >
                         <form
                             className="space-y-4"

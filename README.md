@@ -43,3 +43,9 @@ Browser tests require the development server, database, Redis and Chromium (`npx
 Email Studio refinement: [handover and screenshots](docs/email-editor-refinement-handover.md). Includes responsive icon tools, editable CTA/images, five versioned starter designs, organisation branding and shared desktop/mobile/plain-text previews. Existing templates/snapshots and closed live-delivery gates are preserved.
 
 Basic email and restricted pilot preparation (11 November): [handover](docs/basic-email-pilot-handover.md), [Plesk staging instructions](docs/plesk-staging-setup.md). Font/size/colour controls and a plain email starter are available; live sending remains disabled.
+
+## Installation name
+
+Set `APP_NAME="Campaign Manager"` in the client's server `.env`; keep `APP_NAME=Dispatch` on your own installation. The sidebar, browser titles, unsubscribe page and framework notification branding use Laravel's configured name. Deploy this release and its frontend build once; later name changes need only a configuration cache refresh, a Horizon restart to pick up the cached configuration, and a browser reload. `VITE_APP_NAME` is no longer needed.
+
+Before renaming an existing installation, preserve the current effective `REDIS_PREFIX`, `CACHE_PREFIX`, `HORIZON_PREFIX` and `SESSION_COOKIE` explicitly if they currently derive from the old app name. This keeps existing queue keys, cache locks and sessions reachable. Keep separate namespaces for separate installations. Campaign sender names and addresses remain controlled by the selected sending identity.

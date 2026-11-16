@@ -19,6 +19,10 @@ test('registration, onboarding, workspaces, themes, mobile navigation and platfo
     await page.goto(invite);
     await page.getByRole('button', { name: 'Accept invitation' }).click();
     await expect(page.getByRole('heading', { name: 'Workspace overview' })).toBeVisible();
+    const brand = await page.locator('meta[name="application-name"]').getAttribute('content');
+    expect(brand).toBeTruthy();
+    await expect(page).toHaveTitle('Workspace overview - ' + brand);
+    await expect(page.getByText(brand!, { exact: true }).first()).toBeVisible();
     await expect(page.getByText('No campaigns yet. Prepare your audience, identity and email content to begin.')).toBeVisible();
     await page.screenshot({ path: 'test-results/dashboard-light.png', fullPage: true, animations: 'disabled' });
     await page.getByRole('button', { name: 'Toggle theme' }).click();
