@@ -1,7 +1,9 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { readableLabel } from '@/lib/labels';
 import { Link, router, useForm } from '@inertiajs/react';
 type Props = {
     organisationPage: {
@@ -88,8 +90,8 @@ export default function Platform({ organisationPage: organisations, users, stats
                         onChange={(e) => f.setData('status', e.target.value)}
                     >
                         <option value="">All statuses</option>
-                        <option>active</option>
-                        <option>suspended</option>
+                        <option value="active">Active</option>
+                        <option value="suspended">Suspended</option>
                     </select>
                     <Button variant="outline">Search</Button>
                 </form>
@@ -113,7 +115,9 @@ export default function Platform({ organisationPage: organisations, users, stats
                                         </Link>
                                     </td>
                                     <td className="p-3">{o.members_count}</td>
-                                    <td className="p-3">{o.status}</td>
+                                    <td className="p-3">
+                                        <DeliveryStatus status={o.status} />
+                                    </td>
                                     <td className="p-3">
                                         <Button
                                             variant="outline"
@@ -157,7 +161,7 @@ export default function Platform({ organisationPage: organisations, users, stats
                     <ul className="max-h-72 space-y-4 overflow-auto">
                         {logs.map((l) => (
                             <li key={l.id} className="flex justify-between gap-3 text-sm">
-                                <span>{l.action.replaceAll('.', ' ').replaceAll('_', ' ')}</span>
+                                <span>{readableLabel(l.action)}</span>
                                 <time className="text-muted-foreground text-xs">{new Date(l.created_at).toLocaleDateString()}</time>
                             </li>
                         ))}

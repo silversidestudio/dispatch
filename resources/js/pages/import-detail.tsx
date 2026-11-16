@@ -1,6 +1,8 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { Company, Metrics, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { contactFieldLabel } from '@/lib/labels';
 import { router, useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { Import } from './imports';
@@ -34,7 +36,7 @@ export default function ImportDetail({
         return () => clearInterval(timer);
     }, [job.status]);
     return (
-        <Workspace title={`Import #${job.id}`} subtitle={`${job.source} · ${job.status}`}>
+        <Workspace title={`Import #${job.id}`} subtitle={job.source} actions={<DeliveryStatus status={job.status} />}>
             <Metrics data={{ total: job.total, processed: job.processed, imported: job.successful, rejected: job.rejected }} />
             {job.failure && (
                 <p role="alert" className="text-destructive">
@@ -57,7 +59,7 @@ export default function ImportDetail({
                             {Object.keys(f.data.mapping).map((k) => (
                                 <Select
                                     key={k}
-                                    label={`Map ${k}`}
+                                    label={`Map ${contactFieldLabel(k).toLowerCase()}`}
                                     value={f.data.mapping[k] === null ? '' : String(f.data.mapping[k])}
                                     change={(v) => f.setData('mapping', { ...f.data.mapping, [k]: v === '' ? null : Number(v) })}
                                 >
@@ -126,13 +128,14 @@ export default function ImportDetail({
                 </div>
             </Panel>
             <Panel title="Recent row results">
+                {!rows.length && <p className="text-muted-foreground mb-3 text-sm">Row results appear after the import starts.</p>}
                 <Button asChild variant="outline">
                     <a href={base + '/errors'}>Download error report</a>
                 </Button>
                 <ul className="mt-4 space-y-2 text-sm">
                     {rows.map((r) => (
                         <li key={r.id}>
-                            Row {r.row_number}: {r.status}
+                            Row {r.row_number}: <DeliveryStatus status={r.status} />
                             {r.error ? ' · ' + r.error : ''}
                         </li>
                     ))}

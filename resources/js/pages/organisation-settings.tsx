@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { readableLabel } from '@/lib/labels';
 import { router, useForm } from '@inertiajs/react';
 type Props = {
     organisation: {
@@ -83,7 +84,7 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                                                     >
                                                         {['administrator', 'campaign_manager', 'viewer'].map((r) => (
                                                             <option key={r} value={r}>
-                                                                {r.replace('_', ' ')}
+                                                                {readableLabel(r)}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -137,7 +138,7 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                             .map((m) => (
                                 <div key={m.id} className="flex justify-between text-sm">
                                     <span>
-                                        {m.name} · {m.role}
+                                        {m.name} · {readableLabel(m.role)}
                                     </span>
                                     <Button
                                         size="sm"

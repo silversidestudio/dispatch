@@ -1,6 +1,8 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { readableLabel } from '@/lib/labels';
 import { Link } from '@inertiajs/react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ReactNode, useId } from 'react';
 export type Company = { id: number; name: string; postal_address?: string | null; email_branding?: { button_color?: string } | null };
 export type Contact = {
@@ -59,13 +61,23 @@ export function Select({ label, value, change, children }: { label: string; valu
 }
 export function Pages<T>({ page }: { page: Page<T> }) {
     return (
-        <div className="mt-5 flex items-center justify-between text-sm">
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm">
             <span className="text-muted-foreground">
-                {page.total} records · page {page.current_page}
+                {page.total.toLocaleString()} {page.total === 1 ? 'record' : 'records'} · Page {page.current_page}
             </span>
             <div className="flex gap-4">
-                {page.prev_page_url && <Link href={page.prev_page_url}>Previous</Link>}
-                {page.next_page_url && <Link href={page.next_page_url}>Next</Link>}
+                {page.prev_page_url && (
+                    <Link className="hover:bg-muted inline-flex items-center gap-1 rounded-md border px-3 py-1.5" href={page.prev_page_url}>
+                        <ChevronLeft aria-hidden="true" className="size-4" />
+                        Previous
+                    </Link>
+                )}
+                {page.next_page_url && (
+                    <Link className="hover:bg-muted inline-flex items-center gap-1 rounded-md border px-3 py-1.5" href={page.next_page_url}>
+                        Next
+                        <ChevronRight aria-hidden="true" className="size-4" />
+                    </Link>
+                )}
             </div>
         </div>
     );
@@ -75,8 +87,8 @@ export function Metrics({ data }: { data: Record<string, number> }) {
         <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-4">
             {Object.entries(data).map(([key, value]) => (
                 <div key={key} className="bg-card rounded-xl border p-5">
-                    <p className="text-muted-foreground text-sm capitalize">{key.replaceAll('_', ' ')}</p>
-                    <p className="mt-3 text-3xl font-semibold">{value}</p>
+                    <p className="text-muted-foreground text-sm">{readableLabel(key)}</p>
+                    <p className="mt-3 text-3xl font-semibold tabular-nums">{value.toLocaleString()}</p>
                 </div>
             ))}
         </div>

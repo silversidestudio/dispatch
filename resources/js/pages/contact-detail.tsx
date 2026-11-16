@@ -1,7 +1,7 @@
 import { Company, Contact, Field, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
-import { eligibilityLabel } from '@/lib/labels';
+import { contactFieldLabel, eligibilityLabel, readableLabel } from '@/lib/labels';
 import { router, useForm } from '@inertiajs/react';
 type Evidence = { id: number; basis: string; evidence: string; method: string; recorded_at: string };
 export default function Detail({
@@ -51,11 +51,11 @@ export default function Detail({
                     }}
                 >
                     {(['email', 'first_name', 'last_name', 'company_name', 'telephone', 'source'] as const).map((k) => (
-                        <Field key={k} label={k.replaceAll('_', ' ')} value={f.data[k]} change={(v) => f.setData(k, v)} />
+                        <Field key={k} label={contactFieldLabel(k)} value={f.data[k]} change={(v) => f.setData(k, v)} />
                     ))}
                     <Select label="Status" value={f.data.status} change={(v) => f.setData('status', v)}>
-                        <option>active</option>
-                        <option>archived</option>
+                        <option value="active">Active</option>
+                        <option value="archived">Archived</option>
                     </Select>
                     <Errors errors={f.errors} />
                     {canManage && (
@@ -161,7 +161,7 @@ export default function Detail({
             <Panel title="Contact audit history">
                 {history.map((h) => (
                     <p key={h.id} className="py-2 text-sm">
-                        {h.action} · {new Date(h.created_at).toLocaleString()}
+                        {readableLabel(h.action)} · {new Date(h.created_at).toLocaleString()}
                     </p>
                 ))}
             </Panel>

@@ -21,7 +21,7 @@ test('mock provider analytics timeline comparison and sessionless one-click unsu
     await page.screenshot({ path: 'test-results/mock-sendgrid-analytics.png', fullPage: true, animations: 'disabled' });
     await page.getByRole('link', { name: 'fixture@example.test', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Chronological delivery timeline' })).toBeVisible();
-    await expect(page.getByText('delivered', { exact: true })).toBeVisible();
+    await expect(page.getByText('Delivered', { exact: true })).toBeVisible();
     await page.goto(`/organisations/${ids.company}/campaign-comparison`);
     await expect(page.getByRole('link', { name: 'MOCK provider analytics' })).toBeVisible();
     const get = await request.get(ids.oneclick);

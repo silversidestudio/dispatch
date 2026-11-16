@@ -1,5 +1,7 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { Company, Field } from '@/components/marketing';
 import { Panel, Workspace } from '@/components/workspace';
+import { modeLabel } from '@/lib/labels';
 import { Link } from '@inertiajs/react';
 import { useState } from 'react';
 type Report = {
@@ -67,9 +69,11 @@ export default function Reports({ company, reports }: { company: Company; report
                                             {r.name}
                                         </Link>
                                     </td>
+                                    <td className="p-3">
+                                        <DeliveryStatus status={r.status} />
+                                    </td>
+                                    <td className="p-3">{modeLabel(r.mode)}</td>
                                     {[
-                                        r.status,
-                                        r.mode,
                                         r.audience_at_snapshot,
                                         r.eligible_at_snapshot,
                                         r.excluded_at_snapshot,

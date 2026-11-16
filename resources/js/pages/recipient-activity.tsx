@@ -1,6 +1,8 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { Company, Field, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { readableLabel } from '@/lib/labels';
 import { useForm } from '@inertiajs/react';
 import { RecipientActivity } from './campaign-analytics';
 type Attempt = {
@@ -37,7 +39,10 @@ export default function Recipient({
 }) {
     const f = useForm({ decision: 'closed_without_retry', evidence: '', confirmation: '' });
     return (
-        <Workspace title={recipient.email} subtitle={`${campaign.name} · Submission: ${recipient.status} · Delivery: ${recipient.delivery_status}`}>
+        <Workspace
+            title={recipient.email}
+            subtitle={`${campaign.name} · Submission: ${readableLabel(recipient.status)} · Delivery: ${readableLabel(recipient.delivery_status ?? 'no feedback')}`}
+        >
             <Panel title="Engagement summary" description="Tracking events do not prove human activity.">
                 <dl className="grid gap-4 text-sm md:grid-cols-2">
                     {[
@@ -60,7 +65,7 @@ export default function Recipient({
                             <p className="text-muted-foreground text-xs">
                                 {new Date(e.occurred_at ?? e.created_at).toLocaleString()} · {e.simulated ? 'Simulated' : e.provider}
                             </p>
-                            <p className="mt-2 font-medium">{e.type}</p>
+                            <p className="mt-2 font-medium">{readableLabel(e.type)}</p>
                             <p className="text-muted-foreground mt-1 text-xs break-all">{e.provider_message_id}</p>
                             {e.metadata && (
                                 <dl className="mt-2 text-xs">
@@ -79,10 +84,10 @@ export default function Recipient({
                 {recipient.attempts.map((a) => (
                     <div className="mb-4 rounded-xl border p-4 text-sm" key={a.id}>
                         <p className="font-medium">
-                            Attempt {a.number} · {a.outcome}
+                            Attempt {a.number} · <DeliveryStatus status={a.outcome} />
                         </p>
                         <p className="mt-1">
-                            HTTP {a.http_status ?? 'unknown'} · {a.diagnostic_code ?? '—'}
+                            HTTP {a.http_status ?? 'Unknown'} · {a.diagnostic_code ? readableLabel(a.diagnostic_code) : '—'}
                         </p>
                         <p className="text-muted-foreground mt-2 text-xs break-all">
                             Correlation: {a.correlation_id ?? 'simulation'} · Provider ID: {a.provider_message_id}

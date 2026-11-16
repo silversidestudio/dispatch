@@ -62,8 +62,8 @@ test('platform company to owner contacts import campaign simulation and reportin
     await owner.getByRole('button', { name: 'Upload and preview' }).click();
     await expect(owner).toHaveURL(/imports\/\d+/);
     await owner.getByRole('button', { name: 'Start background import' }).click();
-    await expect(owner.getByText(/CSV import · completed/)).toBeVisible({ timeout: 30000 });
-    await expect(owner.getByText('Row 5: rejected', { exact: false })).toBeVisible();
+    await expect(owner.getByText('Completed', { exact: true })).toBeVisible({ timeout: 30000 });
+    await expect(owner.getByText('Row 5: Rejected', { exact: false })).toBeVisible();
     for (const local of ['success', 'temporary', 'permanent']) {
         await owner.goto(base + '/contacts');
         await owner.getByRole('link', { name: `${local}-${stamp}@example.test`, exact: true }).click();
@@ -81,6 +81,18 @@ test('platform company to owner contacts import campaign simulation and reportin
     await owner.getByRole('checkbox', { name: 'Select page', exact: true }).check();
     await owner.getByRole('button', { name: 'Add selected', exact: true }).click();
     await expect(owner.getByText(/3 current eligible recipients/)).toBeVisible();
+    const importedMember = owner.getByRole('row').filter({ hasText: `success-${stamp}@example.test` });
+    await expect(importedMember.getByText('Included in list', { exact: true })).toBeAttached();
+    await expect(importedMember.getByText('Eligible · CSV import', { exact: true }).filter({ visible: true })).toBeVisible();
+    await owner.screenshot({ path: 'test-results/list-membership-desktop.png', fullPage: true });
+    await owner.setViewportSize({ width: 390, height: 844 });
+    await expect(importedMember.getByText('Eligible · CSV import', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(owner.getByRole('checkbox', { name: 'Select page' })).not.toBeChecked();
+
+    expect(await owner.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+    await owner.screenshot({ path: 'test-results/list-membership-mobile.png', fullPage: true });
+    await owner.setViewportSize({ width: 1440, height: 1000 });
+
     await owner.goto(base + '/identities');
     await owner.getByLabel('Sender name', { exact: true }).fill('Company News');
     await owner.getByLabel('Sender email', { exact: true }).fill('news@example.test');
@@ -113,7 +125,7 @@ test('platform company to owner contacts import campaign simulation and reportin
     await owner.screenshot({ path: 'test-results/company-campaign-results.png', fullPage: true, animations: 'disabled' });
     await owner.goto(base + '/reports');
     await expect(owner.getByRole('link', { name: 'E2E company campaign' })).toBeVisible();
-    await expect(owner.getByRole('cell', { name: 'completed', exact: true })).toBeVisible();
+    await expect(owner.getByRole('cell', { name: 'Completed', exact: true })).toBeVisible();
     const campaignLink = await owner.getByRole('link', { name: 'E2E company campaign' }).getAttribute('href');
     const response = await admin.goto(campaignLink!);
     expect(response?.status()).toBe(403);

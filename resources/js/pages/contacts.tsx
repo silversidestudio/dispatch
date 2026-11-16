@@ -1,7 +1,8 @@
+import { DeliveryStatus, EligibilityStatus } from '@/components/delivery-status';
 import { Company, Contact, Field, Metrics, Page, Pages, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
-import { eligibilityLabel } from '@/lib/labels';
+import { contactFieldLabel, eligibilityLabel } from '@/lib/labels';
 import { Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 export default function Contacts({
@@ -137,8 +138,12 @@ export default function Contacts({
                                     <td>
                                         {c.first_name} {c.last_name}
                                     </td>
-                                    <td className="capitalize">{c.status}</td>
-                                    <td>{eligibilityLabel(c.eligibility)}</td>
+                                    <td>
+                                        <DeliveryStatus status={c.status} />
+                                    </td>
+                                    <td>
+                                        <EligibilityStatus status={c.eligibility} />
+                                    </td>
                                     <td>{c.source}</td>
                                 </tr>
                             ))}
@@ -160,7 +165,7 @@ export default function Contacts({
                         {(['email', 'first_name', 'last_name', 'company_name', 'telephone', 'source'] as const).map((k) => (
                             <Field
                                 key={k}
-                                label={k.replaceAll('_', ' ')}
+                                label={contactFieldLabel(k)}
                                 value={f.data[k]}
                                 type={k === 'email' ? 'email' : 'text'}
                                 required={['email', 'source'].includes(k)}

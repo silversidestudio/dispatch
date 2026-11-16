@@ -2,7 +2,9 @@ import { DeliveryStatus } from '@/components/delivery-status';
 import { Company, Page, Pages } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Panel, Workspace } from '@/components/workspace';
+import { modeLabel } from '@/lib/labels';
 import { Link } from '@inertiajs/react';
+import { Mail, Plus } from 'lucide-react';
 export type Campaign = {
     delivery_mode: string;
     open_tracking: boolean;
@@ -30,7 +32,10 @@ export default function Campaigns({ company, campaigns, canManage }: { company: 
             actions={
                 canManage && (
                     <Button asChild>
-                        <Link href={base + '/create'}>Create campaign</Link>
+                        <Link href={base + '/create'}>
+                            <Plus aria-hidden="true" />
+                            Create campaign
+                        </Link>
                     </Button>
                 )
             }
@@ -54,6 +59,7 @@ export default function Campaigns({ company, campaigns, canManage }: { company: 
                                         <Link className="underline" href={base + '/' + c.id}>
                                             {c.name}
                                         </Link>
+                                        <p className="text-muted-foreground mt-1 text-xs">{modeLabel(c.delivery_mode)}</p>
                                     </td>
                                     <td>{c.subject}</td>
                                     <td>
@@ -65,9 +71,11 @@ export default function Campaigns({ company, campaigns, canManage }: { company: 
                         </tbody>
                     </table>
                     {!campaigns.data.length && (
-                        <p className="text-muted-foreground py-10 text-center">
-                            Prepare your first campaign when your audience and identity are ready.
-                        </p>
+                        <div className="text-muted-foreground py-10 text-center text-sm">
+                            <Mail aria-hidden="true" className="mx-auto mb-3 size-6" />
+                            <p className="text-foreground font-medium">No campaigns yet</p>
+                            <p className="mt-1">Add an audience and a sender, then create your first draft.</p>
+                        </div>
                     )}
                 </div>
                 <Pages page={campaigns} />

@@ -1,6 +1,8 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Panel, Workspace } from '@/components/workspace';
+import { readableLabel } from '@/lib/labels';
 import { Link, router, useForm } from '@inertiajs/react';
 type Account = {
     id: number;
@@ -45,8 +47,8 @@ export default function Users({
                         onChange={(e) => f.setData('status', e.target.value)}
                     >
                         <option value="">All statuses</option>
-                        <option>active</option>
-                        <option>suspended</option>
+                        <option value="active">Active</option>
+                        <option value="suspended">Suspended</option>
                     </select>
                     <Button>Search</Button>
                 </form>
@@ -74,11 +76,13 @@ export default function Users({
                                                 <Link href={`/platform/companies/${o.id}`} className="underline">
                                                     {o.name}
                                                 </Link>{' '}
-                                                · {o.pivot.role}
+                                                · {readableLabel(o.pivot.role)}
                                             </div>
                                         ))}
                                     </td>
-                                    <td>{u.status}</td>
+                                    <td>
+                                        <DeliveryStatus status={u.status} />
+                                    </td>
                                     <td>
                                         <Button
                                             variant="outline"
@@ -106,14 +110,14 @@ export default function Users({
             <Panel title="Recent invitations">
                 {invitations.map((i) => (
                     <p key={i.id} className="py-2 text-sm">
-                        {i.email} · {i.role} · {new Date(i.expires_at) > new Date() ? 'Pending' : 'Expired'}
+                        {i.email} · {readableLabel(i.role)} · {new Date(i.expires_at) > new Date() ? 'Pending' : 'Expired'}
                     </p>
                 ))}
             </Panel>
             <Panel title="Account audit history">
                 {audit.map((a) => (
                     <p key={a.id} className="py-2 text-sm">
-                        {a.action} · account {a.metadata?.account_id ?? '—'} · {new Date(a.created_at).toLocaleString()}
+                        {readableLabel(a.action)} · account {a.metadata?.account_id ?? '—'} · {new Date(a.created_at).toLocaleString()}
                     </p>
                 ))}
             </Panel>

@@ -1,7 +1,9 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { Company, Field } from '@/components/marketing';
 import { ProviderIdentity, VerifyIdentity } from '@/components/provider-controls';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { readableLabel } from '@/lib/labels';
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 export type Identity = {
@@ -88,8 +90,9 @@ export default function Identities({
                             </p>
                             <p className="mt-1 text-sm">{i.email}</p>
                             <p className="text-muted-foreground mt-3 text-xs">
-                                {i.domain} · {i.verification_status} · SPF: {i.spf_status} · DKIM: {i.dkim_status} · DMARC: {i.dmarc_status} · Last
-                                check: {i.verified_at ? new Date(i.verified_at).toLocaleString() : 'Never'}
+                                {i.domain} · <DeliveryStatus status={i.verification_status} /> · SPF: {readableLabel(i.spf_status)} · DKIM:{' '}
+                                {readableLabel(i.dkim_status)} · DMARC: {readableLabel(i.dmarc_status)} · Last check:{' '}
+                                {i.verified_at ? new Date(i.verified_at).toLocaleString() : 'Never'}
                             </p>
                             {canVerify && <VerifyIdentity companyId={company.id} identity={i} />}
                             {canManage && (

@@ -1,9 +1,10 @@
+import { EligibilityStatus } from '@/components/delivery-status';
 import { Company, Contact, Field, Page, Pages } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
-import { eligibilityLabel, readableLabel } from '@/lib/labels';
+import { readableLabel } from '@/lib/labels';
 import { Link, router, useForm } from '@inertiajs/react';
-import { Check, Minus } from 'lucide-react';
+import { Check, Minus, Search, UserMinus, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 export default function List({
     company,
@@ -45,14 +46,17 @@ export default function List({
                 description="Search your company contacts, select a page or individual contacts, then add or remove membership."
             >
                 <form
-                    className="mb-4 flex items-end gap-3"
+                    className="mb-4 flex flex-wrap items-end gap-3"
                     onSubmit={(e) => {
                         e.preventDefault();
                         search.get(base);
                     }}
                 >
                     <Field label="Search contact email" value={search.data.search} change={(v) => search.setData('search', v)} />
-                    <Button variant="outline">Search</Button>
+                    <Button variant="outline">
+                        <Search aria-hidden="true" />
+                        Search
+                    </Button>
                 </form>
                 {canManage && (
                     <div className="mb-4 flex gap-3">
@@ -60,6 +64,7 @@ export default function List({
                             disabled={!ids.length}
                             onClick={() => router.post(base + '/members', { ids, action: 'add' }, { onSuccess: () => setIds([]) })}
                         >
+                            <UserPlus aria-hidden="true" />
                             Add selected
                         </Button>
                         <Button
@@ -67,6 +72,7 @@ export default function List({
                             disabled={!ids.length}
                             onClick={() => router.post(base + '/members', { ids, action: 'remove' }, { onSuccess: () => setIds([]) })}
                         >
+                            <UserMinus aria-hidden="true" />
                             Remove selected
                         </Button>
                     </div>
@@ -79,12 +85,13 @@ export default function List({
                                     <input
                                         type="checkbox"
                                         aria-label="Select page"
+                                        checked={contacts.data.length > 0 && contacts.data.every((c) => ids.includes(c.id))}
                                         onChange={(e) => setIds(e.target.checked ? contacts.data.map((c) => c.id) : [])}
                                     />
                                 </th>
                                 <th>Contact</th>
                                 <th>Member</th>
-                                <th>Eligibility</th>
+                                <th className="hidden sm:table-cell">Eligibility</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -99,9 +106,12 @@ export default function List({
                                         />
                                     </td>
                                     <td>
-                                        <Link className="underline" href={`/organisations/${company.id}/contacts/${c.id}`}>
+                                        <Link className="break-all underline sm:break-normal" href={`/organisations/${company.id}/contacts/${c.id}`}>
                                             {c.email}
                                         </Link>
+                                        <div className="mt-1.5 sm:hidden">
+                                            <EligibilityStatus status={c.eligibility} />
+                                        </div>
                                     </td>
                                     <td className="py-2 pr-3">
                                         {c.member ? (
@@ -122,7 +132,9 @@ export default function List({
                                             </span>
                                         )}
                                     </td>
-                                    <td>{eligibilityLabel(c.eligibility)}</td>
+                                    <td className="hidden sm:table-cell">
+                                        <EligibilityStatus status={c.eligibility} />
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

@@ -1,7 +1,9 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { readableLabel } from '@/lib/labels';
 import { Link, router, useForm } from '@inertiajs/react';
 import { Building2, Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -36,7 +38,7 @@ export default function Organisations({
                                                 {o.name}
                                             </Link>
                                             <p className="text-muted-foreground mt-1 text-xs capitalize">
-                                                {o.role.replace('_', ' ')} · {o.status}
+                                                {readableLabel(o.role)} <DeliveryStatus status={o.status} />
                                             </p>
                                         </div>
                                     </div>

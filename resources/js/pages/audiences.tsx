@@ -1,6 +1,7 @@
 import { Company, Field, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { readableLabel } from '@/lib/labels';
 import { Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 type Rule = { field: string; value: string; key: string };
@@ -137,7 +138,9 @@ export default function Audiences({
                                         }
                                     >
                                         {['status', 'source', 'company_name', 'list_id', 'created_after', 'created_before', 'attribute'].map((v) => (
-                                            <option key={v}>{v}</option>
+                                            <option key={v} value={v}>
+                                                {readableLabel(v)}
+                                            </option>
                                         ))}
                                     </Select>
                                     {r.field === 'list_id' ? (

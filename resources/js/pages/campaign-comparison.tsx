@@ -1,6 +1,7 @@
 import { Company, Field, Page, Pages } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Panel, Workspace } from '@/components/workspace';
+import { modeLabel } from '@/lib/labels';
 import { Link, useForm } from '@inertiajs/react';
 import { Analytics } from './campaign-analytics';
 export default function Comparison({
@@ -54,7 +55,7 @@ export default function Comparison({
                                         <Link className="underline" href={`/organisations/${company.id}/campaigns/${c.id}/analytics`}>
                                             {c.name}
                                         </Link>
-                                        <p className="text-muted-foreground text-xs">{c.analytics.mode}</p>
+                                        <p className="text-muted-foreground text-xs">{modeLabel(c.analytics.mode)}</p>
                                     </td>
                                     <td>{c.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString() : '—'}</td>
                                     <td>{c.analytics.counts.original_audience}</td>

@@ -1,8 +1,10 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { ProviderIdentity, VerifyIdentity } from '@/components/provider-controls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { readableLabel } from '@/lib/labels';
 import { SharedData } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/react';
 type Member = { id: number; name: string; email: string; role: string; status: string };
@@ -43,7 +45,7 @@ export default function Company({
                     ))}
                     {deliveryActivity.map((d) => (
                         <p key={d.type + String(d.simulated)}>
-                            {d.simulated ? 'Simulated' : 'SendGrid'} {d.type}: {d.total}
+                            {d.simulated ? 'Simulated' : 'SendGrid'} {readableLabel(d.type)}: {d.total}
                         </p>
                     ))}
                 </div>
@@ -55,7 +57,7 @@ export default function Company({
                 {sendingIdentities.map((i) => (
                     <div key={i.id} className="mb-5 rounded-lg border p-4 text-sm">
                         <p>
-                            {i.name} · {i.email} · {i.domain} · {i.verification_status}
+                            {i.name} · {i.email} · {i.domain} · <DeliveryStatus status={i.verification_status} />
                         </p>
                         <VerifyIdentity companyId={company.id} identity={i} />
                     </div>
@@ -71,7 +73,7 @@ export default function Company({
                 >
                     {(['name', 'website', 'postal_address'] as const).map((k) => (
                         <div key={k}>
-                            <Label htmlFor={k}>{k.replace('_', ' ')}</Label>
+                            <Label htmlFor={k}>{{ name: 'Company name', website: 'Website', postal_address: 'Sender postal address' }[k]}</Label>
                             <Input id={k} value={f.data[k]} onChange={(e) => f.setData(k, e.target.value)} />
                         </div>
                     ))}
@@ -95,7 +97,7 @@ export default function Company({
                                     <td className="p-3">
                                         {m.name}
                                         <div className="text-muted-foreground text-xs">
-                                            {m.email} · {m.status}
+                                            {m.email} · <DeliveryStatus status={m.status} />
                                         </div>
                                     </td>
                                     <td>
@@ -109,7 +111,9 @@ export default function Company({
                                                 onChange={(e) => router.patch(`${base}/members/${m.id}`, { role: e.target.value })}
                                             >
                                                 {['administrator', 'campaign_manager', 'viewer'].map((r) => (
-                                                    <option key={r}>{r}</option>
+                                                    <option key={r} value={r}>
+                                                        {readableLabel(r)}
+                                                    </option>
                                                 ))}
                                             </select>
                                         )}
@@ -188,7 +192,7 @@ export default function Company({
                     <ul className="mt-4 space-y-2 text-sm">
                         {invites.map((i) => (
                             <li key={i.id}>
-                                {i.email} · {i.role} · expires {new Date(i.expires_at).toLocaleDateString()}
+                                {i.email} · {readableLabel(i.role)} · expires {new Date(i.expires_at).toLocaleDateString()}
                             </li>
                         ))}
                     </ul>
@@ -237,7 +241,7 @@ export default function Company({
                 <ul className="space-y-2 text-sm">
                     {audit.map((a) => (
                         <li key={a.id}>
-                            {a.action} · {new Date(a.created_at).toLocaleString()}
+                            {readableLabel(a.action)} · {new Date(a.created_at).toLocaleString()}
                         </li>
                     ))}
                 </ul>
@@ -254,7 +258,9 @@ function Role({ value, change }: { value: string; change: (r: string) => void })
             onChange={(e) => change(e.target.value)}
         >
             {['viewer', 'campaign_manager', 'administrator'].map((r) => (
-                <option key={r}>{r}</option>
+                <option key={r} value={r}>
+                    {readableLabel(r)}
+                </option>
             ))}
         </select>
     );

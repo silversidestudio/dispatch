@@ -1,7 +1,9 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { EmailPreview } from '@/components/email-preview';
 import { Company, Field, Metrics, Page, Pages, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { readableLabel } from '@/lib/labels';
 import { SharedData } from '@/types';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
@@ -292,7 +294,12 @@ export default function Detail({
                             {recipients.data.map((r) => (
                                 <tr key={r.id} className="border-t">
                                     <td className="p-3">{r.email}</td>
-                                    <td>{r.status}</td>
+                                    <td>
+                                        <DeliveryStatus
+                                            status={r.status}
+                                            label={mode === 'simulation' && r.status === 'accepted' ? 'Simulated acceptance' : undefined}
+                                        />
+                                    </td>
                                     <td>{r.attempt_count}</td>
                                     <td>
                                         <Button
@@ -337,7 +344,8 @@ export default function Detail({
                 <Panel title="Campaign state history">
                     {history.map((h) => (
                         <p className="border-b py-3 text-sm" key={h.id}>
-                            {h.action === 'campaign.pilot_blocked' ? 'Pilot blocked' : h.action} · {new Date(h.created_at).toLocaleString()}
+                            {h.action === 'campaign.pilot_blocked' ? 'Pilot blocked' : readableLabel(h.action)} ·{' '}
+                            {new Date(h.created_at).toLocaleString()}
                             {h.action === 'campaign.pilot_blocked' && (
                                 <span className="text-muted-foreground mt-1 block">
                                     {(

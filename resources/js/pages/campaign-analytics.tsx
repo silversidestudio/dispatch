@@ -2,6 +2,7 @@ import { DeliveryStatus } from '@/components/delivery-status';
 import { Company, Field, Metrics, Page, Pages, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Panel, Workspace } from '@/components/workspace';
+import { modeLabel, readableLabel } from '@/lib/labels';
 import { Link, useForm } from '@inertiajs/react';
 import { Activity, Download, Eye, MousePointerClick, Send, ShieldCheck } from 'lucide-react';
 export type Analytics = {
@@ -49,7 +50,7 @@ export default function CampaignAnalytics({
     return (
         <Workspace
             title={`${campaign.name} · Analytics`}
-            subtitle={`${campaign.status} · ${analytics.mode}`}
+            subtitle={`${readableLabel(campaign.status)} · ${modeLabel(analytics.mode)}`}
             actions={
                 <Button variant="outline" asChild>
                     <a href={`${base}/analytics/export?${query}`}>
@@ -84,7 +85,9 @@ export default function CampaignAnalytics({
                     <Select label="Event filter" value={f.data.status} change={(v) => f.setData('status', v)}>
                         <option value="">All activity</option>
                         {['delivered', 'deferred', 'bounce', 'blocked', 'dropped', 'open', 'click', 'unsubscribe', 'spamreport'].map((v) => (
-                            <option key={v}>{v}</option>
+                            <option key={v} value={v}>
+                                {v === 'spamreport' ? 'Spam complaint' : readableLabel(v)}
+                            </option>
                         ))}
                     </Select>
                     <Button>Apply filters</Button>
@@ -232,7 +235,12 @@ export default function CampaignAnalytics({
                                             {r.email}
                                         </Link>
                                     </td>
-                                    <td>{r.status}</td>
+                                    <td>
+                                        <DeliveryStatus
+                                            status={r.status}
+                                            label={!analytics.available && r.status === 'accepted' ? 'Simulated acceptance' : undefined}
+                                        />
+                                    </td>
                                     <td>
                                         <DeliveryStatus status={r.delivery_status} />
                                     </td>
@@ -261,7 +269,8 @@ export default function CampaignAnalytics({
                 )}
                 {recentEvents.map((e) => (
                     <p className="border-b py-3 text-sm" key={e.id}>
-                        {e.occurred_at ? new Date(e.occurred_at).toLocaleString() : 'Unknown event time'} · {e.type} · {e.provider_message_id}
+                        {e.occurred_at ? new Date(e.occurred_at).toLocaleString() : 'Unknown event time'} · {readableLabel(e.type)} ·{' '}
+                        {e.provider_message_id}
                     </p>
                 ))}
             </Panel>

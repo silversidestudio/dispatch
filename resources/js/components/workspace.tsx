@@ -11,7 +11,7 @@ export function Workspace({ title, subtitle, children, actions }: { title: strin
     return (
         <AppLayout breadcrumbs={[{ title, href: '#' }]}>
             <Head title={title} />
-            <main className="mx-auto w-full max-w-[1500px] min-w-0 space-y-7 p-4 md:p-8">
+            <main data-workspace className="mx-auto w-full max-w-[1500px] min-w-0 space-y-7 p-4 md:p-8">
                 {errors && Object.keys(errors).length > 0 && (
                     <div role="alert" className="border-destructive/30 bg-destructive/5 text-destructive rounded-xl border p-4 text-sm">
                         {Object.values(errors).map((message, i) => (
@@ -19,14 +19,14 @@ export function Workspace({ title, subtitle, children, actions }: { title: strin
                         ))}
                     </div>
                 )}
-                <div className="flex flex-wrap items-center justify-between gap-4">
+                <header className="bg-card flex flex-wrap items-center justify-between gap-4 rounded-2xl border px-5 py-5 shadow-xs md:px-6">
                     <div className="max-w-full min-w-0">
-                        <p className="text-muted-foreground mb-2 text-xs font-medium tracking-widest uppercase">Your email workspace</p>
+                        <p className="text-muted-foreground mb-1.5 text-xs font-medium">Email workspace</p>
                         <h1 className="text-2xl font-semibold tracking-tight break-words md:text-3xl">{title}</h1>
                         {subtitle && <p className="text-muted-foreground mt-2 text-sm">{subtitle}</p>}
                     </div>
                     {actions}
-                </div>
+                </header>
                 {children}
             </main>
         </AppLayout>

@@ -35,12 +35,12 @@ test('registration, onboarding, workspaces, themes, mobile navigation and platfo
     await page.goto('/organisations');
     await page.getByLabel('Organisation name', { exact: true }).fill('Browser Demo · Second workspace');
     await page.getByRole('button', { name: 'Create organisation', exact: true }).click();
-    await expect(page.getByText(/Browser Demo · Second workspace · owner/)).toBeVisible();
+    await expect(page.getByText(/Browser Demo · Second workspace · Owner/)).toBeVisible();
     const workspace = page.getByLabel('WORKSPACE', { exact: true });
     const options = await workspace.locator('option').allTextContents();
     expect(options).toContain('Browser Demo · Acorn Studio');
     await workspace.selectOption({ label: 'Browser Demo · Acorn Studio' });
-    await expect(page.getByText(/Browser Demo · Acorn Studio · owner/)).toBeVisible();
+    await expect(page.getByText(/Browser Demo · Acorn Studio · Owner/)).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
     await expect(page.getByRole('link', { name: 'Organisations', exact: true })).toBeVisible();

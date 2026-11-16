@@ -1,6 +1,8 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { Metrics } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Panel, Workspace } from '@/components/workspace';
+import { readableLabel } from '@/lib/labels';
 import { Link } from '@inertiajs/react';
 import { Analytics } from './campaign-analytics';
 export default function Dashboard({
@@ -24,7 +26,7 @@ export default function Dashboard({
     return (
         <Workspace
             title="Workspace overview"
-            subtitle={`${organisation.name} · ${organisation.role.replace('_', ' ')} · ${organisation.members} members`}
+            subtitle={`${organisation.name} · ${readableLabel(organisation.role)} · ${organisation.members} members`}
             actions={
                 <Button variant="outline" asChild>
                     <Link href={base}>Workspace settings</Link>
@@ -83,7 +85,7 @@ export default function Dashboard({
                         {recentCampaigns.map((c) => (
                             <Link href={`${base}/campaigns/${c.id}`} key={c.id} className="flex justify-between rounded-xl border p-4 text-sm">
                                 <span className="font-medium">{c.name}</span>
-                                <span className="text-muted-foreground">{c.status}</span>
+                                <DeliveryStatus status={c.status} />
                             </Link>
                         ))}
                         {!recentCampaigns.length && (
@@ -99,7 +101,7 @@ export default function Dashboard({
                 <Panel title="Recent workspace activity">
                     {activity.map((a) => (
                         <div className="flex justify-between gap-3 border-b py-3 text-sm" key={a.id}>
-                            <span>{a.action.replaceAll('.', ' ').replaceAll('_', ' ')}</span>
+                            <span>{readableLabel(a.action)}</span>
                             <time className="text-muted-foreground text-xs">{new Date(a.created_at).toLocaleDateString()}</time>
                         </div>
                     ))}
