@@ -13,6 +13,7 @@ use App\Services\AudienceService;
 use App\Services\CsvImportService;
 use App\Services\EligibilityService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
@@ -83,6 +84,7 @@ it('imports through a queued mapping workflow with validation duplicates and ret
     $i->refresh();
     expect($i->successful)->toBe(1);
     expect($i->rejected)->toBe(2);
+    expect(DB::table('notifications')->where('notifiable_id', $u->id)->where('event_key', "contact-import.completed:$i->id")->exists())->toBeTrue();
     expect(Contact::count())->toBe(2);
     $new = Contact::where('email', 'new@example.test')->first();
     expect($new->eligibility)->toBe('csv_import');

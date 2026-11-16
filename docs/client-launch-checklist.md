@@ -1,6 +1,6 @@
-# Campaign Manager client launch — proposed checklist
+# Campaign Manager client launch — earlier checklist
 
-Review before implementation. Single managed client, invite-only, company-specific SendGrid credentials. Keep Dispatch as the default app name and Campaign Manager on the client installation. Defer billing, public signup and other SaaS work.
+For the current staged release checklist, see [v1-production-checklist.md](v1-production-checklist.md). This earlier checklist is retained as background. Single managed client, invite-only, company-specific SendGrid credentials. Keep Dispatch as the default app name and Campaign Manager on the client installation. Defer billing, public signup and other SaaS work.
 
 ## Evidence so far
 
@@ -21,7 +21,7 @@ Operator reports that Plesk scheduled simulations, Horizon CSV processing, SendG
 ## 3. Security and operations
 
 - [ ] Review dependency advisories, tenant and role boundaries, credential storage/redaction, signed webhooks, public route throttles, invitation and reset flows, CSV uploads and HTML sanitisation. Resolve critical/high findings before launch and document any remaining findings.
-- [ ] Provide and test a secure invitation, verification and password recovery process for the client; staging currently logs verification/reset links. Decide whether to implement separate transactional account mail and verify it before relying on it.
+- [ ] Verify invitations, email verification and password recovery reach the intended mailbox through the separate system-email SMTP settings. The operator reports SMTP is fixed; repeat the checks on staging and on the client host.
 - [ ] Verify HTTPS, debug off, correct proxy handling, private Redis/database access, least privilege, scheduled jobs and Horizon restart. Test Pause/Cancel before submission, duplicate prevention and recovery from an uncertain submission.
 - [ ] Configure protected off-host backups and demonstrate an isolated restore. Set up alerts for site outages, stalled queue/scheduler, failed jobs and provider/webhook failures. Rehearse rollback with live sending disabled and submission history preserved.
 - [ ] Review client list provenance, eligibility and suppression carryover before import. CSV imports mark new unsuppressed contacts eligible in the application; import alone does not establish permission.

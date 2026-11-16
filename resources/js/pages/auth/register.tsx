@@ -32,7 +32,7 @@ export default function Register({ email }: { email: string }) {
     };
 
     return (
-        <AuthLayout title="Create an account" description="Enter your details below to create your account">
+        <AuthLayout title="Create an account" description="Use the email address on your invitation to set up your account.">
             <Head title="Register" />
             <form className="flex flex-col gap-6" onSubmit={submit}>
                 <div className="grid gap-6">

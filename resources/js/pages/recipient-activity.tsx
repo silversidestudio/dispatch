@@ -43,7 +43,7 @@ export default function Recipient({
             title={recipient.email}
             subtitle={`${campaign.name} · Submission: ${readableLabel(recipient.status)} · Delivery: ${readableLabel(recipient.delivery_status ?? 'no feedback')}`}
         >
-            <Panel title="Engagement summary" description="Tracking events do not prove human activity.">
+            <Panel title="Engagement summary" description="Tracked activity can include privacy services and automated security checks.">
                 <dl className="grid gap-4 text-sm md:grid-cols-2">
                     {[
                         ['First tracked open', recipient.first_open],
@@ -80,7 +80,7 @@ export default function Recipient({
                     ))}
                 </ol>
             </Panel>
-            <Panel title="Submission attempts" description="Uncertain attempts are held. Confirm with provider evidence before allowing any retry.">
+            <Panel title="Submission attempts" description="An uncertain result is held to prevent a duplicate. Check SendGrid activity before allowing another attempt.">
                 {recipient.attempts.map((a) => (
                     <div className="mb-4 rounded-xl border p-4 text-sm" key={a.id}>
                         <p className="font-medium">
@@ -100,14 +100,14 @@ export default function Recipient({
                                     f.post(`/organisations/${company.id}/attempts/${a.id}/reconcile`);
                                 }}
                             >
-                                <Select label="Reconciliation decision" value={f.data.decision} change={(v) => f.setData('decision', v)}>
+                                <Select label="Decision" value={f.data.decision} change={(v) => f.setData('decision', v)}>
                                     <option value="closed_without_retry">Close without retry</option>
-                                    <option value="confirmed_not_submitted">Provider confirms not submitted; permit retry</option>
+                                    <option value="confirmed_not_submitted">SendGrid confirms it was not submitted; allow retry</option>
                                 </Select>
-                                <Field label="Provider reconciliation evidence" value={f.data.evidence} change={(v) => f.setData('evidence', v)} />
-                                <Field label="Type RECONCILE" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
+                                <Field label="SendGrid evidence" value={f.data.evidence} change={(v) => f.setData('evidence', v)} />
+                                <Field label="Type RECONCILE to save" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
                                 <Errors errors={f.errors} />
-                                <Button>Record audited decision</Button>
+                                <Button>Save decision</Button>
                             </form>
                         )}
                     </div>

@@ -21,14 +21,14 @@ class SendGridPilotGuard
         $emails = config('dispatch.pilot.recipients', []);
         $organisations = config('dispatch.pilot.organisation_ids', []);
         if (! $emails || collect($emails)->contains(fn ($email) => ! filter_var($email, FILTER_VALIDATE_EMAIL))) {
-            $errors[] = 'Pilot sending requires a valid, explicit test-recipient allowlist.';
+            $errors[] = 'The platform has not added any approved test recipients yet. Contact the platform administrator.';
         }
         if (! $organisationId || ! $organisations || collect($organisations)->contains(fn ($id) => ! ctype_digit((string) $id) || (int) $id < 1) || ! in_array((string) $organisationId, array_map('strval', $organisations), true)) {
-            $errors[] = 'This company has not been authorised for the restricted pilot.';
+            $errors[] = 'This company is not included in the current SendGrid test. Contact the platform administrator.';
         }
         $limit = (int) config('dispatch.pilot.daily_limit');
         if ($limit < 1 || $limit > 100) {
-            $errors[] = 'Pilot daily limit must be between 1 and 100; the recommended limit is 25.';
+            $errors[] = 'The platform’s daily test limit needs attention. Contact the platform administrator.';
         }
 
         return $errors;

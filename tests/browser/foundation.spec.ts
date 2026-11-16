@@ -23,7 +23,7 @@ test('registration, onboarding, workspaces, themes, mobile navigation and platfo
     expect(brand).toBeTruthy();
     await expect(page).toHaveTitle('Workspace overview - ' + brand);
     await expect(page.getByText(brand!, { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('No campaigns yet. Prepare your audience, identity and email content to begin.')).toBeVisible();
+    await expect(page.getByText('No campaigns yet.', { exact: true })).toBeVisible();
     await page.screenshot({ path: 'test-results/dashboard-light.png', fullPage: true, animations: 'disabled' });
     await page.getByRole('button', { name: 'Toggle theme' }).click();
     await page.getByRole('menuitem', { name: 'Dark', exact: true }).click();

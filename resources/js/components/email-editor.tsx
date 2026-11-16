@@ -144,7 +144,7 @@ export function EmailEditor({
                 class: 'email-canvas min-h-[420px] outline-none',
                 role: 'textbox',
                 'aria-label': 'Email content',
-                'data-placeholder': 'Start with a headline. Write something your audience will value.',
+                'data-placeholder': 'Write your email here…',
             },
             handleClickOn(view, _pos, node, nodePos, event, direct) {
                 if (direct && ['emailButton', 'image'].includes(node.type.name)) {
@@ -230,7 +230,7 @@ export function EmailEditor({
             mode === 'image' &&
             ((!safeHttps(form.src) && !(editing && /^\/email-assets\/[a-z0-9-]+\.png$/.test(form.src))) || (form.link && !safeHttps(form.link)))
         ) {
-            setError('Use HTTPS image and destination URLs without credentials.');
+            setError('Use HTTPS image and link addresses without login details.');
             return;
         }
         if (
@@ -238,11 +238,11 @@ export function EmailEditor({
             !safeHttps(form.href) &&
             !(mode === 'link' && (form.href === '{{unsubscribe_url}}' || /^mailto:[^\s<>]+@[^\s<>]+$/i.test(form.href)))
         ) {
-            setError('Use an HTTPS destination URL without credentials.');
+            setError('Use an HTTPS destination without login details.');
             return;
         }
         if (mode === 'button' && (!form.label.trim() || !/^#[0-9a-f]{6}$/i.test(form.background) || !/^#[0-9a-f]{6}$/i.test(form.color))) {
-            setError('Enter a button label and valid six-digit colours.');
+            setError('Add button text and enter colours as six hexadecimal digits, for example #3344AA.');
             return;
         }
         const chain = editor.chain().focus().setTextSelection(range);
@@ -451,8 +451,8 @@ export function EmailEditor({
                 </div>
             </div>
             <div className="text-muted-foreground bg-background flex flex-wrap justify-between gap-2 border-t px-4 py-3 text-xs">
-                <span>600 px email canvas · sanitised on save</span>
-                <span>Variables use sample values in previews</span>
+                <span>Email width: 600 px</span>
+                <span>Personalisation appears with sample values in previews</span>
             </div>
             <Dialog
                 open={mode !== null}
@@ -467,8 +467,8 @@ export function EmailEditor({
                         </DialogTitle>
                         <DialogDescription>
                             {mode === 'image'
-                                ? 'Use a publicly hosted HTTPS image. Add descriptive alternative text for accessibility.'
-                                : 'Choose a clear label and a secure destination. Changes are saved with your email.'}
+                                ? 'Images need a public HTTPS address. Alternative text is shown when an image cannot load and read by screen readers.'
+                                : 'Add the button text and the secure web address it should open. Changes are saved with the email.'}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">

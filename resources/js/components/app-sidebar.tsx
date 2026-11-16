@@ -58,7 +58,7 @@ export function AppSidebar() {
                         onChange={(e) => router.post(`/organisations/${e.target.value}/switch`)}
                     >
                         <option value="" disabled>
-                            Select organisation
+                            Select workspace
                         </option>
                         {organisations.map((o) => (
                             <option key={o.id} value={o.id}>

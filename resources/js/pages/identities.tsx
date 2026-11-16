@@ -34,13 +34,13 @@ export default function Identities({
     const base = `/organisations/${company.id}/identities`;
     return (
         <Workspace
-            title="Sending identities"
-            subtitle="Identity verification and provider readiness. Configuration does not authorise a production launch."
+            title="Sending setup"
+            subtitle="Choose the From address recipients will see and connect this company’s SendGrid account."
         >
             {canManage && (
                 <Panel
-                    title="Company SendGrid credentials"
-                    description="Keys are stored for this company only. Saving them requires sender re-verification and does not enable live sending."
+                    title="SendGrid account"
+                    description="This key is used only for this company. Saving a new key clears the sender check; live sending stays off until setup is complete."
                 >
                     <form
                         className="space-y-4"
@@ -58,27 +58,27 @@ export default function Identities({
                             change={(v) => credentials.setData('sendgrid_api_key', v)}
                         />
                         <Field
-                            label="Webhook verification key (optional for sandbox)"
+                            label="Webhook verification key"
                             type="password"
                             value={credentials.data.sendgrid_webhook_key}
                             change={(v) => credentials.setData('sendgrid_webhook_key', v)}
                         />
                         <p className="text-sm">
-                            Webhook endpoint: <code>/webhooks/sendgrid/{company.id}</code>. Leaving the verification key blank clears it.
+                            SendGrid webhook address: <code>/webhooks/sendgrid/{company.id}</code>. Saving without a verification key removes the stored key.
                         </p>
                         <Errors errors={credentials.errors} />
-                        <Button disabled={credentials.processing}>Save company credentials</Button>
+                        <Button disabled={credentials.processing}>Save SendGrid details</Button>
                     </form>
                 </Panel>
             )}
             <Panel title="Provider readiness">
                 <p className="text-sm">
-                    Provider: {readiness.provider} · API configuration: {readiness.enabled && readiness.configured ? 'Configured' : 'Not configured'}{' '}
-                    · Live sending: {readiness.live_enabled ? 'Explicitly enabled in environment' : 'Disabled'}
+                    Delivery service: {readableLabel(readiness.provider)} · Account: {readiness.enabled && readiness.configured ? 'Connected' : 'Not connected'}{' '}
+                    · Live sending: {readiness.live_enabled ? 'Available after campaign checks' : 'Off'}
                 </p>
                 <p className="text-muted-foreground mt-3 text-xs">
-                    Cloudflare: add the exact CNAME records from SendGrid Sender Authentication as DNS-only, not proxied. DMARC requires a separate
-                    business policy review. Make DNS changes at your DNS provider.
+                    SendGrid provides the domain records to add at your DNS provider. In Cloudflare, its CNAME records must use DNS-only mode. DMARC
+                    is shown separately because it needs its own review.
                 </p>
             </Panel>
             <Panel title="Company identities">
@@ -136,7 +136,7 @@ export default function Identities({
                             Default identity
                         </label>
                         <Errors errors={f.errors} />
-                        <Button>Save unverified identity</Button>
+                        <Button>Save sender address</Button>
                     </form>
                 </Panel>
             )}

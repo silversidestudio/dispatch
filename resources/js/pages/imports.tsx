@@ -23,12 +23,12 @@ export default function Imports({ company, imports, canManage }: { company: Comp
     return (
         <Workspace
             title="Contact imports"
-            subtitle="New CSV contacts become eligible automatically. Existing contacts and suppressions are preserved."
+            subtitle="New CSV contacts follow this workspace’s import setting. The import records their source but does not verify permission to email them. Existing suppressions are kept."
         >
             {canManage && (
                 <Panel
                     title="Upload CSV"
-                    description="Up to 5 MB, 10,000 data rows and 30 columns. UTF-8, comma separated, with a unique header row."
+                    description="CSV files can be up to 5 MB, with 10,000 rows and 30 columns. Include one header row with unique column names."
                 >
                     <form
                         className="max-w-xl space-y-4"

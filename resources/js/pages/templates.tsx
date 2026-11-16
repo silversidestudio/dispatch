@@ -42,7 +42,7 @@ export default function Templates({
     return (
         <Workspace
             title="Email templates"
-            subtitle="Thoughtful starting points. Your brand, your message, beautifully presented."
+            subtitle="Saved emails and designs for future campaigns."
             actions={
                 canManage && (
                     <Button onClick={() => router.post(base + '/basic')}>
@@ -57,8 +57,7 @@ export default function Templates({
                     <div>
                         <h2 className="font-semibold">Basic email</h2>
                         <p className="text-muted-foreground mt-1 max-w-xl text-sm">
-                            A familiar, text-led email. Change fonts, sizes, colours and links, then reuse your signature. The designed templates
-                            below remain optional.
+                            A simple text-led email with controls for fonts, size, colour and links. You can also reuse your company signature.
                         </p>
                     </div>
                     <Button variant="outline" onClick={() => router.post(base + '/basic')}>
@@ -70,7 +69,7 @@ export default function Templates({
                 <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
                     <div>
                         <h2 className="text-lg font-semibold">Your library</h2>
-                        <p className="text-muted-foreground mt-1 text-sm">Saved designs, ready for your next campaign.</p>
+                        <p className="text-muted-foreground mt-1 text-sm">Your saved email templates.</p>
                     </div>
                     <span className="text-muted-foreground text-sm">
                         {templates.length} {templates.length === 1 ? 'template' : 'templates'}
@@ -129,7 +128,7 @@ export default function Templates({
                         <FilePlus2 className="text-muted-foreground mx-auto mb-4 size-8" />
                         <h3 className="font-medium">Your next great email starts here</h3>
                         <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
-                            Choose a Studio design below to make it your own. Your saved templates will appear here.
+                            No saved templates yet. Start with a basic email or choose one of the designs below.
                         </p>
                     </div>
                 )}

@@ -26,7 +26,7 @@ export default function Audiences({
         null,
     );
     return (
-        <Workspace title="Audiences" subtitle={`${company.name} · List membership never grants marketing eligibility.`}>
+        <Workspace title="Audiences" subtitle={`${company.name} · Lists organise contacts; eligibility is managed on each contact.`}>
             <div className="grid gap-6 lg:grid-cols-2">
                 <Panel title="Mailing lists">
                     <Field label="Filter lists" value={search} change={setSearch} />
@@ -70,7 +70,7 @@ export default function Audiences({
                         </form>
                     )}
                 </Panel>
-                <Panel title="Dynamic segments" description="All structured rules must match. Counts are evaluated from current company contacts.">
+                <Panel title="Dynamic segments" description="A contact appears when it matches every rule. Counts update from the current contacts in this workspace.">
                     <div className="space-y-3">
                         {segments.map((s) => (
                             <div key={s.id} className="rounded-xl border p-4">

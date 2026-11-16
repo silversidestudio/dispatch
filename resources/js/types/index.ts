@@ -28,6 +28,10 @@ export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    notifications: {
+        unread_count: number;
+        items: { id: string; title: string; body: string; read: boolean; created_at: string | null }[];
+    };
     [key: string]: unknown;
 }
 

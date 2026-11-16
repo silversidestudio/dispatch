@@ -71,3 +71,7 @@ SendGridPilotGuard adds exact server-side company/recipient scope and a durable 
 ## CSV eligibility policy — 12 November 2026
 
 At the operator’s explicit request, newly created CSV contacts are automatically eligible using the distinct csv_import state and an automatic provenance record (import/user/source/row/time). No manual evidence form is needed. This does not fabricate consent or a lawful-basis assessment. Central eligibility continues to require an active tenant-scoped contact, a matching record and no organisation suppression. Duplicates preserve existing status; historical records are not backfilled. No schema migration or live-send setting change is required.
+
+## In-app completion notifications — 16 November 2026
+
+Laravel database notifications are created after campaign processing reaches a terminal state and after contact imports complete or exhaust retries. Campaign messages distinguish local simulation, SendGrid sandbox validation and SendGrid submission results; SendGrid acceptance is not described as inbox delivery. Notices go to the campaign creator/scheduler or import uploader and are deduplicated by a unique event key. The bell shows unread status and the latest six notices. Opening a notice rechecks company membership and target ownership before switching to the relevant results page. This workspace’s tests cover the local notification flow only; staging delivery and migration remain operator verification steps. See `v1-production-checklist.md`.

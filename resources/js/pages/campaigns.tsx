@@ -28,7 +28,7 @@ export default function Campaigns({ company, campaigns, canManage }: { company: 
     return (
         <Workspace
             title="Campaigns"
-            subtitle={`${company.name} · Prepare, preview and schedule with explicit provider controls.`}
+            subtitle={`${company.name} · Drafts, scheduled sends and campaign history.`}
             actions={
                 canManage && (
                     <Button asChild>
@@ -74,7 +74,7 @@ export default function Campaigns({ company, campaigns, canManage }: { company: 
                         <div className="text-muted-foreground py-10 text-center text-sm">
                             <Mail aria-hidden="true" className="mx-auto mb-3 size-6" />
                             <p className="text-foreground font-medium">No campaigns yet</p>
-                            <p className="mt-1">Add an audience and a sender, then create your first draft.</p>
+                            <p className="mt-1">Your campaigns will appear here.</p>
                         </div>
                     )}
                 </div>

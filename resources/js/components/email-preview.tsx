@@ -40,7 +40,7 @@ export function EmailPreview({
             <div className="bg-background flex flex-wrap items-center justify-between gap-3 border-b p-3 sm:px-5">
                 <div>
                     <p className="text-sm font-medium">Preview your email</p>
-                    <p className="text-muted-foreground mt-1 text-xs">Saved content · sample personalisation · HTTPS images may load</p>
+                    <p className="text-muted-foreground mt-1 text-xs">Sample personalisation · public HTTPS images may load</p>
                 </div>
                 <TooltipProvider>
                     <div className="bg-muted/50 flex rounded-lg border p-1" role="group" aria-label="Preview viewport">
@@ -73,7 +73,7 @@ export function EmailPreview({
             </div>
             {unsaved && (
                 <p role="status" className="border-b bg-amber-50 px-4 py-3 text-xs text-amber-900">
-                    Save your changes to update this preview.
+                    This preview shows the saved version. Save to see your latest changes.
                 </p>
             )}
             <div className="bg-slate-100 p-2 sm:p-6 dark:bg-slate-900/50">

@@ -25,7 +25,7 @@ export default function Users({
 }) {
     const f = useForm({ search: filters.search ?? '', status: filters.status ?? '' });
     return (
-        <Workspace title="Platform users" subtitle="Account controls and memberships">
+        <Workspace title="Platform users" subtitle="Accounts, company access and invitations.">
             <Panel title="User directory">
                 <form
                     className="mb-5 flex gap-3"

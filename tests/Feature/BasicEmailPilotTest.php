@@ -107,7 +107,7 @@ it('does not refund uncertain attempts or permit a reserved correlation to repla
 it('blocks scheduling an audience containing recipients outside the pilot scope', function () {
     [$u,$o,$c,$r] = restrictedPilot();
     config(['dispatch.pilot.recipients' => ['success@example.test']]);
-    expect(implode(' ', app(CampaignService::class)->preflight($c)['errors']))->toContain('outside the approved pilot allowlist');
+    expect(implode(' ', app(CampaignService::class)->preflight($c)['errors']))->toContain('outside the approved test list');
 });
 
 it('rejects demonstration copy for live campaigns while allowing safe simulation preparation', function () {
@@ -115,7 +115,7 @@ it('rejects demonstration copy for live campaigns while allowing safe simulation
     $snapshot = $c->snapshot;
     $snapshot['html'] = app(EmailStarterTemplates::class)->basic()['html'];
     $c->update(['snapshot' => $snapshot]);
-    expect(implode(' ', app(CampaignService::class)->preflight($c)['errors']))->toContain('demonstration headline');
+    expect(implode(' ', app(CampaignService::class)->preflight($c)['errors']))->toContain('sample headline or message');
 });
 
 it('starts a fresh UTC daily budget without allowing a reserved correlation to replay', function () {

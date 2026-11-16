@@ -22,7 +22,7 @@ export function EmailBranding({ id, branding, canUpdate }: { id: number; brandin
     return (
         <Panel
             title="Email branding"
-            description="Applied when you create a new Studio template. Your company name and postal address come from workspace settings. Existing designs and campaign snapshots stay unchanged."
+            description="These choices are used for new Studio templates. Saved templates and scheduled campaigns keep their current design."
         >
             <form
                 className="space-y-5"

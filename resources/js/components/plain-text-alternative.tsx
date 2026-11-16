@@ -52,7 +52,7 @@ export function PlainTextAlternative({
                 )}
             </div>
             <p className="text-muted-foreground text-xs">
-                For recipients who read text-only emails. Update this after changing the message, then review before scheduling.
+                Plain-text version for email apps that do not display HTML. Update it from the email or edit the text directly.
             </p>
             <textarea
                 id="plain-text-email"

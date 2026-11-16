@@ -17,9 +17,9 @@ export default function Organisations({
     const f = useForm({ name: '' });
     const [search, setSearch] = useState('');
     return (
-        <Workspace title="Organisations" subtitle="Separate workspaces. Shared standards. Everything in its place.">
+        <Workspace title="Workspaces" subtitle="Switch between the companies you belong to.">
             <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-                <Panel title="Your workspaces" description="You can only access organisations you belong to.">
+                <Panel title="Your workspaces">
                     <Input
                         aria-label="Search organisations"
                         placeholder="Search workspaces…"
@@ -54,13 +54,13 @@ export default function Organisations({
                             ))}
                         {!organisations.length && (
                             <p className="text-muted-foreground py-10 text-center text-sm">
-                                No workspaces yet. Ask your platform administrator for a company invitation.
+                                No workspaces are linked to this account yet. A platform administrator can invite you to one.
                             </p>
                         )}
                     </div>
                 </Panel>
                 {canCreate && (
-                    <Panel title="Create an organisation" description="You will become the owner of this workspace.">
+                    <Panel title="Create an organisation" description="You’ll be the owner of this workspace.">
                         <form
                             onSubmit={(e) => {
                                 e.preventDefault();

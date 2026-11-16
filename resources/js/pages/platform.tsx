@@ -25,7 +25,7 @@ export default function Platform({ organisationPage: organisations, users, stats
     return (
         <Workspace
             title="Platform administration"
-            subtitle="Platform-wide operations · Restricted to super administrators"
+            subtitle="Platform-wide company, account and service status."
             actions={
                 <Button variant="outline" asChild>
                     <a href="/horizon">Queue monitor</a>
@@ -40,7 +40,7 @@ export default function Platform({ organisationPage: organisations, users, stats
                     </div>
                 ))}
             </div>
-            <Panel title="Create company" description="Assign an existing user as owner, or create a secure owner invitation.">
+            <Panel title="Create company" description="Choose an existing account as owner or send an invitation to a new owner.">
                 <form
                     className="flex flex-wrap items-end gap-3"
                     onSubmit={(e) => {
@@ -147,7 +147,7 @@ export default function Platform({ organisationPage: organisations, users, stats
                 </div>
             </Panel>
             <div className="grid gap-6 lg:grid-cols-2">
-                <Panel title="System configuration" description="Configured services; open Horizon for worker and queue health.">
+                <Panel title="System configuration" description="Service settings and queue status.">
                     <dl className="space-y-4 text-sm">
                         {Object.entries(runtime).map(([k, v]) => (
                             <div key={k} className="flex justify-between gap-4">
@@ -168,7 +168,7 @@ export default function Platform({ organisationPage: organisations, users, stats
                     </ul>
                 </Panel>
             </div>
-            <Panel title="Users" description="Latest 20 accounts. Administrator elevation uses the local CLI.">
+            <Panel title="Users" description="Latest 20 accounts. Platform administrator access is managed from the server.">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                         <thead>

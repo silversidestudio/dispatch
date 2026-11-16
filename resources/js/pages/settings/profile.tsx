@@ -39,7 +39,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
             <SettingsLayout>
                 <div className="space-y-6">
-                    <HeadingSmall title="Profile information" description="Update your name and email address" />
+                    <HeadingSmall title="Profile information" description="Your name and email address for this account." />
 
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-2">
@@ -85,7 +85,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                         as="button"
                                         className="rounded-md text-sm text-neutral-600 underline hover:text-neutral-900 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
                                     >
-                                        Click here to re-send the verification email.
+                                        Resend verification email
                                     </Link>
                                 </p>
 

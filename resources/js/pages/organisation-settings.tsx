@@ -26,7 +26,7 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
         <Workspace title="Workspace settings" subtitle={organisation.name}>
             <Panel
                 title="Organisation details"
-                description={canUpdate ? 'Keep your workspace details up to date.' : 'Your role has read-only access.'}
+                description={canUpdate ? 'Company name, website and sender postal address.' : 'These details are view-only for your role.'}
             >
                 <form
                     className="max-w-lg space-y-4"
@@ -53,7 +53,7 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
             <EmailBranding id={organisation.id} branding={organisation.email_branding} canUpdate={canUpdate} />
             {canManageMembers && (
                 <>
-                    <Panel title="Members" description="Only the owner can grant or change membership roles.">
+                    <Panel title="Members" description="The owner manages membership roles.">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead>
@@ -99,7 +99,7 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                 </>
             )}
             {canManageMembers && (
-                <Panel title="Ownership and membership" description="Transfer ownership explicitly. The final owner cannot be removed.">
+                <Panel title="Ownership and membership" description="Transfer ownership before removing the current owner. A workspace always needs an owner.">
                     <form
                         className="flex flex-wrap gap-3"
                         onSubmit={(e) => {
@@ -125,7 +125,7 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                         <Input
                             aria-label="Confirm transfer"
                             className="max-w-xs"
-                            placeholder="Type TRANSFER"
+                            placeholder="Type TRANSFER to confirm"
                             value={transfer.data.confirmation}
                             onChange={(e) => transfer.setData('confirmation', e.target.value)}
                         />

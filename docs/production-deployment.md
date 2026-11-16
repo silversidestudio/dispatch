@@ -12,22 +12,15 @@ Start with simulation and all SendGrid/auth/live gates false. Configure a single
 
 ## Release procedure
 
-Build a versioned release directory from a reviewed commit; link persistent private storage and provisioned environment. Establish an encrypted database and storage backup before changes. On the new release:
+Build a versioned release directory from a reviewed commit; link persistent private storage and provisioned environment. Establish an encrypted database and storage backup before changes. Install dependencies and build frontend assets before the post-deployment action runs. In Plesk, open **Websites & Domains → Git → Repository Settings**, enable post-deployment actions, and set the action to:
 
 ```sh
-composer install --no-dev --prefer-dist --optimize-autoloader
-npm ci
-npm run build
-php artisan down
-php artisan migrate --force
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan horizon:terminate
-php artisan up
+/bin/bash scripts/plesk-post-deploy.sh
 ```
 
-These are deployment instructions, not commands executed against production. Coordinate maintenance with running workers: stop initiation and let in-flight requests settle before changing code/schema. Point the release symlink only after smoke checks and compatible migration review. Writable paths are storage/ and bootstrap/cache/ only, owned/grouped for PHP-FPM and worker users; avoid chmod777. Do not reseed/reset established data. Keep source maps/private logs out of public access. Record migration/commit/backup IDs.
+The script uses `/opt/plesk/php/8.3/bin/php` by default (override with `DISPATCH_PHP_BIN` when this site uses a different Plesk PHP version). On every deployment it verifies the Laravel install and frontend manifest, runs `php artisan migrate --force`, refreshes config/route/view caches, then runs `php artisan horizon:terminate` so the configured supervisor restarts Horizon on the new code. It does not reset or seed data, enable sending, or create a backup. Configure a protected backup before deployment separately; Plesk should report deployment failure if a migration or cache step fails.
+
+These instructions do not deploy or run against a host from this workspace. Coordinate maintenance with running workers: stop initiation and let in-flight requests settle before changing code/schema. Point the release symlink only after smoke checks and compatible migration review. Writable paths are storage/ and bootstrap/cache/ only, owned/grouped for PHP-FPM and worker users; avoid chmod777. Do not reseed/reset established data. Keep source maps/private logs out of public access. Record migration/commit/backup IDs.
 
 ## Horizon and scheduler
 

@@ -12,6 +12,7 @@ use App\Models\Organisation;
 use App\Services\CampaignService;
 use App\Services\EligibilityService;
 use App\Services\EmailContentService;
+use App\Services\InAppNotificationService;
 use App\Services\SendGridSubmissionService;
 use App\Services\UnsubscribeService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -106,6 +107,10 @@ class DeliverRecipient implements ShouldQueue
             return $c->id;
         });
         if ($id) {
+            $campaign = Campaign::find($id);
+            if ($campaign?->status === 'failed') {
+                app(InAppNotificationService::class)->campaignFinished($campaign);
+            }
             app(CampaignService::class)->complete($id);
         }
     }

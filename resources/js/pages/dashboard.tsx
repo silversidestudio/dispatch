@@ -45,7 +45,7 @@ export default function Dashboard({
             <Metrics data={stats} />
             <Panel
                 title="Recent campaign performance"
-                description="Real provider evidence is distinct from simulation. Rates are unavailable until provider events establish denominators."
+                description="SendGrid results are shown separately from simulations. Rates appear when there are enough delivery events to calculate them."
             >
                 <div className="grid gap-4 md:grid-cols-2">
                     {performance.map((c) => (
@@ -90,7 +90,7 @@ export default function Dashboard({
                         ))}
                         {!recentCampaigns.length && (
                             <p className="text-muted-foreground py-8 text-center text-sm">
-                                No campaigns yet. Prepare your audience, identity and email content to begin.
+                                No campaigns yet.
                             </p>
                         )}
                         <Button variant="outline" asChild>
@@ -107,7 +107,7 @@ export default function Dashboard({
                     ))}
                 </Panel>
             </div>
-            <Panel title="Build your next campaign">
+            <Panel title="Workspace shortcuts">
                 <div className="flex flex-wrap gap-3">
                     {[
                         ['Contacts', 'contacts'],

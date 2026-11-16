@@ -19,7 +19,7 @@ export default function Editor({ company, template, canManage }: { company: Comp
     return (
         <Workspace
             title={template.name}
-            subtitle="Email-safe rich text · save before previewing your latest changes"
+            subtitle="Edit the message, then save to update its preview."
             actions={
                 canManage && (
                     <Button variant="outline" onClick={() => router.post(base + '/duplicate', {}, { preserveState: false })}>

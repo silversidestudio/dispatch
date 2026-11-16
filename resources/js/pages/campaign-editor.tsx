@@ -3,11 +3,13 @@ import { Company, Field, Select } from '@/components/marketing';
 import { PlainTextAlternative } from '@/components/plain-text-alternative';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { Campaign } from './campaigns';
 import { Identity } from './identities';
 import { Template } from './templates';
+import { readableLabel } from '@/lib/labels';
+import { SharedData } from '@/types';
 export default function Editor({
     company,
     campaign,
@@ -40,6 +42,7 @@ export default function Editor({
         text_body: campaign?.text_body ?? defaultEmail.text_body,
     });
     const [count, setCount] = useState<{ total: number; eligible: number } | null>(null);
+    const { name: appName } = usePage<SharedData>().props;
     const base = `/organisations/${company.id}`;
     useEffect(() => {
         setCount(null);
@@ -57,7 +60,7 @@ export default function Editor({
     return (
         <Workspace
             title={campaign ? 'Edit campaign draft' : 'Create campaign'}
-            subtitle="Choose an audience, design your email and save a draft before running pre-flight checks."
+            subtitle="Give the campaign a name, choose its audience and compose the email. You can save a draft at any point."
         >
             <form
                 className="space-y-6"
@@ -67,30 +70,30 @@ export default function Editor({
                     else f.post(base + '/campaigns');
                 }}
             >
-                <Panel title="1 · Campaign details">
+                <Panel title="Campaign details">
                     <div className="grid gap-4 md:grid-cols-2">
                         <Field label="Campaign name" required value={f.data.name} change={(v) => f.setData('name', v)} />
                         <Field label="Subject" required value={f.data.subject} change={(v) => f.setData('subject', v)} />
                         <Field label="Preview text" value={f.data.preview_text} change={(v) => f.setData('preview_text', v)} />
-                        <Field label="Reply-to override" type="email" value={f.data.reply_to} change={(v) => f.setData('reply_to', v)} />
-                        <Select label="Sending identity" value={f.data.sending_identity_id} change={(v) => f.setData('sending_identity_id', v)}>
-                            <option value="">Choose identity</option>
+                        <Field label="Reply-to address (optional)" type="email" value={f.data.reply_to} change={(v) => f.setData('reply_to', v)} />
+                        <Select label="From address" value={f.data.sending_identity_id} change={(v) => f.setData('sending_identity_id', v)}>
+                            <option value="">Choose a sender</option>
                             {identities.map((i) => (
                                 <option value={i.id} key={i.id}>
-                                    {i.name} · {i.email} · {i.verification_status}
+                                    {i.name} · {i.email} · {readableLabel(i.verification_status)}
                                 </option>
                             ))}
                         </Select>
                     </div>
                 </Panel>
                 <Panel
-                    title="Provider and privacy controls"
-                    description="Live sending requires verified identity, explicit confirmation and separately approved configuration. Tracking requires a documented company review."
+                    title="Sending and tracking"
+                    description="Choose a test or live send. Tracking is optional and remains off unless your organisation has approved it."
                 >
                     <Select label="Delivery mode" value={f.data.delivery_mode} change={(v) => f.setData('delivery_mode', v)}>
-                        <option value="simulation">Local simulation</option>
-                        <option value="sendgrid_sandbox">SendGrid sandbox validation</option>
-                        <option value="sendgrid_live">SendGrid live (approval required)</option>
+                        <option value="simulation">Simulation · stays in {appName}</option>
+                        <option value="sendgrid_sandbox">SendGrid test · no email delivered</option>
+                        <option value="sendgrid_live">Send with SendGrid</option>
                     </Select>
                     <div className="mt-4 flex flex-wrap gap-4">
                         <label className="flex gap-2 text-sm">
@@ -104,8 +107,8 @@ export default function Editor({
                     </div>
                 </Panel>
                 <Panel
-                    title="2 · Audience"
-                    description="Unknown, archived or suppressed contacts are excluded centrally. Eligibility is checked again before each submission."
+                    title="Audience"
+                    description="Only eligible contacts are included. Suppressed and archived contacts stay out, even when they belong to the selected list."
                 >
                     <div className="grid gap-4 md:grid-cols-2">
                         <Select
@@ -120,7 +123,7 @@ export default function Editor({
                             <option value="segment">Dynamic segment</option>
                         </Select>
                         <Select label="Audience" value={f.data.audience_id} change={(v) => f.setData('audience_id', v)}>
-                            <option value="">Choose audience</option>
+                            <option value="">Choose a list or segment</option>
                             {(f.data.audience_type === 'list' ? lists : segments).map((a) => (
                                 <option value={a.id} key={a.id}>
                                     {a.name}
@@ -134,7 +137,7 @@ export default function Editor({
                         </p>
                     )}
                 </Panel>
-                <Panel title="3 · Email content">
+                <Panel title="Email content">
                     <div className="space-y-5">
                         <Select
                             label="Start from a template"
@@ -151,7 +154,7 @@ export default function Editor({
                                     });
                             }}
                         >
-                            <option value="">Choose a saved template</option>
+                            <option value="">Start without a template</option>
                             {templates.map((t) => (
                                 <option key={t.id} value={t.id}>
                                     {t.name}

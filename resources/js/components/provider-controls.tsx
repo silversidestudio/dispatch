@@ -25,14 +25,14 @@ export function VerifyIdentity({ companyId, identity }: { companyId: number; ide
                 f.post(`/platform/companies/${companyId}/identities/${identity.id}/verify`);
             }}
         >
-            <Field label={`SendGrid domain ID for ${identity.email}`} value={f.data.domain_id} change={(v) => f.setData('domain_id', v)} />
-            <Field label="Type AUTHORISE to review provider status" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
+            <Field label={`Authenticated-domain ID for ${identity.email}`} value={f.data.domain_id} change={(v) => f.setData('domain_id', v)} />
+            <Field label="Type AUTHORISE to confirm the check" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
             <Errors errors={f.errors} />
             <Button variant="outline" disabled={f.processing}>
-                Read stored SendGrid verification
+                Check SendGrid verification
             </Button>
             <p className="text-muted-foreground text-xs">
-                Requires separately approved credentials. Reads provider state only; does not modify DNS or send email.
+                Checks the status saved in SendGrid. This does not change DNS or send an email.
             </p>
         </form>
     );
@@ -48,7 +48,7 @@ export function TrackingReview({
     return (
         <Panel
             title="Privacy and tracking review"
-            description="Default: disabled. Do not enable until the business has reviewed its privacy notice, lawful basis and any applicable tracking consent requirements."
+            description="Tracking is off by default. These settings let campaigns use tracking after the organisation has recorded its privacy decision."
         >
             <div className="mb-4 flex flex-wrap gap-2 text-sm">
                 <span className="bg-muted rounded-full px-3 py-1">Opens: {tracking.open ? 'permitted' : 'off'}</span>
@@ -70,7 +70,7 @@ export function TrackingReview({
                         checked={f.data.open_tracking_enabled}
                         onChange={(e) => f.setData('open_tracking_enabled', e.target.checked)}
                     />
-                    Permit campaigns to opt in to open tracking
+                    Allow campaigns to include tracked opens
                 </label>
                 <label className="flex gap-2 text-sm">
                     <input
@@ -78,10 +78,10 @@ export function TrackingReview({
                         checked={f.data.click_tracking_enabled}
                         onChange={(e) => f.setData('click_tracking_enabled', e.target.checked)}
                     />
-                    Permit campaigns to opt in to click tracking
+                    Allow campaigns to include tracked clicks
                 </label>
-                <Field label="Documented privacy review evidence" value={f.data.evidence} change={(v) => f.setData('evidence', v)} />
-                <Field label="Type REVIEWED" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
+                <Field label="Privacy decision note" value={f.data.evidence} change={(v) => f.setData('evidence', v)} />
+                <Field label="Type REVIEWED to save this decision" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
                 <Errors errors={f.errors} />
                 <Button>Record tracking decision</Button>
             </form>

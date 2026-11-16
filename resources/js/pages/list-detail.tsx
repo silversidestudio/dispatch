@@ -43,7 +43,7 @@ export default function List({
             </Panel>
             <Panel
                 title="Manage membership"
-                description="Search your company contacts, select a page or individual contacts, then add or remove membership."
+                description="List membership is separate from campaign eligibility. Changes here do not remove a contact’s suppression."
             >
                 <form
                     className="mb-4 flex flex-wrap items-end gap-3"

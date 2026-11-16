@@ -61,7 +61,7 @@ test('platform company to owner contacts import campaign simulation and reportin
     });
     await owner.getByRole('button', { name: 'Upload and preview' }).click();
     await expect(owner).toHaveURL(/imports\/\d+/);
-    await owner.getByRole('button', { name: 'Start background import' }).click();
+    await owner.getByRole('button', { name: 'Import contacts', exact: true }).click();
     await expect(owner.getByText('Completed', { exact: true })).toBeVisible({ timeout: 30000 });
     await expect(owner.getByText('Row 5: Rejected', { exact: false })).toBeVisible();
     for (const local of ['success', 'temporary', 'permanent']) {
@@ -69,7 +69,7 @@ test('platform company to owner contacts import campaign simulation and reportin
         await owner.getByRole('link', { name: `${local}-${stamp}@example.test`, exact: true }).click();
         await expect(owner.getByText(/Eligible for marketing/)).toBeVisible();
         await expect(
-            owner.getByText('Eligibility assigned automatically by the configured CSV import policy; no separate consent evidence was supplied.', {
+            owner.getByText(/Imported from CSV using the workspace eligibility setting|Eligibility assigned automatically by the configured CSV import policy/, {
                 exact: true,
             }),
         ).toBeVisible();
@@ -96,7 +96,7 @@ test('platform company to owner contacts import campaign simulation and reportin
     await owner.goto(base + '/identities');
     await owner.getByLabel('Sender name', { exact: true }).fill('Company News');
     await owner.getByLabel('Sender email', { exact: true }).fill('news@example.test');
-    await owner.getByRole('button', { name: 'Save unverified identity' }).click();
+    await owner.getByRole('button', { name: 'Save sender address', exact: true }).click();
     await expect(owner.getByText('news@example.test', { exact: true })).toBeVisible();
     await owner.goto(base + '/templates');
     await owner.getByRole('button', { name: 'Use template' }).first().click();
@@ -115,12 +115,12 @@ test('platform company to owner contacts import campaign simulation and reportin
     await owner.getByRole('button', { name: 'Mobile preview' }).click();
     await owner.screenshot({ path: 'test-results/company-campaign-preview.png', fullPage: true, animations: 'disabled' });
     await owner.getByRole('button', { name: 'Mark ready' }).click();
-    await expect(owner.getByText('Local simulation only · 3 eligible recipients', { exact: true })).toBeVisible();
+    await expect(owner.getByText('Simulation · 3 eligible recipients', { exact: true })).toBeVisible();
     await owner.setViewportSize({ width: 390, height: 844 });
     expect(await owner.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
     await owner.getByRole('button', { name: 'Schedule simulation', exact: true }).click();
     await owner.setViewportSize({ width: 1440, height: 1000 });
-    await expect(owner.getByText(/COMPLETED · Local simulation only/)).toBeVisible({ timeout: 90000 });
+    await expect(owner.getByText(/Completed · Simulation/)).toBeVisible({ timeout: 90000 });
     await expect(owner.getByText('Simulated accepted', { exact: false }).first()).toBeVisible();
     await owner.screenshot({ path: 'test-results/company-campaign-results.png', fullPage: true, animations: 'disabled' });
     await owner.goto(base + '/reports');
@@ -130,10 +130,15 @@ test('platform company to owner contacts import campaign simulation and reportin
     const response = await admin.goto(campaignLink!);
     expect(response?.status()).toBe(403);
     await owner.goto(campaignLink!);
-    await owner.getByLabel('Test recipient email').fill(`success-${stamp}@example.test`);
-    await owner.getByRole('button', { name: 'Prepare test draft', exact: true }).click();
+    await owner.getByLabel('Test recipient').fill(`success-${stamp}@example.test`);
+    await owner.getByRole('button', { name: 'Create test draft', exact: true }).click();
     await expect(owner.getByRole('heading', { name: 'TEST — E2E company campaign', exact: true })).toBeVisible();
     await expect(owner.getByText('1 contacts · 1 eligible · 0 excluded', { exact: true })).toBeVisible();
+    await owner.getByRole('button', { name: /Notifications/ }).click();
+    const completionNotice = owner.getByRole('menuitem').filter({ hasText: 'Simulation complete' });
+    await expect(completionNotice).toBeVisible();
+    await completionNotice.click();
+    await expect(owner).toHaveURL(/campaigns\/\d+\/analytics/);
     expect(errors).toEqual([]);
     await adminContext.close();
     await ownerContext.close();

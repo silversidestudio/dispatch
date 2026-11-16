@@ -93,7 +93,7 @@ export default function Detail({
                 <div className="grid gap-6 lg:grid-cols-2">
                     <Panel
                         title="Record eligibility evidence"
-                        description="Document the actual permission or assessment. An eligibility record does not establish a lawful basis by itself."
+                        description="Record the source and reason the company considers this contact eligible. Saving a record does not create permission to email them."
                     >
                         <form
                             className="space-y-4"
@@ -117,12 +117,12 @@ export default function Detail({
                             />
                             <Field label="Notice or policy version" value={e.data.policy_version} change={(v) => e.setData('policy_version', v)} />
                             <Errors errors={e.errors} />
-                            <Button disabled={e.processing || !!suppression}>Record evidence</Button>
+                            <Button disabled={e.processing || !!suppression}>Save eligibility record</Button>
                         </form>
                     </Panel>
                     <Panel
                         title="Suppress contact"
-                        description="Suppression applies across all lists in this company and is not removed by ordinary edits."
+                    description="This contact will be excluded from every list and campaign in the company. Editing the contact will not remove the suppression."
                     >
                         <form
                             className="space-y-4"
@@ -168,7 +168,7 @@ export default function Detail({
             {canPrivacy && (
                 <Panel
                     title="Personal data controls"
-                    description="Owner/administrator only. Erasure is blocked during active delivery and retains minimal suppression to prevent re-contact."
+                    description="Available to owners and administrators. Active sends must finish first. A minimal suppression record remains to prevent future contact."
                 >
                     <div className="flex flex-wrap gap-3">
                         <Button variant="outline" asChild>
@@ -178,7 +178,7 @@ export default function Detail({
                             variant="outline"
                             onClick={() => {
                                 const confirmation = prompt(
-                                    'Type ERASE to redact this contact and completed recipient personalisation. Minimal suppression remains.',
+                                    'Type ERASE to remove this contact’s personal details. A minimal suppression record will remain to prevent future contact.',
                                 );
                                 if (confirmation === 'ERASE') router.post(base + '/erase', { confirmation });
                             }}

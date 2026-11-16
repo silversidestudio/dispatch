@@ -15,7 +15,7 @@ export default function Comparison({
 }) {
     const f = useForm({ from: filters.from ?? '', to: filters.to ?? '' });
     return (
-        <Workspace title="Campaign comparison" subtitle="Compare stored provider evidence. Simulations and zero denominators show N/A.">
+        <Workspace title="Campaign comparison" subtitle="Compare campaign results. Simulations and unavailable rates are marked N/A.">
             <Panel title="Campaign performance">
                 <form
                     className="mb-5 flex flex-wrap items-end gap-3"

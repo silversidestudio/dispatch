@@ -20,34 +20,34 @@ class ProviderReadiness
         }
         $o = Organisation::findOrFail($c->organisation_id);
         if (config('dispatch.provider') !== 'sendgrid' || ! config('dispatch.sendgrid.enabled') || ! $o->sendgrid_api_key) {
-            $errors[] = 'SendGrid is not configured and enabled.';
+            $errors[] = 'SendGrid is not connected for this company. An owner can add its account details in Sending setup.';
         }
         if ($c->snapshot && (! isset($c->snapshot['sendgrid_credential']) || $c->snapshot['sendgrid_credential'] !== $o->sendGridCredentialFingerprint())) {
-            $errors[] = 'The SendGrid account credentials changed. Cancel and recreate this campaign.';
+            $errors[] = 'The SendGrid account details changed after this campaign was prepared. Create a new campaign to use the updated account.';
         }
         if ($mode === 'sendgrid_live') {
             $errors = [...$errors, ...app(SendGridPilotGuard::class)->configurationErrors($c->organisation_id)];
             $identity = SendingIdentity::where('organisation_id', $c->organisation_id)->find($c->sending_identity_id);
             if (! $identity || ! $identity->provider_authorised || $identity->verification_status !== 'verified' || ! $identity->verified_at || $identity->verified_at->lt(now()->subDays(config('dispatch.sendgrid.identity_max_age_days'))) || ($c->snapshot && $identity->email !== $c->snapshot['sender_email'])) {
-                $errors[] = 'A currently verified and platform-authorised SendGrid identity is required.';
+                $errors[] = 'The sender address needs a current SendGrid verification before this campaign can be sent.';
             }
             if (! config('dispatch.sendgrid.live_enabled')) {
-                $errors[] = 'Live sending is disabled.';
+                $errors[] = 'Live sending is turned off for this installation. Contact the platform administrator.';
             }
             if ($submission && ! $c->live_authorised_at) {
-                $errors[] = 'Campaign live sending has not been explicitly confirmed.';
+                $errors[] = 'Review the campaign and confirm live sending before scheduling.';
             }
             if (! str_starts_with(config('app.url'), 'https://')) {
-                $errors[] = 'Public HTTPS application URL is required for live sending.';
+                $errors[] = 'This installation needs a public HTTPS address before it can send live campaigns. Contact the platform administrator.';
             }
             if (! $o->sendgrid_webhook_key) {
-                $errors[] = 'Signed webhook configuration is required.';
+                $errors[] = 'SendGrid event feedback is not configured for this company. Contact the platform administrator.';
             }
         }
         $open = $c->snapshot['open_tracking'] ?? $c->open_tracking;
         $click = $c->snapshot['click_tracking'] ?? $c->click_tracking;
         if (($open || $click) && (! $o->tracking_reviewed_at || ($open && ! $o->open_tracking_enabled) || ($click && ! $o->click_tracking_enabled))) {
-            $errors[] = 'Tracking requires documented company privacy approval and enabled controls.';
+            $errors[] = 'Tracking is not available yet. An organisation owner must record the privacy decision in Workspace settings.';
         }
 
         return $errors;

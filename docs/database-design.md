@@ -47,3 +47,7 @@ Additive migration `2026_10_26_000002_add_email_branding_to_organisations.php` a
 ## Restricted pilot ledger — 11 November 2026
 
 Migration 2026_11_11_000001 adds sendgrid_pilot_budgets (unique UTC day, reserved count) and sendgrid_pilot_reservations (budget foreign key, globally unique correlation hash). All companies share the conservative live-attempt budget; reservations contain no recipient PII and persist across cache flush/restart. Replay reservations are retained; do not reset them to obtain quota. Existing business data and snapshots are unchanged.
+
+## In-app notifications — 16 November 2026
+
+Migration `2026_11_16_000001_create_in_app_notifications.php` adds Laravel database notifications with a per-user unique event key and inbox lookup index. Current notices cover campaign completion/failure and contact import completion/failure. Their payload stores a title, short outcome, organisation ID and target record ID; it contains no message body, recipient address or provider secret. Opening checks that the signed-in user is still a member of the company and that the target record belongs to that company. The unique event key prevents duplicate notices on job retries. Notices go to the campaign creator/scheduler or import uploader while that user remains a member.

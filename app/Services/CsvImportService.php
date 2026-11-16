@@ -87,7 +87,7 @@ class CsvImportService
                             EligibilityRecord::create([
                                 'organisation_id' => $import->organisation_id, 'contact_id' => $contact->id,
                                 'user_id' => $import->user_id, 'basis' => 'csv_import',
-                                'evidence' => 'Eligibility assigned automatically by the configured CSV import policy; no separate consent evidence was supplied.',
+                                'evidence' => 'Imported from CSV using the workspace eligibility setting. The source was recorded; permission to email was not verified.',
                                 'method' => 'csv_import', 'recorded_at' => now(),
                                 'metadata' => ['source' => $import->source, 'import_id' => $import->id, 'row_number' => $i + 2],
                             ]);
@@ -104,5 +104,6 @@ class CsvImportService
         }
         $import->update(['status' => 'completed', 'failure' => null]);
         AuditLog::record('import.completed', $import->organisation_id, ['import_id' => $import->id]);
+        app(InAppNotificationService::class)->importFinished($import->fresh());
     }
 }

@@ -21,41 +21,41 @@ class CampaignService
         $o = Organisation::findOrFail($c->organisation_id);
         $identity = SendingIdentity::where('organisation_id', $o->id)->find($c->sending_identity_id);
         if ($o->status !== 'active') {
-            $errors[] = 'Company is suspended.';
+            $errors[] = 'This company is inactive. Contact the platform administrator to restore access.';
         }if (! $o->postal_address) {
-            $errors[] = 'Company postal address is required for sender identification.';
+            $errors[] = 'Add the company postal address in Workspace settings.';
         }
         if (! $identity) {
-            $errors[] = 'A company sending identity is required.';
+            $errors[] = 'Choose a sender address in Sending setup.';
         }
         if (! trim($c->subject) || ! trim(strip_tags($c->html)) || ! trim($c->text_body)) {
-            $errors[] = 'Subject, HTML and plain text are required.';
+            $errors[] = 'Add a subject, email content and a plain-text version.';
         }
         if (! str_contains($c->html, '{{unsubscribe_url}}') || ! str_contains($c->text_body, '{{unsubscribe_url}}')) {
-            $errors[] = 'Include {{unsubscribe_url}} in HTML and plain text.';
+            $errors[] = 'Add an unsubscribe link to both the email and plain-text version.';
         }
         if (! str_contains($c->html, '{{sender_address}}')) {
-            $errors[] = 'Include {{sender_address}} in the HTML footer.';
+            $errors[] = 'Add the company postal address to the email footer.';
         }
         $errors = [...$errors, ...app(ProviderReadiness::class)->errors($c)];
         if (($c->snapshot['delivery_mode'] ?? $c->delivery_mode) === 'sendgrid_live' && (str_contains(strip_tags($c->snapshot['html'] ?? $c->html), 'Write your message here.') || str_contains(strip_tags($c->snapshot['html'] ?? $c->html), 'Your email headline'))) {
-            $errors[] = 'Replace the basic email demonstration headline and message before live sending.';
+            $errors[] = 'The email still contains sample headline or message text. Replace it before sending.';
         }
         $all = app(AudienceService::class)->query($o->id, $c->audience_type, $c->audience_id)->count();
         $eligible = app(AudienceService::class)->query($o->id, $c->audience_type, $c->audience_id, true)->count();
         $pilot = app(SendGridPilotGuard::class);
         if (($c->snapshot['delivery_mode'] ?? $c->delivery_mode) === 'sendgrid_live' && $pilot->enabled()) {
             if (app(AudienceService::class)->query($o->id, $c->audience_type, $c->audience_id, true)->whereNotIn('email', array_map('strtolower', config('dispatch.pilot.recipients', [])))->exists()) {
-                $errors[] = 'The live audience includes recipients outside the approved pilot allowlist.';
+                $errors[] = 'This audience includes addresses outside the approved test list. Remove them or ask the platform administrator to approve them.';
             }
             if ($eligible > $pilot->remaining()) {
-                $errors[] = 'This audience exceeds the remaining pilot daily submission allowance.';
+                $errors[] = 'This audience is larger than the remaining test allowance for today. Schedule it later or ask the platform administrator to review the limit.';
             }
         }
         if ($eligible === 0) {
-            $errors[] = 'No eligible recipients in the selected audience.';
+            $errors[] = 'No contacts in this audience are currently eligible. Review contact eligibility or choose another audience.';
         }if ($eligible > config('dispatch.max_recipients')) {
-            $errors[] = 'Campaign recipient limit is 10,000.';
+            $errors[] = 'This audience is over the 10,000-contact limit. Narrow the audience before scheduling.';
         }
 
         return ['pilot' => ['enabled' => $pilot->enabled(), 'daily_limit' => (int) config('dispatch.pilot.daily_limit')], 'errors' => $errors, 'total' => $all, 'eligible' => $eligible, 'excluded' => $all - $eligible, 'provider' => $c->delivery_mode ?? 'simulation', 'sender_name' => $c->snapshot['sender_name'] ?? $identity?->name ?? 'Missing', 'sender_email' => $c->snapshot['sender_email'] ?? $identity?->email ?? 'preview@example.test', 'sender' => ($c->snapshot['sender_name'] ?? $identity?->name ?? 'Missing').' <'.($c->snapshot['sender_email'] ?? $identity?->email ?? 'missing').'>', 'tracking' => ['open' => (bool) ($c->snapshot['open_tracking'] ?? $c->open_tracking), 'click' => (bool) ($c->snapshot['click_tracking'] ?? $c->click_tracking)], 'postal_address' => $c->snapshot['sender_address'] ?? $o->postal_address];
@@ -82,7 +82,7 @@ class CampaignService
             Organisation::whereKey($c->organisation_id)->lockForUpdate()->firstOrFail();
             if ($c->delivery_mode === 'sendgrid_live') {
                 if (! $confirmed) {
-                    throw ValidationException::withMessages(['campaign' => 'Type SEND to authorise this live campaign.']);
+                    throw ValidationException::withMessages(['campaign' => 'Type SEND in the confirmation field to schedule this live campaign.']);
                 }$c->live_authorised_at = now();
             }
             $p = $this->preflight($c);
@@ -90,7 +90,7 @@ class CampaignService
                 throw ValidationException::withMessages(['campaign' => implode(' ', $p['errors'])]);
             }$identity = SendingIdentity::where('organisation_id', $c->organisation_id)->findOrFail($c->sending_identity_id);
             $o = Organisation::findOrFail($c->organisation_id);
-            $c->snapshot = ['subject' => $c->subject, 'preview_text' => $c->preview_text, 'html' => app(EmailContentService::class)->clean($c->html), 'text_body' => $c->text_body, 'sender_name' => $identity->name, 'sender_email' => $identity->email, 'reply_to' => $c->reply_to ?: $identity->reply_to, 'sender_address' => $o->postal_address, 'provider' => $c->delivery_mode === 'simulation' ? 'simulation' : 'sendgrid', 'delivery_mode' => $c->delivery_mode ?? 'simulation', 'open_tracking' => (bool) $c->open_tracking, 'click_tracking' => (bool) $c->click_tracking, 'unsubscribe_base' => rtrim(config('app.url'), '/')];
+            $c->snapshot = ['subject' => $c->subject, 'preview_text' => $c->preview_text, 'html' => app(EmailContentService::class)->clean($c->html), 'text_body' => $c->text_body, 'sender_name' => $identity->name, 'sender_email' => $identity->email, 'reply_to' => $c->reply_to ?: $identity->reply_to, 'sender_address' => $o->postal_address, 'provider' => $c->delivery_mode === 'simulation' ? 'simulation' : 'sendgrid', 'delivery_mode' => $c->delivery_mode ?? 'simulation', 'open_tracking' => (bool) $c->open_tracking, 'click_tracking' => (bool) $c->click_tracking, 'unsubscribe_base' => rtrim(config('app.url'), '/'), 'notification_user_ids' => array_values(array_unique(array_filter([$c->created_by, auth()->id()])))];
             $suppressed = app(AudienceService::class)->query($c->organisation_id, $c->audience_type, $c->audience_id)->whereExists(fn ($q) => $q->selectRaw('1')->from('suppressions')->whereColumn('suppressions.organisation_id', 'contacts.organisation_id')->whereColumn('suppressions.email', 'contacts.email'))->count();
             $snapshot = $c->snapshot;
             if ($snapshot['provider'] === 'sendgrid') {
@@ -151,7 +151,7 @@ class CampaignService
     public function requireState(Campaign $c, array $states): void
     {
         if (! in_array($c->status, $states, true)) {
-            throw ValidationException::withMessages(['campaign' => 'Invalid transition from '.$c->status.'.']);
+            throw ValidationException::withMessages(['campaign' => 'This campaign can’t move to that status. Refresh the page to see its current status.']);
         }
     }
 
@@ -162,12 +162,20 @@ class CampaignService
 
     public function complete(int $id): void
     {
-        DB::transaction(function () use ($id) {
+        $completed = DB::transaction(function () use ($id) {
             $c = Campaign::whereKey($id)->lockForUpdate()->firstOrFail();
             if ($c->status === 'processing' && ! $c->recipients()->whereIn('status', ['pending', 'deferred', 'submitting', 'uncertain'])->exists()) {
                 $c->update(['status' => 'completed', 'completed_at' => now()]);
                 AuditLog::record('campaign.completed', $c->organisation_id, ['campaign_id' => $c->id]);
+
+                return $c->fresh();
             }
+
+            return null;
         });
+
+        if ($completed) {
+            app(InAppNotificationService::class)->campaignFinished($completed);
+        }
     }
 }

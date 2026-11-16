@@ -63,12 +63,12 @@ export default function CampaignAnalytics({
             <div className="bg-muted/20 rounded-xl border p-5 text-sm">
                 <p>
                     {analytics.available
-                        ? 'SendGrid evidence: delivered means receiving-server acceptance, not inbox placement.'
-                        : 'No live SendGrid evidence for this campaign. Sandbox validation and simulation are not real delivery.'}
+                    ? 'Delivered means the receiving mail server accepted the message. It does not confirm that the message reached the inbox.'
+                    : 'This campaign has no live delivery results. A SendGrid test and a simulation do not deliver messages.'}
                 </p>
                 <p className="text-muted-foreground mt-2">
-                    Tracked opens and clicks are estimates of engagement. Privacy proxies, automatic loading, blocked images and scanners affect
-                    accuracy. They do not establish a human read or click.
+                    Open and click counts are estimates. Privacy services and automated security checks can add or hide activity, so they do not
+                    confirm that a person read or clicked the email.
                 </p>
             </div>
             <Panel title="Reporting filters">
@@ -122,7 +122,7 @@ export default function CampaignAnalytics({
             </details>
             <Panel
                 title="Performance indicators"
-                description="Delivery/bounce use unique provider-accepted recipients; open/click/unsubscribe use delivered recipients. Click-to-open uses unique tracked opening recipients. N/A means unavailable or zero denominator."
+                description="Rates count unique recipients. Open, click and unsubscribe rates use delivered recipients; click-to-open uses recipients with a tracked open. N/A means there is no usable count yet."
             >
                 <div className="grid gap-4 sm:grid-cols-3">
                     {Object.entries(analytics.rates).map(([k, v]) => (
@@ -134,7 +134,7 @@ export default function CampaignAnalytics({
                 </div>
             </Panel>
             <div className="grid gap-6 lg:grid-cols-2">
-                <Panel title="Delivery outcome activity" description="Unique recipients with each event type; categories may overlap over time.">
+                <Panel title="Delivery activity" description="Unique recipients for each event. One recipient may appear in more than one category over time.">
                     {['processed', 'delivered', 'deferred', 'bounced', 'blocked', 'dropped', 'complaints', 'unsubscribes'].map((k) => (
                         <div className="mb-3" key={k}>
                             <div className="mb-1 flex justify-between text-sm">
@@ -152,7 +152,7 @@ export default function CampaignAnalytics({
                 </Panel>
                 <Panel
                     title="Campaign activity over time"
-                    description="Daily provider delivery, tracked opens, clicks, bounce and unsubscribe activity (UTC)."
+                    description="Daily delivery and tracked engagement events. Dates use UTC."
                 >
                     <div className="space-y-4">
                         {analytics.activity.map((a) => (
@@ -189,7 +189,7 @@ export default function CampaignAnalytics({
             </div>
             <Panel
                 title="Link performance"
-                description="Destinations show only the origin and a stable opaque path label. Queries, fragments and actual paths are not stored. Unsubscribe and administrative paths are excluded."
+                description="For privacy, this report hides full link addresses and removes query details. Unsubscribe and administrative links are not counted."
             >
                 <div className="overflow-auto">
                     <table className="w-full text-left text-sm">
@@ -260,11 +260,11 @@ export default function CampaignAnalytics({
                 </div>
                 <Pages page={recipients} />
             </Panel>
-            <Panel title="Recent verified events" description="Latest SendGrid feedback in the selected date range.">
+            <Panel title="Recent SendGrid events" description="Events received in the selected date range.">
                 {!recentEvents.length && (
                     <p className="text-muted-foreground flex items-center gap-2 text-sm">
                         <Activity aria-hidden="true" className="size-4" />
-                        No verified events yet.
+                        No SendGrid events in this date range.
                     </p>
                 )}
                 {recentEvents.map((e) => (

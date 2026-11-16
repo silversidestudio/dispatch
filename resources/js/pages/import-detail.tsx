@@ -46,7 +46,7 @@ export default function ImportDetail({
             {job.status === 'preview' && canManage && (
                 <Panel
                     title="Map columns"
-                    description="Map your contact columns. New contacts become eligible automatically; no separate evidence entry is needed. Existing contacts and suppressions stay unchanged."
+                    description="Match each CSV column to a contact field. New contacts follow this workspace’s import eligibility setting; existing contacts and suppressions are kept."
                 >
                     <form
                         className="space-y-4"
@@ -73,14 +73,14 @@ export default function ImportDetail({
                             ))}
                         </div>
                         <Errors errors={f.errors} />
-                        <Button disabled={f.processing}>Start background import</Button>
+                            <Button disabled={f.processing}>Import contacts</Button>
                     </form>
                 </Panel>
             )}
             {job.status === 'failed' && canManage && <Button onClick={() => router.post(base + '/start')}>Retry remaining rows</Button>}
             <Panel
                 title="Preview"
-                description="First ten rows. Possible existing-email matches are flagged before processing; full validation runs in the queue."
+                description="Preview of the first 10 rows. Possible duplicates are flagged here; all rows are checked during import."
             >
                 <div className="overflow-auto">
                     <table className="w-full text-left text-sm">
@@ -119,7 +119,7 @@ export default function ImportDetail({
                                                   ? 'Duplicate in preview'
                                                   : s.potential_duplicate
                                                     ? 'Possible duplicate'
-                                                    : 'Pending validation'}
+                                                    : 'Ready for full check'}
                                     </td>
                                 </tr>
                             ))}
@@ -128,9 +128,9 @@ export default function ImportDetail({
                 </div>
             </Panel>
             <Panel title="Recent row results">
-                {!rows.length && <p className="text-muted-foreground mb-3 text-sm">Row results appear after the import starts.</p>}
+                {!rows.length && <p className="text-muted-foreground mb-3 text-sm">Import row results will appear here.</p>}
                 <Button asChild variant="outline">
-                    <a href={base + '/errors'}>Download error report</a>
+                    <a href={base + '/errors'}>Download rejected rows</a>
                 </Button>
                 <ul className="mt-4 space-y-2 text-sm">
                     {rows.map((r) => (

@@ -30,7 +30,7 @@ export default function Contacts({
     return (
         <Workspace
             title="Contacts"
-            subtitle={`${company.name} · Storing a contact does not establish marketing permission.`}
+            subtitle={`${company.name} · Eligibility shows whether a contact can be included in a campaign.`}
             actions={
                 <Button variant="outline" asChild>
                     <Link href={base + '/imports'}>CSV imports</Link>
@@ -154,7 +154,7 @@ export default function Contacts({
                 <Pages page={contacts} />
             </Panel>
             {canManage && (
-                <Panel title="Create contact" description="New contacts start with unknown eligibility.">
+                <Panel title="Create contact" description="New contacts are not campaign-eligible until their eligibility is recorded.">
                     <form
                         className="grid gap-4 md:grid-cols-2"
                         onSubmit={(e) => {

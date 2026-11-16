@@ -39,19 +39,18 @@ export default function Detail({
     canManage: boolean;
 }) {
     const mode = campaign.delivery_mode;
-    const deliveryLabel =
-        mode === 'sendgrid_live' ? 'Live sending' : mode === 'sendgrid_sandbox' ? 'SendGrid sandbox validation' : 'Local simulation only';
+    const deliveryLabel = mode === 'sendgrid_live' ? 'Live SendGrid' : mode === 'sendgrid_sandbox' ? 'SendGrid test' : 'Simulation';
+    const { errors, name: appName } = usePage<SharedData>().props;
     const deliveryNotice =
         mode === 'sendgrid_live'
-            ? 'This campaign sends real emails to eligible recipients.'
+            ? 'This campaign will send to eligible recipients after you confirm the schedule.'
             : mode === 'sendgrid_sandbox'
-              ? 'SendGrid checks the request without delivering email.'
-              : 'Jobs run in simulation. No email is sent.';
+              ? 'SendGrid checks the request. No email is delivered to the recipient.'
+              : `The campaign runs inside ${appName}. No email is sent.`;
     const base = `/organisations/${company.id}/campaigns/${campaign.id}`;
     const f = useForm({ scheduled_at: '', confirmation: '' });
     const test = useForm({ email: '', mode: 'simulation', confirmation: 'PREPARE' });
     const [link, setLink] = useState('');
-    const { errors } = usePage<SharedData>().props;
     useEffect(() => {
         if (!['scheduled', 'processing'].includes(campaign.status)) return;
         const t = setInterval(() => router.reload({ only: ['campaign', 'stats', 'recipients', 'events', 'history'] }), 2500);
@@ -60,7 +59,7 @@ export default function Detail({
     return (
         <Workspace
             title={campaign.name}
-            subtitle={`${campaign.status.toUpperCase()} · ${deliveryLabel} · ${campaign.subject}`}
+            subtitle={`${readableLabel(campaign.status)} · ${deliveryLabel} · ${campaign.subject}`}
             actions={
                 canManage && (
                     <div className="flex flex-wrap gap-2">
@@ -102,8 +101,8 @@ export default function Detail({
             <Errors errors={errors as Record<string, string>} />
             {canManage && (
                 <Panel
-                    title="Single-recipient test"
-                    description="Prepare a separate test draft for an existing eligible contact. Simulation stays local; sandbox requires configured SendGrid and does not deliver. Nothing is submitted until the separate review and scheduling confirmation."
+                    title="Test this campaign"
+                    description={`Create a separate draft for one existing eligible contact. Simulation stays in ${appName}. SendGrid test mode checks the request but does not deliver an email.`}
                 >
                     <form
                         className="grid items-end gap-3 md:grid-cols-3"
@@ -112,18 +111,18 @@ export default function Detail({
                             test.post(base + '/prepare-test');
                         }}
                     >
-                        <Field label="Test recipient email" type="email" value={test.data.email} change={(v) => test.setData('email', v)} />
+                        <Field label="Test recipient" type="email" value={test.data.email} change={(v) => test.setData('email', v)} />
                         <Select label="Test mode" value={test.data.mode} change={(v) => test.setData('mode', v)}>
-                            <option value="simulation">Local simulation</option>
-                            <option value="sendgrid_sandbox">SendGrid sandbox validation</option>
+                            <option value="simulation">Simulation</option>
+                            <option value="sendgrid_sandbox">SendGrid test · no email delivered</option>
                         </Select>
-                        <Button disabled={test.processing}>Prepare test draft</Button>
+                        <Button disabled={test.processing}>Create test draft</Button>
                         <Errors errors={test.errors} />
                     </form>
                 </Panel>
             )}
             <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-3 text-sm">
-                <p>Save your draft → preview the email → review recipients → schedule</p>
+                <p>Draft · Preview · Review · Schedule</p>
                 <Button asChild size="sm" variant="outline">
                     <a href="#email-preview">Review email preview</a>
                 </Button>
@@ -162,21 +161,20 @@ export default function Detail({
                     </div>
                     <div>
                         <dt className="text-muted-foreground">Unsubscribe and sender identification</dt>
-                        <dd>Visible footer + signed one-click headers · {preflight.postal_address ?? 'Postal address missing'}</dd>
+                        <dd>Unsubscribe link and mail-app unsubscribe option · {preflight.postal_address ?? 'Postal address missing'}</dd>
                     </div>
                 </dl>
                 {mode === 'sendgrid_live' && preflight.pilot?.enabled && (
                     <p className="bg-muted/40 mt-4 rounded-lg border p-3 text-xs">
-                        Restricted pilot controls are active for live sending: approved company and recipients only, up to{' '}
-                        {preflight.pilot.daily_limit} submission attempts per UTC day. Simulation remains local.
+                        Live sends are currently limited to approved test recipients, up to {preflight.pilot.daily_limit} attempts each day. This limit applies to the whole workspace.
                     </p>
                 )}
             </Panel>
             <Metrics data={stats} />
             {campaign.delivery_mode === 'simulation' && stats.eligible_at_snapshot > 0 && (
                 <Panel
-                    title="Simulated recipient outcomes"
-                    description="Counts use unique snapshotted recipients; retries do not increase the recipient denominator."
+                    title="Simulation results"
+                    description={`Each contact is counted once, even if ${appName} made more than one attempt.`}
                 >
                     <div className="space-y-4">
                         {[
@@ -205,7 +203,7 @@ export default function Detail({
             )}
             {!campaign.snapshot && (
                 <Panel
-                    title="Pre-flight checks"
+                    title="Campaign checks"
                     description={`${preflight.total} audience contacts · ${preflight.eligible} eligible · ${preflight.excluded} excluded`}
                 >
                     {preflight.errors.length ? (
@@ -216,7 +214,7 @@ export default function Detail({
                         </ul>
                     ) : (
                         <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                            Pre-flight checks pass for the selected mode. Live delivery still requires explicit confirmation and launch approval.
+                            The campaign is ready for this delivery mode. A live SendGrid campaign will ask for confirmation before scheduling.
                         </p>
                     )}
                     {canManage && campaign.status === 'draft' && (
@@ -241,13 +239,13 @@ export default function Detail({
                                 <p className="text-muted-foreground mt-1">{deliveryNotice}</p>
                             </div>
                             <Field
-                                label="Schedule in your local time (optional)"
+                                label="Send time (optional)"
                                 type="datetime-local"
                                 value={f.data.scheduled_at}
                                 change={(v) => f.setData('scheduled_at', v)}
                             />
                             {campaign.delivery_mode === 'sendgrid_live' && (
-                                <Field label="Type SEND for live delivery" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
+                                <Field label="Type SEND to confirm" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
                             )}
                             <Button>
                                 {campaign.delivery_mode === 'simulation'
@@ -257,7 +255,7 @@ export default function Detail({
                                       : 'Confirm and schedule live sending'}
                             </Button>
                             <p className="text-muted-foreground w-full text-xs">
-                                Leave blank to initiate now. Scheduling freezes the audience and email content.
+                                Leave the time empty to start as soon as you confirm. This campaign uses the audience and email shown in this review.
                             </p>
                         </form>
                     )}
@@ -276,8 +274,8 @@ export default function Detail({
             />
 
             <Panel
-                title="Recipient snapshot"
-                description="Submission acceptance does not establish receiving-server delivery or inbox placement. See analytics for provider evidence."
+                title="Recipients in this campaign"
+                description="SendGrid accepting a message means it reached the receiving mail server. It does not confirm inbox placement."
             >
                 <div className="overflow-auto">
                     <table className="w-full text-left text-sm">
@@ -350,11 +348,11 @@ export default function Detail({
                                 <span className="text-muted-foreground mt-1 block">
                                     {(
                                         {
-                                            pilot_configuration_invalid: 'Check the company, allowlist and pilot settings on the worker.',
-                                            pilot_recipient_not_allowed: 'A recipient in the saved audience is outside the allowlist.',
-                                            pilot_scope_blocked: 'The company or a recipient is outside the configured pilot.',
-                                            pilot_daily_limit_reached: 'The UTC daily attempt limit was reached.',
-                                            pilot_attempt_already_reserved: 'This attempt was already reserved. Review its history before retrying.',
+                                            pilot_configuration_invalid: 'The platform’s test-send settings need attention. Contact the platform administrator.',
+                                            pilot_recipient_not_allowed: 'An address is outside the approved test list. Update the audience or contact the platform administrator.',
+                                            pilot_scope_blocked: 'This company or audience is not included in the current test. Contact the platform administrator.',
+                                            pilot_daily_limit_reached: 'The daily test limit has been reached. Try again tomorrow or contact the platform administrator.',
+                                            pilot_attempt_already_reserved: 'This message already has a recorded attempt. Check its activity before trying again.',
                                         } as Record<string, string>
                                     )[h.metadata?.diagnostic ?? ''] ?? 'Review the pilot settings before resuming.'}
                                 </span>

@@ -26,14 +26,14 @@ export default function Reports({ company, reports }: { company: Company; report
     return (
         <Workspace
             title="Campaign reports"
-            subtitle="Stored results labelled by delivery mode. API acceptance is not receiving-server delivery or inbox placement."
+            subtitle="Campaign results are labelled as simulation or SendGrid activity. Acceptance by SendGrid is not the same as inbox placement."
         >
             <div>
                 <Link className="text-sm underline" href={`/organisations/${company.id}/campaign-comparison`}>
                     Compare campaigns and provider analytics
                 </Link>
             </div>
-            <Panel title="Campaign results" description="Latest 30 snapshotted campaigns. Date filters use the campaign creation date.">
+            <Panel title="Campaign results" description="Showing up to 30 campaigns. Dates are based on when each campaign was created.">
                 <div className="mb-5 flex flex-wrap gap-4">
                     <Field label="From date" type="date" value={start} change={setStart} />
                     <Field label="To date" type="date" value={end} change={setEnd} />

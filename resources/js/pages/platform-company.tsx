@@ -34,7 +34,7 @@ export default function Company({
     const transfer = useForm({ member_id: '', confirmation: '' });
     const { flash, errors } = usePage<SharedData>().props;
     return (
-        <Workspace title={company.name} subtitle="Platform company administration · no access to private contact or campaign content">
+        <Workspace title={company.name} subtitle="Company status, membership and delivery setup.">
             <Errors errors={errors as Record<string, string>} />
             <Panel title="Company activity · aggregate only">
                 <div className="flex flex-wrap gap-5 text-sm">
@@ -136,7 +136,7 @@ export default function Company({
                 </div>
             </Panel>
             <div className="grid gap-6 lg:grid-cols-2">
-                <Panel title="Add existing user">
+            <Panel title="Add a member">
                     <form
                         className="space-y-3"
                         onSubmit={(e) => {
