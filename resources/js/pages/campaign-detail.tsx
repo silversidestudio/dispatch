@@ -33,7 +33,7 @@ export default function Detail({
     stats: Record<string, number>;
     recipients: Page<{ id: number; email: string; status: string; attempt_count: number }>;
     events: { id: number; type: string; created_at: string; simulated: boolean }[];
-    history: { id: number; action: string; created_at: string }[];
+    history: { id: number; action: string; created_at: string; metadata?: { diagnostic?: string } }[];
     canManage: boolean;
 }) {
     const mode = campaign.delivery_mode;
@@ -337,7 +337,20 @@ export default function Detail({
                 <Panel title="Campaign state history">
                     {history.map((h) => (
                         <p className="border-b py-3 text-sm" key={h.id}>
-                            {h.action} · {new Date(h.created_at).toLocaleString()}
+                            {h.action === 'campaign.pilot_blocked' ? 'Pilot blocked' : h.action} · {new Date(h.created_at).toLocaleString()}
+                            {h.action === 'campaign.pilot_blocked' && (
+                                <span className="text-muted-foreground mt-1 block">
+                                    {(
+                                        {
+                                            pilot_configuration_invalid: 'Check the company, allowlist and pilot settings on the worker.',
+                                            pilot_recipient_not_allowed: 'A recipient in the saved audience is outside the allowlist.',
+                                            pilot_scope_blocked: 'The company or a recipient is outside the configured pilot.',
+                                            pilot_daily_limit_reached: 'The UTC daily attempt limit was reached.',
+                                            pilot_attempt_already_reserved: 'This attempt was already reserved. Review its history before retrying.',
+                                        } as Record<string, string>
+                                    )[h.metadata?.diagnostic ?? ''] ?? 'Review the pilot settings before resuming.'}
+                                </span>
+                            )}
                         </p>
                     ))}
                 </Panel>

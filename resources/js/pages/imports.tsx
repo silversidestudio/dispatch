@@ -1,3 +1,4 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { Company, Field, Page, Pages } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,7 +65,9 @@ export default function Imports({ company, imports, canManage }: { company: Comp
                                             #{i.id} · {i.source}
                                         </Link>
                                     </td>
-                                    <td>{i.status}</td>
+                                    <td>
+                                        <DeliveryStatus status={i.status} />
+                                    </td>
                                     <td>
                                         {i.processed}/{i.total}
                                     </td>

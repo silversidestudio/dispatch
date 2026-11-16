@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Campaign;
 use App\Models\CampaignRecipient;
-use App\Models\DeliveryEvent;
 use App\Models\Organisation;
 use App\Services\CampaignAnalytics;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -17,6 +17,11 @@ class AnalyticsController extends Controller
     {
         Gate::authorize('view', $o);
         abort_unless($c->organisation_id === $o->id, 404);
+    }
+
+    private function filterEventType(Builder $events, string $type): void
+    {
+        $events->whereIn('type', $type === 'unsubscribe' ? ['unsubscribe', 'group_unsubscribe'] : [$type]);
     }
 
     private function filters(Request $r): array
@@ -31,11 +36,13 @@ class AnalyticsController extends Controller
         $q = $campaign->recipients()->where('organisation_id', $organisation->id);
         if ($v = $d['search'] ?? null) {
             $q->where('email', 'like', "%$v%");
-        }if (($d['from'] ?? null) || ($d['to'] ?? null)) {
-            $q->whereIn('id', $s->events($campaign, $d['from'] ?? null, $d['to'] ?? null)->select('campaign_recipient_id'));
         }
-        if ($type = $d['status'] ?? null) {
-            $q->whereIn('id', DeliveryEvent::where('organisation_id', $organisation->id)->where('campaign_id', $campaign->id)->where('type', $type)->select('campaign_recipient_id'));
+        if (($d['from'] ?? null) || ($d['to'] ?? null) || ($d['status'] ?? null)) {
+            $matches = $s->events($campaign, $d['from'] ?? null, $d['to'] ?? null);
+            if ($type = $d['status'] ?? null) {
+                $this->filterEventType($matches, $type);
+            }
+            $q->whereIn('id', $matches->select('campaign_recipient_id'));
         }
         $recipients = $q->paginate(20)->withQueryString();
         $recipients->through(fn ($r) => collect($s->recipient($r))->except(['events', 'attempts'])->all());
@@ -57,7 +64,7 @@ class AnalyticsController extends Controller
         $d = $this->filters($r);
         $q = $s->events($campaign, $d['from'] ?? null, $d['to'] ?? null)->orderBy('id');
         if ($d['status'] ?? null) {
-            $q->where('type', $d['status']);
+            $this->filterEventType($q, $d['status']);
         }
         if ($d['search'] ?? null) {
             $q->whereIn('campaign_recipient_id', $campaign->recipients()->where('organisation_id', $organisation->id)->where('email', 'like', '%'.$d['search'].'%')->select('id'));

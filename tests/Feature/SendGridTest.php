@@ -21,6 +21,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia;
 
 function sgFixture(): array
 {
@@ -258,4 +259,45 @@ it('binds signed webhook batches to the endpoint company even when a different c
     (new ProcessSendGridWebhook(WebhookBatch::first()->id))->handle(app(WebhookService::class));
     expect(WebhookReceipt::first()->status)->toBe('quarantined');
     $this->assertDatabaseMissing('delivery_events', ['campaign_recipient_id' => $r->id, 'type' => 'delivered']);
+});
+
+it('matches analytics date and event filters against the same verified event', function () {
+    [$u, $o, $c, $r] = sgFixture();
+    $a = sgAttempt($r);
+    ingestSg(sgEvent($a, 'delivered', ['timestamp' => now()->subDays(2)->timestamp]));
+    ingestSg(sgEvent($a, 'open'));
+    $url = "/organisations/$o->id/campaigns/$c->id/analytics?from=".now('UTC')->toDateString();
+    $this->actingAs($u)->get($url.'&status=delivered')->assertInertia(fn (AssertableInertia $p) => $p->where('recipients.total', 0));
+    $this->get($url.'&status=open')->assertInertia(fn (AssertableInertia $p) => $p->where('recipients.total', 1)->where('analytics.tracking.open', true));
+    ingestSg(sgEvent($a, 'group_unsubscribe'));
+    $this->get($url.'&status=unsubscribe')->assertInertia(fn (AssertableInertia $p) => $p->where('recipients.total', 1));
+});
+
+it('reports signed company feedback through the queued path without double-counting engagement', function () {
+    [$u, $o, $c, $r] = sgFixture();
+    $a = sgAttempt($r);
+    $key = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);
+    $o->forceFill(['sendgrid_webhook_key' => openssl_pkey_get_details($key)['key']])->save();
+    $open = sgEvent($a, 'open');
+    $body = json_encode([
+        sgEvent($a, 'delivered'),
+        sgEvent($a, 'deferred', ['timestamp' => time() - 20]),
+        $open,
+        $open,
+        sgEvent($a, 'open'),
+        sgEvent($a, 'click', ['url' => 'https://example.test/offer?token=private-secret']),
+    ]);
+    $ts = (string) time();
+    openssl_sign($ts.$body, $sig, $key, OPENSSL_ALGO_SHA256);
+    $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_X_TWILIO_EMAIL_EVENT_WEBHOOK_TIMESTAMP' => $ts, 'HTTP_X_TWILIO_EMAIL_EVENT_WEBHOOK_SIGNATURE' => base64_encode($sig)];
+    $path = "/webhooks/sendgrid/$o->id";
+    $this->call('POST', $path, [], [], [], $headers, $body)->assertAccepted();
+    (new ProcessSendGridWebhook(WebhookBatch::sole()->id))->handle(app(WebhookService::class));
+    $this->call('POST', $path, [], [], [], $headers, $body)->assertAccepted();
+
+    $summary = app(CampaignAnalytics::class)->summary($c);
+    expect($r->fresh()->delivery_status)->toBe('delivered');
+    expect($summary['counts'])->toMatchArray(['delivered' => 1, 'unique_opens' => 1, 'total_opens' => 2, 'unique_clicks' => 1, 'total_clicks' => 1]);
+    expect($summary['links'][0]['url'])->toStartWith('https://example.test / link-')->not->toContain('private-secret');
+    expect(WebhookBatch::count())->toBe(1);
 });

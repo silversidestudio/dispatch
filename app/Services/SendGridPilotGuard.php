@@ -47,6 +47,20 @@ class SendGridPilotGuard
         return max(0, (int) config('dispatch.pilot.daily_limit') - (int) DB::table('sendgrid_pilot_budgets')->where('day', now('UTC')->toDateString())->value('reserved'));
     }
 
+    public function blockReason(string $email, int $organisationId): ?string
+    {
+        if (! $this->enabled()) {
+            return null;
+        }
+
+        return match (true) {
+            $this->configurationErrors($organisationId) !== [] => 'pilot_configuration_invalid',
+            ! $this->recipientAllowed($email) => 'pilot_recipient_not_allowed',
+            $this->remaining() < 1 => 'pilot_daily_limit_reached',
+            default => null,
+        };
+    }
+
     /** Commits before HTTP. Errors/timeouts consume capacity conservatively; no automatic refund. */
     public function reserve(string $email, string $correlation, ?int $organisationId): void
     {

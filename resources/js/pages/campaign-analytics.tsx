@@ -1,9 +1,12 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { Company, Field, Metrics, Page, Pages, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Panel, Workspace } from '@/components/workspace';
 import { Link, useForm } from '@inertiajs/react';
+import { Activity, Download, Eye, MousePointerClick, Send, ShieldCheck } from 'lucide-react';
 export type Analytics = {
     available: boolean;
+    tracking: { open: boolean; click: boolean };
     mode: string;
     counts: Record<string, number>;
     rates: Record<string, number | null>;
@@ -42,14 +45,17 @@ export default function CampaignAnalytics({
 }) {
     const base = `/organisations/${company.id}/campaigns/${campaign.id}`;
     const f = useForm({ from: filters.from ?? '', to: filters.to ?? '', search: filters.search ?? '', status: filters.status ?? '' });
-    const query = new URLSearchParams(Object.entries(f.data).filter(([, v]) => v)).toString();
+    const query = new URLSearchParams(Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1]))).toString();
     return (
         <Workspace
             title={`${campaign.name} · Analytics`}
             subtitle={`${campaign.status} · ${analytics.mode}`}
             actions={
                 <Button variant="outline" asChild>
-                    <a href={`${base}/analytics/export?${query}`}>Export event CSV</a>
+                    <a href={`${base}/analytics/export?${query}`}>
+                        <Download aria-hidden="true" className="size-4" />
+                        Export event CSV
+                    </a>
                 </Button>
             }
         >
@@ -84,7 +90,33 @@ export default function CampaignAnalytics({
                     <Button>Apply filters</Button>
                 </form>
             </Panel>
-            <Metrics data={analytics.counts} />
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                    { label: 'Provider accepted', key: 'accepted', icon: Send, enabled: analytics.available },
+                    { label: 'Delivered', key: 'delivered', icon: ShieldCheck, enabled: analytics.available },
+                    { label: 'Unique tracked opens', key: 'unique_opens', icon: Eye, enabled: analytics.tracking.open },
+                    { label: 'Unique tracked clicks', key: 'unique_clicks', icon: MousePointerClick, enabled: analytics.tracking.click },
+                ].map(({ label, key, icon: Icon, enabled }) => (
+                    <div key={key} className="bg-card rounded-xl border p-4">
+                        <p className="text-muted-foreground flex items-center gap-2 text-sm">
+                            <Icon aria-hidden="true" className="size-4" />
+                            {label}
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold">{enabled ? analytics.counts[key] : '—'}</p>
+                        {!enabled && (
+                            <p className="text-muted-foreground mt-1 text-xs">
+                                {analytics.available ? 'Tracking off for this campaign' : 'No live delivery'}
+                            </p>
+                        )}
+                    </div>
+                ))}
+            </div>
+            <details className="bg-card rounded-xl border p-4">
+                <summary className="cursor-pointer text-sm font-medium">All campaign counts</summary>
+                <div className="mt-4">
+                    <Metrics data={analytics.counts} />
+                </div>
+            </details>
             <Panel
                 title="Performance indicators"
                 description="Delivery/bounce use unique provider-accepted recipients; open/click/unsubscribe use delivered recipients. Click-to-open uses unique tracked opening recipients. N/A means unavailable or zero denominator."
@@ -201,7 +233,9 @@ export default function CampaignAnalytics({
                                         </Link>
                                     </td>
                                     <td>{r.status}</td>
-                                    <td>{r.delivery_status}</td>
+                                    <td>
+                                        <DeliveryStatus status={r.delivery_status} />
+                                    </td>
                                     <td>
                                         {r.last_event ?? '—'}
                                         <div className="text-muted-foreground text-xs">
@@ -218,7 +252,13 @@ export default function CampaignAnalytics({
                 </div>
                 <Pages page={recipients} />
             </Panel>
-            <Panel title="Recent verified events">
+            <Panel title="Recent verified events" description="Latest SendGrid feedback in the selected date range.">
+                {!recentEvents.length && (
+                    <p className="text-muted-foreground flex items-center gap-2 text-sm">
+                        <Activity aria-hidden="true" className="size-4" />
+                        No verified events yet.
+                    </p>
+                )}
                 {recentEvents.map((e) => (
                     <p className="border-b py-3 text-sm" key={e.id}>
                         {e.occurred_at ? new Date(e.occurred_at).toLocaleString() : 'Unknown event time'} · {e.type} · {e.provider_message_id}

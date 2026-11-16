@@ -7,21 +7,32 @@ import { BarChart3, Building2, FileText, Fingerprint, LayoutGrid, List, Mail, Se
 import AppLogo from './app-logo';
 export function AppSidebar() {
     const { auth, organisations, currentOrganisationId } = usePage<SharedData>().props;
-    const items: NavItem[] = [
+    const base = currentOrganisationId ? `/organisations/${currentOrganisationId}` : null;
+    const workspace: NavItem[] = [
         { title: 'Overview', url: '/dashboard', icon: LayoutGrid },
         { title: 'Organisations', url: '/organisations', icon: Building2 },
-        ...(currentOrganisationId
+    ];
+    const audience: NavItem[] = base
+        ? [
+              { title: 'Contacts', url: base + '/contacts', icon: Users },
+              { title: 'Lists & segments', url: base + '/audiences', icon: List },
+              { title: 'Imports', url: base + '/imports', icon: Upload },
+          ]
+        : [];
+    const campaigns: NavItem[] = base
+        ? [
+              { title: 'Campaigns', url: base + '/campaigns', icon: Mail },
+              { title: 'Templates', url: base + '/templates', icon: FileText },
+              { title: 'Reporting', url: base + '/reports', icon: BarChart3 },
+          ]
+        : [];
+    const administration: NavItem[] = [
+        ...(base
             ? [
-                  { title: 'Contacts', url: `/organisations/${currentOrganisationId}/contacts`, icon: Users },
-                  { title: 'Lists & segments', url: `/organisations/${currentOrganisationId}/audiences`, icon: List },
-                  { title: 'Imports', url: `/organisations/${currentOrganisationId}/imports`, icon: Upload },
-                  { title: 'Campaigns', url: `/organisations/${currentOrganisationId}/campaigns`, icon: Mail },
-                  { title: 'Templates', url: `/organisations/${currentOrganisationId}/templates`, icon: FileText },
-                  { title: 'Sending identities', url: `/organisations/${currentOrganisationId}/identities`, icon: Fingerprint },
-                  { title: 'Reporting', url: `/organisations/${currentOrganisationId}/reports`, icon: BarChart3 },
+                  { title: 'Sending identities', url: base + '/identities', icon: Fingerprint },
+                  { title: 'Workspace settings', url: base, icon: Settings },
               ]
             : []),
-        ...(currentOrganisationId ? [{ title: 'Workspace settings', url: `/organisations/${currentOrganisationId}`, icon: Settings }] : []),
         ...(auth.user.is_platform_admin ? [{ title: 'Platform administration', url: '/platform', icon: ShieldCheck }] : []),
     ];
     return (
@@ -58,14 +69,10 @@ export function AppSidebar() {
                 </div>
             </SidebarHeader>
             <SidebarContent>
-                <NavMain items={items} />
-                <div className="bg-background mx-4 mt-auto mb-4 rounded-xl border p-4 text-xs group-data-[collapsible=icon]:hidden">
-                    <div className="mb-2 font-medium">Campaign safety</div>
-                    <p className="text-muted-foreground leading-5">Review the delivery mode, audience and pre-flight checks before scheduling.</p>
-                    <span className="mt-3 inline-flex rounded-full bg-indigo-500/10 px-2 py-1 text-indigo-600 dark:text-indigo-300">
-                        Explicit sending controls
-                    </span>
-                </div>
+                <NavMain items={workspace} />
+                <NavMain label="Audience" items={audience} />
+                <NavMain label="Campaigns" items={campaigns} />
+                <NavMain label="Settings" items={administration} />
             </SidebarContent>
             <SidebarFooter>
                 <NavUser />

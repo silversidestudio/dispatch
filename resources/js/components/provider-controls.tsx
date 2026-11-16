@@ -37,18 +37,31 @@ export function VerifyIdentity({ companyId, identity }: { companyId: number; ide
         </form>
     );
 }
-export function TrackingReview({ companyId }: { companyId: number }) {
-    const f = useForm({ open_tracking_enabled: false as boolean, click_tracking_enabled: false as boolean, evidence: '', confirmation: '' });
+export function TrackingReview({
+    companyId,
+    tracking,
+}: {
+    companyId: number;
+    tracking: { open: boolean; click: boolean; reviewed_at: string | null };
+}) {
+    const f = useForm({ open_tracking_enabled: tracking.open, click_tracking_enabled: tracking.click, evidence: '', confirmation: '' });
     return (
         <Panel
             title="Privacy and tracking review"
             description="Default: disabled. Do not enable until the business has reviewed its privacy notice, lawful basis and any applicable tracking consent requirements."
         >
+            <div className="mb-4 flex flex-wrap gap-2 text-sm">
+                <span className="bg-muted rounded-full px-3 py-1">Opens: {tracking.open ? 'permitted' : 'off'}</span>
+                <span className="bg-muted rounded-full px-3 py-1">Clicks: {tracking.click ? 'permitted' : 'off'}</span>
+                <span className="text-muted-foreground px-1 py-1">
+                    {tracking.reviewed_at ? `Reviewed ${new Date(tracking.reviewed_at).toLocaleDateString()}` : 'No review recorded'}
+                </span>
+            </div>
             <form
                 className="max-w-xl space-y-4"
                 onSubmit={(e) => {
                     e.preventDefault();
-                    f.post(`/organisations/${companyId}/tracking-review`);
+                    f.post(`/organisations/${companyId}/tracking-review`, { onSuccess: () => f.reset('evidence', 'confirmation') });
                 }}
             >
                 <label className="flex gap-2 text-sm">

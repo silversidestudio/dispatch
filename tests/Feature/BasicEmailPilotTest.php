@@ -2,7 +2,9 @@
 
 use App\Delivery\DeliveryMessage;
 use App\Delivery\SendGridDeliveryProvider;
+use App\Delivery\SubmissionResult;
 use App\Exceptions\PilotSubmissionBlocked;
+use App\Models\AuditLog;
 use App\Models\DeliveryAttempt;
 use App\Models\EmailTemplate;
 use App\Models\User;
@@ -136,4 +138,35 @@ it('starts a fresh UTC daily budget without allowing a reserved correlation to r
     expect($guard->remaining())->toBe(1);
     $guard->reserve('success@example.test', 'new-correlation', $o->id);
     expect($guard->remaining())->toBe(0);
+});
+
+it('records a specific pilot block reason without attempting submission', function () {
+    [$u, $o, $c, $r] = restrictedPilot();
+    config(['dispatch.pilot.recipients' => ['another@example.test']]);
+    Http::fake();
+    app(SendGridSubmissionService::class)->handle($r->id);
+    Http::assertNothingSent();
+    expect($c->fresh()->status)->toBe('paused');
+    expect($r->fresh()->status)->toBe('pending');
+    expect(AuditLog::where('action', 'campaign.pilot_blocked')->latest('id')->first()->metadata['diagnostic'])->toBe('pilot_recipient_not_allowed');
+});
+
+it('preserves unsent recipients on a late pilot hold without reversing cancellation', function () {
+    [$u, $o, $c, $r] = restrictedPilot();
+    $a = sgAttempt($r);
+    $a->update(['outcome' => 'submitting']);
+    $r->update(['status' => 'submitting']);
+    $service = app(SendGridSubmissionService::class);
+    $hold = new SubmissionResult('not_submitted', '', null, 'pilot_daily_limit_reached');
+    $service->finish($a, $hold);
+    expect($r->fresh()->status)->toBe('pending');
+    expect($c->fresh()->status)->toBe('paused');
+    $other = $c->recipients()->where('id', '!=', $r->id)->firstOrFail();
+    $a2 = sgAttempt($other);
+    $a2->update(['outcome' => 'submitting']);
+    $other->update(['status' => 'submitting']);
+    app(CampaignService::class)->cancel($c);
+    $service->finish($a2, $hold);
+    expect($c->fresh()->status)->toBe('cancelled');
+    expect($other->fresh()->status)->toBe('cancelled');
 });

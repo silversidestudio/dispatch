@@ -213,3 +213,7 @@ No staging deployment, production monitoring, backup restore drill, real SendGri
 ## CSV policy amendment — 12 November 2026
 
 The operator requested automatic eligibility for newly created CSV contacts. They now use the distinct csv_import state with automatic source/import/user provenance, without separate consent evidence entry. This supersedes the earlier unknown-by-default rule for new CSV imports only. Manual creation and existing contact states are unchanged; suppression and live-provider gates remain. This implementation policy must be reflected in the client’s launch/privacy review; it does not assert consent or legal compliance. See csv-import-policy.md for scope and verification.
+
+## Client launch preparation
+
+The operator reports an approved four-recipient live test reached all four inboxes on the existing staging server, after a SendGrid sandbox result and a signed sample webhook returning 202. This supersedes the earlier statement that no real provider tests had occurred, but does not verify recipient-level event correlation or the destination host. See [client cutover runbook](client-cutover-runbook.md) for local evidence, outstanding checks and rollout order. Production sign-off remains outstanding.

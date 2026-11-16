@@ -10,7 +10,10 @@ use App\Models\User;
 use App\Models\WebhookBatch;
 use App\Services\SendGridSubmissionService;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Schedule;
+use Laravel\Horizon\Contracts\MasterSupervisorRepository;
 
 Artisan::command('platform:bootstrap', function () {
     if (User::where('is_platform_admin', true)->exists()) {
@@ -79,3 +82,36 @@ Artisan::command('dispatch:prune-feedback', function () {
     $this->info("Pruned $b completed webhook envelopes and $e expired engagement events. Historical engagement metrics may decrease after retention expiry.");
 });
 Schedule::command('dispatch:prune-feedback')->daily();
+
+Artisan::command('dispatch:launch-check', function () {
+    $checks = [
+        'Production environment' => app()->isProduction(),
+        'HTTPS application URL' => str_starts_with((string) config('app.url'), 'https://'),
+        'Debug disabled' => ! config('app.debug'),
+        'Application key configured' => filled(config('app.key')),
+        'Secure encrypted sessions' => config('session.secure') && config('session.encrypt'),
+        'Redis queue selected' => config('queue.default') === 'redis',
+        'Queue retry window exceeds worker timeout' => config('queue.connections.redis.retry_after') > config('horizon.defaults.supervisor-1.timeout'),
+    ];
+    try {
+        DB::select('select 1');
+        $checks['Database reachable'] = true;
+    } catch (Throwable) {
+        $checks['Database reachable'] = false;
+    }
+    try {
+        Redis::connection(config('queue.connections.redis.connection'))->ping();
+        $checks['Redis reachable'] = true;
+        $masters = collect(app(MasterSupervisorRepository::class)->all());
+        $checks['Horizon running'] = $masters->isNotEmpty() && $masters->every(fn ($master) => $master->status === 'running');
+    } catch (Throwable) {
+        $checks['Redis or Horizon status unavailable'] = false;
+    }
+    $this->table(['Check', 'Result'], collect($checks)->map(fn ($ok, $name) => [$name, $ok ? 'PASS' : 'CHECK'])->values()->all());
+    $this->line('Live sending: '.(config('dispatch.sendgrid.live_enabled') ? 'enabled' : 'disabled'));
+    $this->line('Restricted pilot: '.(config('dispatch.pilot.enabled') ? 'enabled' : 'disabled'));
+    $this->line('Account mail: '.(config('dispatch.sendgrid.auth_enabled') ? 'SendGrid configured to handle account notifications; verify separately' : 'local log only'));
+    $this->comment('Check the scheduler, external HTTPS/webhooks, backups, monitoring and real mail separately.');
+
+    return in_array(false, $checks, true) ? 1 : 0;
+})->purpose('Check local deployment prerequisites without sending email or printing credentials');

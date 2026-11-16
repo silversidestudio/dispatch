@@ -1,3 +1,4 @@
+import { DeliveryStatus } from '@/components/delivery-status';
 import { Company, Page, Pages } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Panel, Workspace } from '@/components/workspace';
@@ -56,7 +57,7 @@ export default function Campaigns({ company, campaigns, canManage }: { company: 
                                     </td>
                                     <td>{c.subject}</td>
                                     <td>
-                                        <span className="bg-muted rounded-full px-3 py-1 text-xs">{c.status}</span>
+                                        <DeliveryStatus status={c.status} />
                                     </td>
                                     <td>{c.scheduled_at ? new Date(c.scheduled_at).toLocaleString() : 'Not scheduled'}</td>
                                 </tr>

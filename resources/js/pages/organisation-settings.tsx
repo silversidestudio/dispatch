@@ -6,7 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Errors, Panel, Workspace } from '@/components/workspace';
 import { router, useForm } from '@inertiajs/react';
 type Props = {
-    organisation: { id: number; name: string; website: string | null; postal_address: string | null; email_branding?: Branding | null };
+    organisation: {
+        id: number;
+        name: string;
+        website: string | null;
+        postal_address: string | null;
+        email_branding?: Branding | null;
+        tracking: { open: boolean; click: boolean; reviewed_at: string | null };
+    };
     canUpdate: boolean;
     canManageMembers: boolean;
     members: { id: number; name: string; email: string; role: string }[];
@@ -146,7 +153,7 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                     </div>
                 </Panel>
             )}
-            {canUpdate && <TrackingReview companyId={organisation.id} />}
+            {canUpdate && <TrackingReview companyId={organisation.id} tracking={organisation.tracking} />}
         </Workspace>
     );
 }
