@@ -1,6 +1,7 @@
 import { Company, Contact, Field, Metrics, Page, Pages, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { eligibilityLabel } from '@/lib/labels';
 import { Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 export default function Contacts({
@@ -47,8 +48,8 @@ export default function Contacts({
                     <Field label="Search contacts" value={search.data.search} change={(v) => search.setData('search', v)} />
                     <Select label="Contact status" value={search.data.status} change={(v) => search.setData('status', v)}>
                         <option value="">All statuses</option>
-                        <option>active</option>
-                        <option>archived</option>
+                        <option value="active">Active</option>
+                        <option value="archived">Archived</option>
                     </Select>
                     <Select label="Eligibility" value={search.data.eligibility} change={(v) => search.setData('eligibility', v)}>
                         <option value="">All eligibility</option>
@@ -63,14 +64,16 @@ export default function Contacts({
                             'administratively_blocked',
                         ].map((v) => (
                             <option key={v} value={v}>
-                                {v === 'csv_import' ? 'Eligible · CSV import' : v}
+                                {eligibilityLabel(v)}
                             </option>
                         ))}
                     </Select>
                     <div className="flex items-end gap-2">
                         <Select label="Sort" value={search.data.sort} change={(v) => search.setData('sort', v)}>
-                            {['created_at', 'email', 'first_name'].map((v) => (
-                                <option key={v}>{v}</option>
+                            {(['created_at', 'email', 'first_name'] as const).map((v) => (
+                                <option key={v} value={v}>
+                                    {{ created_at: 'Date added', email: 'Email address', first_name: 'First name' }[v]}
+                                </option>
                             ))}
                         </Select>
                         <Button>Filter</Button>
@@ -134,8 +137,8 @@ export default function Contacts({
                                     <td>
                                         {c.first_name} {c.last_name}
                                     </td>
-                                    <td>{c.status}</td>
-                                    <td>{c.eligibility.replaceAll('_', ' ')}</td>
+                                    <td className="capitalize">{c.status}</td>
+                                    <td>{eligibilityLabel(c.eligibility)}</td>
                                     <td>{c.source}</td>
                                 </tr>
                             ))}

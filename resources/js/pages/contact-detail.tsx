@@ -1,6 +1,7 @@
 import { Company, Contact, Field, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { eligibilityLabel } from '@/lib/labels';
 import { router, useForm } from '@inertiajs/react';
 type Evidence = { id: number; basis: string; evidence: string; method: string; recorded_at: string };
 export default function Detail({
@@ -39,7 +40,7 @@ export default function Detail({
     return (
         <Workspace
             title={contact.email}
-            subtitle={`${company.name} · ${eligible ? 'Eligible for marketing' : 'Not eligible for marketing'}${suppression ? ' · Suppressed: ' + suppression.reason : ''}`}
+            subtitle={`${company.name} · ${eligible ? 'Eligible for marketing' : 'Not eligible for marketing'}${suppression ? ' · Suppressed: ' + eligibilityLabel(suppression.reason) : ''}`}
         >
             <Panel title="Contact profile">
                 <form
@@ -147,7 +148,7 @@ export default function Detail({
                     evidence.map((e) => (
                         <div key={e.id} className="border-b py-3 text-sm">
                             <p className="font-medium">
-                                {e.basis} · {e.method}
+                                {eligibilityLabel(e.basis)} · {e.method === 'csv_import' ? 'CSV import' : e.method}
                             </p>
                             <p>{e.evidence}</p>
                             <time className="text-muted-foreground text-xs">{new Date(e.recorded_at).toLocaleString()}</time>

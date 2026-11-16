@@ -1,7 +1,9 @@
 import { Company, Contact, Field, Page, Pages } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { eligibilityLabel, readableLabel } from '@/lib/labels';
 import { Link, router, useForm } from '@inertiajs/react';
+import { Check, Minus } from 'lucide-react';
 import { useState } from 'react';
 export default function List({
     company,
@@ -101,8 +103,26 @@ export default function List({
                                             {c.email}
                                         </Link>
                                     </td>
-                                    <td>{c.member ? 'Yes' : 'No'}</td>
-                                    <td>{c.eligibility}</td>
+                                    <td className="py-2 pr-3">
+                                        {c.member ? (
+                                            <span
+                                                className="inline-flex size-7 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                                title="Included in list"
+                                            >
+                                                <Check aria-hidden="true" className="size-4" />
+                                                <span className="sr-only">Included in list</span>
+                                            </span>
+                                        ) : (
+                                            <span
+                                                className="text-muted-foreground inline-flex size-7 items-center justify-center"
+                                                title="Not in list"
+                                            >
+                                                <Minus aria-hidden="true" className="size-4" />
+                                                <span className="sr-only">Not in list</span>
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td>{eligibilityLabel(c.eligibility)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -113,7 +133,12 @@ export default function List({
             <Panel title="Membership history">
                 {history.map((h) => (
                     <p className="py-2 text-sm" key={h.id}>
-                        {h.action} · contact {h.metadata.contact_id ?? '—'} · {new Date(h.created_at).toLocaleString()}
+                        {h.action === 'list.membership_add'
+                            ? 'Added to list'
+                            : h.action === 'list.membership_remove'
+                              ? 'Removed from list'
+                              : readableLabel(h.action)}{' '}
+                        · contact {h.metadata.contact_id ?? '—'} · {new Date(h.created_at).toLocaleString()}
                     </p>
                 ))}
             </Panel>
