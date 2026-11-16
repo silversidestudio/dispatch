@@ -52,6 +52,14 @@ return [
 
     'channels' => [
 
+        'account_mail' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/account-mail.log'),
+            'level' => 'debug',
+            'days' => 2,
+            'permission' => 0600,
+        ],
+
         'stack' => [
             'driver' => 'stack',
             'channels' => explode(',', env('LOG_STACK', 'single')),

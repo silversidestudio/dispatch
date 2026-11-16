@@ -134,16 +134,7 @@ it('fails production requests closed for debug HTTP or insecure cookies', functi
     $this->get('/login')->assertStatus(400);
     $this->get('https://example.test/login')->assertOk()->assertHeader('Strict-Transport-Security', 'max-age=31536000')->assertHeader('Referrer-Policy', 'same-origin');
 });
-it('sends framework account notifications only through an explicitly authorised mocked auth channel', function () {
-    Http::preventStrayRequests();
-    $u = User::factory()->unverified()->create();
-    config(['dispatch.pilot.enabled' => false, 'dispatch.sendgrid.auth_enabled' => true, 'dispatch.sendgrid.auth_from' => 'accounts@example.test', 'dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.live_enabled' => true, 'dispatch.sendgrid.api_key' => 'test']);
-    Http::fake(['*' => Http::response([], 202)]);
-    $u->sendEmailVerificationNotification();
-    $u->sendPasswordResetNotification('test-reset-token');
-    Http::assertSentCount(2);
-    Http::assertSent(fn ($r) => $r['tracking_settings']['open_tracking']['enable'] === false && $r['from']['email'] === 'accounts@example.test');
-});
+
 it('prepares only an eligible tenant-scoped single-recipient simulation or sandbox test without submission', function () {
     Queue::fake();
     Http::preventStrayRequests();

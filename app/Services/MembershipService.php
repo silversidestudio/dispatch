@@ -4,7 +4,10 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\Organisation;
+use App\Notifications\CompanyInvitation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -25,16 +28,25 @@ class MembershipService
     {
         $email = strtolower(trim($email));
         $token = Str::random(64);
-        DB::transaction(function () use ($o, $email, $role, $token) {
+        $url = url('/invitations/'.$token);
+        DB::transaction(function () use ($o, $email, $role, $token, $url) {
             Organisation::whereKey($o->id)->lockForUpdate()->firstOrFail();
             if ($o->members()->where('email', $email)->exists()) {
                 throw ValidationException::withMessages(['email' => 'Already a member.']);
             }
             DB::table('organisation_invitations')->updateOrInsert(['organisation_id' => $o->id, 'email' => $email], ['role' => $role, 'token_hash' => hash('sha256', $token), 'expires_at' => now()->addDays(7), 'created_at' => now(), 'updated_at' => now()]);
             AuditLog::record('invitation.created', $o->id, ['role' => $role]);
+            DB::afterCommit(function () use ($o, $email, $url) {
+                try {
+                    Notification::route('mail', $email)->notify(new CompanyInvitation($o->name, $url));
+                } catch (\Throwable) {
+                    // Preserve the manually shareable link and avoid logging SMTP responses or tokens.
+                    Log::warning('Company invitation email could not be dispatched.', ['organisation_id' => $o->id]);
+                }
+            });
         });
 
-        return url('/invitations/'.$token);
+        return $url;
     }
 
     public function change(Organisation $o, int $id, ?string $role): void

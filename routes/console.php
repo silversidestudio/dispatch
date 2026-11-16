@@ -110,7 +110,7 @@ Artisan::command('dispatch:launch-check', function () {
     $this->table(['Check', 'Result'], collect($checks)->map(fn ($ok, $name) => [$name, $ok ? 'PASS' : 'CHECK'])->values()->all());
     $this->line('Live sending: '.(config('dispatch.sendgrid.live_enabled') ? 'enabled' : 'disabled'));
     $this->line('Restricted pilot: '.(config('dispatch.pilot.enabled') ? 'enabled' : 'disabled'));
-    $this->line('Account mail: '.(config('dispatch.sendgrid.auth_enabled') ? 'SendGrid configured to handle account notifications; verify separately' : 'local log only'));
+    $this->line('Account mail transport: '.config('mail.default'));
     $this->comment('Check the scheduler, external HTTPS/webhooks, backups, monitoring and real mail separately.');
 
     return in_array(false, $checks, true) ? 1 : 0;

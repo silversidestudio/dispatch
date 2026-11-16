@@ -24,16 +24,13 @@ Start with:
 DISPATCH_DELIVERY_PROVIDER=simulation
 SENDGRID_ENABLED=false
 SENDGRID_LIVE_SENDING_ENABLED=false
-SENDGRID_AUTH_ENABLED=false
-# Optional platform account notifications only.
-SENDGRID_API_KEY=
 DISPATCH_PILOT_ENABLED=true
 DISPATCH_PILOT_DAILY_LIMIT=25
 DISPATCH_PILOT_RECIPIENTS=
 DISPATCH_PILOT_ORGANISATION_IDS=
 ```
 
-The actual simulation value is `simulation`, not `simulated`. Empty pilot scope deliberately blocks live campaigns. Open/click tracking remains off pending approval. Account verification/reset messages remain in protected application logs during this stage; this is not production account-email readiness. Do not expose logs or verification/reset links. Account email delivery must be separately authorised and tested before launch; SendGrid account notifications are deliberately blocked while restricted campaign pilot mode is enabled.
+The actual simulation value is `simulation`, not `simulated`. Empty pilot scope deliberately blocks live campaigns. Open/click tracking remains off pending approval. Account verification/reset messages remain in protected application logs during this stage; this is not production account-email readiness. Do not expose logs or verification/reset links. Account email delivery must be separately authorised and tested before launch. See [system email setup](system-email.md).
 
 ## Release procedure — execute later on approved staging only
 

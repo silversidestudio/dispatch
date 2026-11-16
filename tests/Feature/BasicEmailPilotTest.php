@@ -118,14 +118,6 @@ it('rejects demonstration copy for live campaigns while allowing safe simulation
     expect(implode(' ', app(CampaignService::class)->preflight($c)['errors']))->toContain('demonstration headline');
 });
 
-it('blocks account notification delivery from bypassing the restricted campaign pilot', function () {
-    Http::preventStrayRequests();
-    $u = User::factory()->unverified()->create();
-    config(['dispatch.pilot.enabled' => true, 'dispatch.sendgrid.auth_enabled' => true, 'dispatch.sendgrid.auth_from' => 'accounts@example.test', 'dispatch.sendgrid.enabled' => true, 'dispatch.sendgrid.live_enabled' => true, 'dispatch.sendgrid.api_key' => 'test']);
-    expect(fn () => $u->sendEmailVerificationNotification())->toThrow(RuntimeException::class, 'restricted campaign pilot');
-    expect(fn () => $u->sendPasswordResetNotification('test-token'))->toThrow(RuntimeException::class, 'restricted campaign pilot');
-    Http::assertNothingSent();
-});
 it('starts a fresh UTC daily budget without allowing a reserved correlation to replay', function () {
     [$u, $o] = restrictedPilot(1);
     $guard = app(SendGridPilotGuard::class);

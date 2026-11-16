@@ -15,7 +15,7 @@ Use this with [the approved checklist](client-launch-checklist.md). This branch 
 2. Run `php artisan dispatch:launch-check`. Resolve any CHECK rows. This checks cached settings and local connectivity; it does not prove external TLS, scheduler cadence, delivery or backup recovery. Run a dummy import and a scheduled simulation with the manual SSH session closed.
 3. Verify a protected off-server backup and restore it into an isolated environment with egress/sending disabled. Record the backup timestamp, restored scope, time to recover and evidence that the database, private files and encrypted fields are readable. Keep recovery keys out of task logs and wide-access storage. Confirm how post-backup submissions and suppressions would be reconciled.
 4. Set alerts for HTTPS liveness, scheduler last success, Horizon worker/queue delay, failed jobs, webhook errors and backup age. Trigger at least one controlled alert and confirm who receives and responds to it. Inspect web and app logs for secret or private link leakage.
-5. Have a client test user verify an invitation, sign in, and exercise recovery. The log-based local flow requires operator handling now. Agree and test a secure client account mail/recovery route before changeover; campaign credentials do not send account mail.
+5. Have a client test user verify an invitation, sign in, and exercise recovery. The log-based local flow requires operator handling now. Configure and test the [separate SMTP mailer](system-email.md) before changeover; campaign credentials do not send account mail.
 
 ## Verify feedback and engagement
 

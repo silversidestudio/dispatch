@@ -21,7 +21,7 @@ npm run build
 php artisan serve --host=127.0.0.1 --port=8012
 ```
 
-Run `php artisan horizon` and `php artisan schedule:work` in separate terminals. For a fresh installation, run `php artisan platform:bootstrap` interactively to create the first administrator. Public registration is closed. Create companies and invitations in Platform administration; new users set their password through a valid invitation, verify their address and accept it. Verification and reset messages are written to `storage/logs/laravel.log`; these logs are sensitive and ignored by Git. Alternatively verify locally with `php artisan development:verify your-address@example.test`. Promote an existing account with `php artisan platform:promote your-address@example.test`. Passwords are chosen in the registration form, never seeded or committed.
+Run `php artisan horizon` and `php artisan schedule:work` in separate terminals. For a fresh installation, run `php artisan platform:bootstrap` interactively to create the first administrator. Public registration is closed. Create companies and invitations in Platform administration; new users set their password through a valid invitation, verify their address and accept it. By default, verification, reset and invitation messages are written to `storage/logs/account-mail-YYYY-MM-DD.log`; these logs are sensitive and ignored by Git. Alternatively verify locally with `php artisan development:verify your-address@example.test`. Promote an existing account with `php artisan platform:promote your-address@example.test`. Passwords are chosen in the registration form, never seeded or committed.
 
 See [Phase 1B handover](docs/phase-1b-handover.md), [contact eligibility](docs/contact-eligibility.md), [campaign lifecycle](docs/campaign-lifecycle.md), [simulation](docs/simulated-delivery.md) and [editor](docs/email-editor.md).
 
@@ -49,3 +49,5 @@ Basic email and restricted pilot preparation (11 November): [handover](docs/basi
 Set `APP_NAME="Campaign Manager"` in the client's server `.env`; keep `APP_NAME=Dispatch` on your own installation. The sidebar, browser titles, unsubscribe page and framework notification branding use Laravel's configured name. Deploy this release and its frontend build once; later name changes need only a configuration cache refresh, a Horizon restart to pick up the cached configuration, and a browser reload. `VITE_APP_NAME` is no longer needed.
 
 Before renaming an existing installation, preserve the current effective `REDIS_PREFIX`, `CACHE_PREFIX`, `HORIZON_PREFIX` and `SESSION_COOKIE` explicitly if they currently derive from the old app name. This keeps existing queue keys, cache locks and sessions reachable. Keep separate namespaces for separate installations. Campaign sender names and addresses remain controlled by the selected sending identity.
+
+[System email setup](docs/system-email.md): optional platform SMTP for verification, resets and invitations, independent of SendGrid campaigns.

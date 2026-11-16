@@ -106,9 +106,9 @@ it('restricts platform and Horizon even in local development', function () {
     $this->patch("/platform/organisations/{$outsider->id}", ['status' => 'suspended'])->assertRedirect();
     $this->assertDatabaseHas('audit_logs', ['action' => 'organisation.status_updated', 'organisation_id' => $outsider->id]);
 });
-it('never exposes an external mail transport', function () {
-    expect(config('mail.default'))->toBe('log');
-    expect(array_keys(config('mail.mailers')))->toBe(['log', 'array']);
+it('uses an in-memory mailer for foundation tests', function () {
+    expect(config('mail.default'))->toBe('array');
+    expect(config('mail.mailers'))->toHaveKeys(['log', 'array', 'smtp']);
 });
 
 it('prevents an owner from orphaning a workspace through account deletion', function () {

@@ -30,9 +30,6 @@ class SendGridPilotGuard
         if ($limit < 1 || $limit > 100) {
             $errors[] = 'Pilot daily limit must be between 1 and 100; the recommended limit is 25.';
         }
-        if (config('dispatch.sendgrid.auth_enabled')) {
-            $errors[] = 'SendGrid account notifications must remain disabled during the restricted campaign pilot.';
-        }
 
         return $errors;
     }
