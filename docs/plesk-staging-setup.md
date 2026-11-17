@@ -37,13 +37,12 @@ The actual simulation value is `simulation`, not `simulated`. Empty pilot scope 
 Back up database and release configuration first. Install the reviewed Git release without credentials in source control. Typical commands (using the verified PHP binary) are:
 
 ```sh
-composer install --no-dev --prefer-dist --optimize-autoloader
-npm ci
-npm run build
-php artisan storage:link
+/opt/plesk/php/8.3/bin/php artisan storage:link
 ```
 
-Generate APP_KEY only for a brand-new installation; never regenerate an existing application's encryption key. Migrate additively; never use migrate:fresh or reset/reseed an existing database. In **Websites & Domains → Git → Repository Settings**, enable post-deployment actions and configure `/bin/bash scripts/plesk-post-deploy.sh`. It automatically applies pending migrations with `migrate --force`, refreshes Laravel caches and signals Horizon to restart on every release. Take a protected database/storage backup before deployment; the hook does not make backups. Set `DISPATCH_PHP_BIN` if Plesk uses a different PHP CLI than `/opt/plesk/php/8.3/bin/php`. Provision accounts through registration and promote an explicitly chosen existing user with `php artisan platform:promote address@example.test`. Use the normal password workflow; no shared hardcoded admin password. Confirm configuration and permissions before opening access.
+The Git post-deployment script installs Composer and npm dependencies and builds frontend assets as part of each release. It uses Node 26 from the repository's `.node-version`; Node 26 and nodenv must be available to the Plesk subscription user. For a manual first installation without the Git post-deployment action, install the locked Composer and npm dependencies and build the assets as the same subscription user before opening the site.
+
+Generate APP_KEY only for a brand-new installation; never regenerate an existing application's encryption key. Migrate additively; never use migrate:fresh or reset/reseed an existing database. In **Websites & Domains → Git → Repository Settings**, enable post-deployment actions and configure `/bin/bash scripts/plesk-post-deploy.sh`. It automatically builds assets, applies pending migrations with `migrate --force`, refreshes Laravel caches and signals Horizon to restart on every release. Take a protected database/storage backup before deployment; the hook does not make backups. Set `DISPATCH_PHP_BIN` if Plesk uses a different PHP CLI than `/opt/plesk/php/8.3/bin/php`. Provision accounts through registration and promote an explicitly chosen existing user with `php artisan platform:promote address@example.test`. Use the normal password workflow; no shared hardcoded admin password. Confirm configuration and permissions before opening access.
 
 ## Workers and scheduler
 
