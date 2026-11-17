@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\EmailTemplate;
+use App\Models\EmailTemplateCatalogItem;
 use App\Models\Organisation;
 use App\Models\SendingIdentity;
 use App\Services\EmailContentService;
@@ -51,8 +52,9 @@ class ContentController extends Controller
     public function templates(Organisation $organisation)
     {
         Gate::authorize('view', $organisation);
+        $gallery = $this->galleryTemplates($organisation);
 
-        return Inertia::render('templates', ['company' => $organisation, 'templates' => EmailTemplate::where('organisation_id', $organisation->id)->latest()->get(['id', 'name', 'category', 'subject', 'preview_text', 'text_body']), 'basic' => app(EmailStarterTemplates::class)->basic($organisation->email_branding ?? []), 'starters' => app(EmailContentService::class)->starters($organisation->email_branding ?? []), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+        return Inertia::render('templates', ['company' => $organisation, 'templates' => EmailTemplate::where('organisation_id', $organisation->id)->latest()->get(['id', 'name', 'category', 'subject', 'preview_text', 'text_body']), 'basic' => app(EmailStarterTemplates::class)->basic($organisation->email_branding ?? []), 'starters' => $gallery['items'], 'customGallery' => $gallery['custom'], 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
     }
 
     public function basic(Request $r, Organisation $organisation)
@@ -77,8 +79,9 @@ class ContentController extends Controller
     public function starterPreview(Organisation $organisation, int $starter)
     {
         Gate::authorize('view', $organisation);
-        abort_unless($starter >= 0 && $starter < 5, 404);
-        $s = app(EmailContentService::class)->starters($organisation->email_branding ?? [])[$starter];
+        $gallery = $this->galleryTemplates($organisation)['items'];
+        abort_unless(isset($gallery[$starter]), 404);
+        $s = $gallery[$starter];
 
         return response(app(EmailContentService::class)->render($s['html'], ['first_name' => 'Alex', 'last_name' => 'Example', 'email' => 'preview@example.test', 'sender_name' => $organisation->name, 'sender_address' => $organisation->postal_address ?: '10 Example Street, London · demonstration address', 'unsubscribe_url' => '#preview-only'], $s['preview_text']))->header('Content-Security-Policy', "default-src 'none'; img-src 'self' https:; style-src 'unsafe-inline'; sandbox")->header('Referrer-Policy', 'no-referrer');
     }
@@ -99,12 +102,16 @@ class ContentController extends Controller
     public function starter(Request $r, Organisation $organisation)
     {
         Gate::authorize('manageCampaigns', $organisation);
-        $d = $r->validate(['starter' => 'required|integer|min:0|max:4']);
-        $s = app(EmailContentService::class)->starters($organisation->email_branding ?? [])[$d['starter']];
+        $d = $r->validate(['starter' => 'required|integer|min:0']);
+        $gallery = $this->galleryTemplates($organisation);
+        abort_unless(isset($gallery['items'][$d['starter']]), 404);
+        $s = $gallery['items'][$d['starter']];
+        $catalogItemId = $s['catalog_item_id'] ?? null;
         unset($s['description']);
+        unset($s['catalog_item_id']);
         $s['html'] = app(EmailContentService::class)->clean($s['html']);
         $t = EmailTemplate::create(['organisation_id' => $organisation->id, ...$s, 'text_body' => app(EmailContentService::class)->text($s['html'])]);
-        AuditLog::record('template.created', $organisation->id, ['template_id' => $t->id]);
+        AuditLog::record('template.created', $organisation->id, ['template_id' => $t->id, 'catalog_item_id' => $catalogItemId]);
 
         return redirect("/organisations/$organisation->id/templates/$t->id");
     }
@@ -145,11 +152,53 @@ class ContentController extends Controller
         return redirect("/organisations/$organisation->id/templates/$copy->id");
     }
 
+    public function templateDelete(Organisation $organisation, EmailTemplate $template)
+    {
+        Gate::authorize('manageCampaigns', $organisation);
+        abort_unless($template->organisation_id === $organisation->id, 404);
+
+        $templateId = $template->id;
+        $templateName = $template->name;
+        DB::transaction(function () use ($organisation, $template, $templateId, $templateName) {
+            $template->delete();
+            AuditLog::record('template.deleted', $organisation->id, ['template_id' => $templateId, 'name' => $templateName]);
+        });
+
+        return redirect("/organisations/$organisation->id/templates")->with('success', 'Template deleted. Campaign content is unchanged.');
+    }
+
     public function preview(Organisation $organisation, EmailTemplate $template)
     {
         Gate::authorize('view', $organisation);
         abort_unless($template->organisation_id === $organisation->id, 404);
 
         return response(app(EmailContentService::class)->render($template->html, ['first_name' => 'Alex', 'last_name' => 'Example', 'email' => 'preview@example.test', 'sender_name' => $organisation->name, 'sender_address' => $organisation->postal_address ?? 'Sender address required', 'unsubscribe_url' => '#preview-only'], $template->preview_text ?? ''))->header('Content-Security-Policy', "default-src 'none'; img-src 'self' https:; style-src 'unsafe-inline'; sandbox")->header('Referrer-Policy', 'no-referrer');
+    }
+
+    /** @return array{items: array<int, array<string, mixed>>, custom: bool} */
+    private function galleryTemplates(Organisation $organisation): array
+    {
+        $catalog = EmailTemplateCatalogItem::where('organisation_id', $organisation->id)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        if ($catalog->isNotEmpty()) {
+            return [
+                'items' => $catalog->values()->map(fn (EmailTemplateCatalogItem $item) => [
+                    'catalog_item_id' => $item->id,
+                    'name' => $item->name,
+                    'category' => $item->category,
+                    'subject' => $item->subject,
+                    'preview_text' => $item->preview_text,
+                    'description' => $item->description,
+                    'html' => $item->html,
+                    'text_body' => $item->text_body,
+                ])->all(),
+                'custom' => true,
+            ];
+        }
+
+        return ['items' => app(EmailContentService::class)->starters($organisation->email_branding ?? []), 'custom' => false];
     }
 }

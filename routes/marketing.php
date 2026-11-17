@@ -53,6 +53,7 @@ Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')-
     Route::patch('templates/{template}', [$c, 'templateSave']);
     Route::post('templates/{template}/duplicate', [$c, 'duplicate']);
     Route::get('templates/{template}/preview', [$c, 'preview']);
+    Route::delete('templates/{template}', [$c, 'templateDelete']);
 });
 Route::get('/unsubscribe/{token}', [UnsubscribeController::class, 'show'])->middleware(['signed:relative', 'throttle:30,1'])->name('unsubscribe.show');
 Route::post('/unsubscribe/{token}', [UnsubscribeController::class, 'store'])->middleware(['signed:relative', 'throttle:30,1']);

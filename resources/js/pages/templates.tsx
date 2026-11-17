@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Workspace } from '@/components/workspace';
 import { Link, router } from '@inertiajs/react';
-import { ArrowUpRight, Copy, Eye, FilePlus2, Pencil, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Copy, Eye, FilePlus2, Pencil, Sparkles, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 export type Template = { id: number; name: string; category: string; subject: string; preview_text: string | null; html: string; text_body: string };
 type Starter = { name: string; category: string; subject: string; description: string; html: string; text_body: string };
@@ -28,11 +28,13 @@ export default function Templates({
     company,
     templates,
     starters,
+    customGallery,
     canManage,
 }: {
     company: Company;
     templates: Template[];
     starters: Starter[];
+    customGallery: boolean;
     canManage: boolean;
 }) {
     const base = `/organisations/${company.id}/templates`;
@@ -109,14 +111,29 @@ export default function Templates({
                                         </Link>
                                     </Button>
                                     {canManage && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            aria-label={`Duplicate ${t.name}`}
-                                            onClick={() => router.post(`${base}/${t.id}/duplicate`)}
-                                        >
-                                            <Copy className="size-3.5" />
-                                        </Button>
+                                        <>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                aria-label={`Duplicate ${t.name}`}
+                                                onClick={() => router.post(`${base}/${t.id}/duplicate`)}
+                                            >
+                                                <Copy className="size-3.5" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                aria-label={`Delete ${t.name}`}
+                                                className="text-destructive hover:text-destructive"
+                                                onClick={() => {
+                                                    if (confirm(`Delete “${t.name}” from Your Library? Campaign content will remain unchanged.`)) {
+                                                        router.delete(`${base}/${t.id}`);
+                                                    }
+                                                }}
+                                            >
+                                                <Trash2 className="size-3.5" />
+                                            </Button>
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -137,10 +154,14 @@ export default function Templates({
                 <div className="mb-5">
                     <div className="mb-2 flex items-center gap-2">
                         <Sparkles className="size-4 text-emerald-600" />
-                        <p className="text-xs font-medium tracking-widest uppercase">The Studio collection · v2</p>
+                        <p className="text-xs font-medium tracking-widest uppercase">{customGallery ? 'Relaxa collection' : 'The Studio collection · v2'}</p>
                     </div>
-                    <h2 className="text-lg font-semibold">Designed to make a good impression</h2>
-                    <p className="text-muted-foreground mt-1 text-sm">Five original, responsive designs. Existing templates are never replaced.</p>
+                    <h2 className="text-lg font-semibold">{customGallery ? 'Relaxa webinar designs' : 'Designed to make a good impression'}</h2>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                        {customGallery
+                            ? 'Choose a Relaxa design to add an editable copy to Your Library. Changes to that copy stay separate.'
+                            : 'Five original, responsive designs. Existing templates are never replaced.'}
+                    </p>
                 </div>
                 <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Template categories">
                     {categories.map((c) => (
