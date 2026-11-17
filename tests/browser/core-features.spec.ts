@@ -93,6 +93,21 @@ test('platform company to owner contacts import campaign simulation and reportin
     await owner.screenshot({ path: 'test-results/list-membership-mobile.png', fullPage: true });
     await owner.setViewportSize({ width: 1440, height: 1000 });
 
+    await owner.goto(base + '/audiences');
+    await owner.getByLabel('Segment name', { exact: true }).fill('Recently added contacts');
+    await owner.getByRole('button', { name: 'Add condition', exact: true }).click();
+    await owner.getByLabel('Contact field').nth(1).selectOption('created_after');
+    const createdAfter = owner.getByLabel('Created on or after', { exact: true });
+    await expect(createdAfter).toHaveAttribute('type', 'date');
+    await createdAfter.fill(new Date().toISOString().slice(0, 10));
+    await owner.getByRole('button', { name: 'Create segment', exact: true }).click();
+    const segmentCard = owner.getByText('Recently added contacts', { exact: true }).locator('..');
+    await expect(owner.getByText('Status is Active', { exact: true })).toBeVisible();
+    await expect(owner.getByText(/Created on or after \d{4}-\d{2}-\d{2}/)).toBeVisible();
+    await owner.getByRole('button', { name: 'Preview segment' }).click();
+    await expect(owner.getByText('Preview: Recently added contacts', { exact: true })).toBeVisible();
+    await expect(segmentCard).toContainText('eligible to email');
+
     await owner.goto(base + '/identities');
     await owner.getByLabel('Sender name', { exact: true }).fill('Company News');
     await owner.getByLabel('Sender email', { exact: true }).fill('news@example.test');

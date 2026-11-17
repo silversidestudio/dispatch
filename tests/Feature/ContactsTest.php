@@ -70,6 +70,27 @@ it('evaluates structured segments within a tenant and list membership does not r
     expect(app(AudienceService::class)->query($o->id, 'list', $l->id, true)->count())->toBe(0);
     $this->actingAs($u)->post("/organisations/$o->id/segments", ['name' => 'Unsafe', 'rules' => [['field' => 'raw_sql', 'value' => '1=1']]])->assertSessionHasErrors();
 });
+
+it('evaluates dynamic segment date boundaries inclusively', function () {
+    $user = User::factory()->create();
+    $organisation = workspaceFor($user);
+    $oldContact = contactFor($organisation, 'older@example.test');
+    $oldContact->forceFill(['created_at' => now()->subDays(2)])->saveQuietly();
+    $newContact = contactFor($organisation, 'newer@example.test');
+    $newContact->forceFill(['created_at' => now()])->saveQuietly();
+    $segment = Segment::create([
+        'organisation_id' => $organisation->id,
+        'name' => 'Created today',
+        'rules' => [
+            ['field' => 'created_after', 'value' => now()->toDateString()],
+            ['field' => 'created_before', 'value' => now()->toDateString()],
+        ],
+    ]);
+
+    expect(app(AudienceService::class)->query($organisation->id, 'segment', $segment->id)->pluck('id')->all())
+        ->toBe([$newContact->id]);
+});
+
 it('imports through a queued mapping workflow with validation duplicates and retry idempotency', function () {
     Storage::fake();
     Queue::fake();
