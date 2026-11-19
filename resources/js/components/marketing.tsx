@@ -83,13 +83,21 @@ export function Pages<T>({ page }: { page: Page<T> }) {
             </span>
             <div className="flex gap-4">
                 {page.prev_page_url && (
-                    <Link className="hover:bg-muted inline-flex items-center gap-1 rounded-md border px-3 py-1.5" href={page.prev_page_url}>
+                    <Link
+                        preserveScroll
+                        className="hover:bg-muted inline-flex items-center gap-1 rounded-md border px-3 py-1.5"
+                        href={page.prev_page_url}
+                    >
                         <ChevronLeft aria-hidden="true" className="size-4" />
                         Previous
                     </Link>
                 )}
                 {page.next_page_url && (
-                    <Link className="hover:bg-muted inline-flex items-center gap-1 rounded-md border px-3 py-1.5" href={page.next_page_url}>
+                    <Link
+                        preserveScroll
+                        className="hover:bg-muted inline-flex items-center gap-1 rounded-md border px-3 py-1.5"
+                        href={page.next_page_url}
+                    >
                         Next
                         <ChevronRight aria-hidden="true" className="size-4" />
                     </Link>
