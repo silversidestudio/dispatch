@@ -75,12 +75,23 @@ class CampaignController extends Controller
     {
         Gate::authorize('manageCampaigns', $organisation);
         $record = Campaign::withTrashed()->where('organisation_id', $organisation->id)->findOrFail($campaign);
-        abort_unless($record->status === 'draft' && ! $record->snapshot, 422, 'This campaign cannot be restored to an editable draft.');
-        $record->restore();
-        $record->update(['archived_at' => null]);
-        AuditLog::record('campaign.restored', $organisation->id, ['campaign_id' => $record->id]);
+        if ($record->trashed()) {
+            abort_unless($record->status === 'draft' && ! $record->snapshot, 422, 'Only unsent draft campaigns can be restored from Recently deleted.');
+            $record->restore();
+            $record->update(['archived_at' => null]);
+            AuditLog::record('campaign.restored', $organisation->id, ['campaign_id' => $record->id]);
 
-        return back()->with('success', 'Campaign restored as a draft.');
+            return back()->with('success', 'Campaign restored as a draft.');
+        }
+
+        if ($record->archived_at) {
+            $record->update(['archived_at' => null]);
+            AuditLog::record('campaign.unarchived', $organisation->id, ['campaign_id' => $record->id, 'status' => $record->status]);
+
+            return back()->with('success', 'Campaign restored to Active. Its current status and delivery history are unchanged.');
+        }
+
+        return back()->with('success', 'Campaign is already active.');
     }
 
     public function create(Organisation $organisation)

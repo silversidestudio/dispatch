@@ -78,6 +78,9 @@ it('moves only unsent drafts to recently deleted and preserves sent campaign rec
     $this->delete("/organisations/$organisation->id/campaigns/$sent->id")->assertStatus(422);
     $this->post("/organisations/$organisation->id/campaigns/$sent->id/archive")->assertRedirect();
     expect($sent->fresh()->snapshot['delivery_mode'])->toBe('simulation');
+    $this->post("/organisations/$organisation->id/campaigns/$sent->id/restore")->assertRedirect();
+    expect($sent->fresh()->status)->toBe('completed');
+    expect($sent->fresh()->archived_at)->toBeNull();
 });
 
 it('lets platform administrators edit account details and re-verifies changed addresses', function () {
