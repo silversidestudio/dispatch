@@ -84,9 +84,13 @@ class AudienceController extends Controller
     {
         Gate::authorize('manageCampaigns', $organisation);
         abort_unless($list->organisation_id === $organisation->id, 404);
-        abort_if(Campaign::withTrashed()->where('organisation_id', $organisation->id)->where('audience_type', 'list')->where('audience_id', $list->id)->exists(), 422, 'This list is part of campaign history and cannot be deleted. Archive it instead.');
+        if (Campaign::withTrashed()->where('organisation_id', $organisation->id)->where('audience_type', 'list')->where('audience_id', $list->id)->exists()) {
+            return back()->withErrors(['list' => 'This list is used by campaign history, so it cannot be deleted. You can archive it instead.']);
+        }
         $segmentUsesList = Segment::where('organisation_id', $organisation->id)->get(['rules'])->contains(fn (Segment $segment) => collect($segment->rules)->contains(fn (array $rule) => ($rule['field'] ?? null) === 'list_id' && (int) ($rule['value'] ?? 0) === $list->id));
-        abort_if($segmentUsesList, 422, 'A dynamic segment uses this list. Archive the list instead.');
+        if ($segmentUsesList) {
+            return back()->withErrors(['list' => 'A dynamic segment uses this list, so it cannot be deleted. You can archive it instead.']);
+        }
         $list->delete();
         AuditLog::record('list.deleted', $organisation->id, ['list_id' => $list->id]);
 

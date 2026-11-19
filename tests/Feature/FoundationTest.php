@@ -32,6 +32,15 @@ it('restricts organisation creation to platform administrators and audits the ow
     $this->assertDatabaseHas('audit_logs', ['action' => 'organisation.created', 'organisation_id' => $o->id]);
     $this->get('/dashboard')->assertInertia(fn (Assert $p) => $p->component('dashboard')->where('organisation.id', $o->id));
 });
+it('opens the only active organisation on the dashboard and selects it for the session', function () {
+    $user = User::factory()->create();
+    $organisation = workspaceFor($user);
+
+    $this->actingAs($user)
+        ->get('/dashboard')
+        ->assertInertia(fn (Assert $page) => $page->component('dashboard')->where('organisation.id', $organisation->id))
+        ->assertSessionHas('organisation_id', $organisation->id);
+});
 it('isolates settings switching and audit activity between organisations', function () {
     $a = User::factory()->create();
     $b = User::factory()->create();

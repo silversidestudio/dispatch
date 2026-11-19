@@ -7,6 +7,7 @@ import { BarChart3, Building2, FileText, Fingerprint, LayoutGrid, List, Mail, Se
 import AppLogo from './app-logo';
 export function AppSidebar() {
     const { auth, organisations, currentOrganisationId } = usePage<SharedData>().props;
+    const singleOrganisation = organisations.length === 1 && !auth.user.is_platform_admin ? organisations[0] : null;
     const base = currentOrganisationId ? `/organisations/${currentOrganisationId}` : null;
     const workspace: NavItem[] = [
         { title: 'Overview', url: '/dashboard', icon: LayoutGrid },
@@ -48,24 +49,35 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                 </SidebarMenu>
                 <div className="px-2 py-4 group-data-[collapsible=icon]:hidden">
-                    <label htmlFor="workspace" className="text-muted-foreground mb-2 block text-xs font-medium">
-                        WORKSPACE
-                    </label>
-                    <select
-                        id="workspace"
-                        className="bg-background w-full rounded-lg border p-2 text-sm"
-                        value={currentOrganisationId ?? ''}
-                        onChange={(e) => router.post(`/organisations/${e.target.value}/switch`)}
-                    >
-                        <option value="" disabled>
-                            Select workspace
-                        </option>
-                        {organisations.map((o) => (
-                            <option key={o.id} value={o.id}>
-                                {o.name}
-                            </option>
-                        ))}
-                    </select>
+                    {singleOrganisation ? (
+                        <div aria-label="Organisation">
+                            <p className="text-muted-foreground mb-2 text-xs font-medium">ORGANISATION</p>
+                            <p className="truncate text-sm font-medium" title={singleOrganisation.name}>
+                                {singleOrganisation.name}
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <label htmlFor="workspace" className="text-muted-foreground mb-2 block text-xs font-medium">
+                                WORKSPACE
+                            </label>
+                            <select
+                                id="workspace"
+                                className="bg-background w-full rounded-lg border p-2 text-sm"
+                                value={currentOrganisationId ?? ''}
+                                onChange={(e) => router.post(`/organisations/${e.target.value}/switch`)}
+                            >
+                                <option value="" disabled>
+                                    Select workspace
+                                </option>
+                                {organisations.map((o) => (
+                                    <option key={o.id} value={o.id}>
+                                        {o.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </>
+                    )}
                 </div>
             </SidebarHeader>
             <SidebarContent>

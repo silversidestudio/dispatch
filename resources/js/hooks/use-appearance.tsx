@@ -8,6 +8,8 @@ const applyTheme = (appearance: Appearance) => {
     const isDark = appearance === 'dark' || (appearance === 'system' && prefersDark());
 
     document.documentElement.classList.toggle('dark', isDark);
+    const favicon = document.querySelector<HTMLLinkElement>('link[data-theme-favicon]');
+    if (favicon) favicon.href = isDark ? '/favicon-dark.svg' : '/favicon-light.svg';
 };
 
 const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');

@@ -61,7 +61,25 @@ it('allows list archive and restore but protects lists used by campaigns', funct
 
     $identity = SendingIdentity::create(['organisation_id' => $organisation->id, 'name' => 'Sender', 'email' => 'sender@example.test', 'domain' => 'example.test']);
     Campaign::create(['organisation_id' => $organisation->id, 'created_by' => $user->id, 'sending_identity_id' => $identity->id, 'name' => 'Draft', 'subject' => 'Subject', 'html' => 'Body', 'text_body' => 'Body', 'audience_type' => 'list', 'audience_id' => $list->id, 'status' => 'draft']);
-    $this->delete("/organisations/$organisation->id/lists/$list->id")->assertStatus(422);
+    $this->delete("/organisations/$organisation->id/lists/$list->id")
+        ->assertRedirect()
+        ->assertSessionHasErrors(['list' => 'This list is used by campaign history, so it cannot be deleted. You can archive it instead.']);
+});
+
+it('moves an unused mailing list to recently deleted without removing its contacts', function () {
+    $user = User::factory()->create();
+    $organisation = archiveTestWorkspace($user);
+    $list = MailingList::create(['organisation_id' => $organisation->id, 'name' => 'Temporary list']);
+    $contact = archiveTestContact($organisation, 'retained@example.test');
+    $list->contacts()->attach($contact->id);
+
+    $this->actingAs($user)
+        ->delete("/organisations/$organisation->id/lists/$list->id")
+        ->assertRedirect();
+
+    expect(MailingList::withTrashed()->findOrFail($list->id)->trashed())->toBeTrue();
+    $this->assertDatabaseHas('contact_mailing_list', ['mailing_list_id' => $list->id, 'contact_id' => $contact->id]);
+    $this->get("/organisations/$organisation->id/audiences?view=trash")->assertOk();
 });
 
 it('moves only unsent drafts to recently deleted and preserves sent campaign records', function () {
