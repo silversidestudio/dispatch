@@ -75,8 +75,8 @@ class CsvImportService
                 $data['email'] = strtolower($data['email'] ?? '');
                 $validation = Validator::make($data, ['email' => 'required|email:rfc|max:254', 'first_name' => 'nullable|string|max:120', 'last_name' => 'nullable|string|max:120', 'company_name' => 'nullable|string|max:255', 'telephone' => 'nullable|string|max:60']);
                 $error = count($row) !== count($headers) ? 'Column count differs from header.' : ($validation->fails() ? $validation->errors()->first() : null);
-                if (! $error && Contact::where('organisation_id', $import->organisation_id)->where('email', $data['email'])->exists()) {
-                    $error = 'Duplicate email in this company; existing record preserved.';
+                if (! $error && Contact::withTrashed()->where('organisation_id', $import->organisation_id)->where('email', $data['email'])->exists()) {
+                    $error = 'Email already exists in this company, including Recently deleted contacts. Restore the existing contact instead.';
                 }
                 if (! $error) {
                     try {

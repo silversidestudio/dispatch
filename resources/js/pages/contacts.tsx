@@ -11,20 +11,22 @@ export default function Contacts({
     filters,
     canManage,
     stats,
+    view,
 }: {
     company: Company;
     contacts: Page<Contact>;
-    filters: { search?: string; status?: string; eligibility?: string; sort?: string };
+    filters: { search?: string; eligibility?: string; sort?: string; view?: string };
     canManage: boolean;
     stats: Record<string, number>;
+    view: 'active' | 'archived' | 'trash';
 }) {
     const base = `/organisations/${company.id}`;
     const f = useForm({ email: '', first_name: '', last_name: '', company_name: '', telephone: '', source: 'Manual entry', status: 'active' });
     const search = useForm({
         search: filters.search ?? '',
-        status: filters.status ?? '',
         eligibility: filters.eligibility ?? '',
         sort: filters.sort ?? 'created_at',
+        view,
     });
     const [ids, setIds] = useState<number[]>([]);
     return (
@@ -39,19 +41,26 @@ export default function Contacts({
         >
             <Metrics data={stats} />
             <Panel title="Contact directory">
+                <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Contact view">
+                    {(['active', 'archived', 'trash'] as const).map((tab) => (
+                        <Button
+                            key={tab}
+                            size="sm"
+                            variant={view === tab ? 'default' : 'outline'}
+                            onClick={() => router.get(base + '/contacts', { ...search.data, view: tab }, { preserveState: true })}
+                        >
+                            {{ active: 'Active', archived: 'Archived', trash: 'Recently deleted' }[tab]}
+                        </Button>
+                    ))}
+                </div>
                 <form
-                    className="mb-5 grid gap-3 sm:grid-cols-4"
+                    className="mb-5 grid gap-3 sm:grid-cols-3"
                     onSubmit={(e) => {
                         e.preventDefault();
                         search.get(base + '/contacts');
                     }}
                 >
                     <Field label="Search contacts" value={search.data.search} change={(v) => search.setData('search', v)} />
-                    <Select label="Contact status" value={search.data.status} change={(v) => search.setData('status', v)}>
-                        <option value="">All statuses</option>
-                        <option value="active">Active</option>
-                        <option value="archived">Archived</option>
-                    </Select>
                     <Select label="Eligibility" value={search.data.eligibility} change={(v) => search.setData('eligibility', v)}>
                         <option value="">All eligibility</option>
                         {[
@@ -82,18 +91,57 @@ export default function Contacts({
                 </form>
                 {canManage && ids.length > 0 && (
                     <div className="mb-4 flex gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={() => router.post(base + '/contacts/bulk', { ids, action: 'archive' }, { onSuccess: () => setIds([]) })}
-                        >
-                            Archive selected
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => router.post(base + '/contacts/bulk', { ids, action: 'suppress' }, { onSuccess: () => setIds([]) })}
-                        >
-                            Suppress selected
-                        </Button>
+                        {view === 'active' && (
+                            <Button
+                                variant="outline"
+                                onClick={() =>
+                                    router.post(base + '/contacts/bulk', { ids, action: 'archive', view }, { onSuccess: () => setIds([]) })
+                                }
+                            >
+                                Archive selected
+                            </Button>
+                        )}
+                        {view === 'archived' && (
+                            <Button
+                                variant="outline"
+                                onClick={() =>
+                                    router.post(base + '/contacts/bulk', { ids, action: 'unarchive', view }, { onSuccess: () => setIds([]) })
+                                }
+                            >
+                                Restore selected
+                            </Button>
+                        )}
+                        {view !== 'trash' && (
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    if (confirm('Move the selected contacts to Recently deleted? Campaign and suppression history will be retained.'))
+                                        router.post(base + '/contacts/bulk', { ids, action: 'delete', view }, { onSuccess: () => setIds([]) });
+                                }}
+                            >
+                                Delete selected
+                            </Button>
+                        )}
+                        {view === 'trash' && (
+                            <Button
+                                variant="outline"
+                                onClick={() =>
+                                    router.post(base + '/contacts/bulk', { ids, action: 'restore', view }, { onSuccess: () => setIds([]) })
+                                }
+                            >
+                                Restore selected
+                            </Button>
+                        )}
+                        {view !== 'trash' && (
+                            <Button
+                                variant="outline"
+                                onClick={() =>
+                                    router.post(base + '/contacts/bulk', { ids, action: 'suppress', view }, { onSuccess: () => setIds([]) })
+                                }
+                            >
+                                Suppress selected
+                            </Button>
+                        )}
                     </div>
                 )}
                 <div className="overflow-auto">
@@ -112,7 +160,7 @@ export default function Contacts({
                                 </th>
                                 <th>Email</th>
                                 <th>Name</th>
-                                <th>Status</th>
+                                {view !== 'trash' && <th>Status</th>}
                                 <th>Eligibility</th>
                                 <th>Source</th>
                             </tr>
@@ -138,9 +186,11 @@ export default function Contacts({
                                     <td>
                                         {c.first_name} {c.last_name}
                                     </td>
-                                    <td>
-                                        <DeliveryStatus status={c.status} />
-                                    </td>
+                                    {view !== 'trash' && (
+                                        <td>
+                                            <DeliveryStatus status={c.status} />
+                                        </td>
+                                    )}
                                     <td>
                                         <EligibilityStatus status={c.eligibility} />
                                     </td>

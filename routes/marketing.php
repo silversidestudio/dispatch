@@ -23,6 +23,7 @@ Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')-
     Route::get('contacts', [C::class, 'index']);
     Route::post('contacts', [C::class, 'store']);
     Route::post('contacts/bulk', [C::class, 'bulk']);
+    Route::post('contacts/{contact}/restore', [C::class, 'restore']);
     Route::get('contacts/{contact}', [C::class, 'show']);
     Route::patch('contacts/{contact}', [C::class, 'update']);
     Route::post('contacts/{contact}/eligibility', [C::class, 'eligibility']);
@@ -31,6 +32,9 @@ Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')-
     Route::post('lists', [A::class, 'listStore']);
     Route::get('lists/{list}', [A::class, 'show']);
     Route::patch('lists/{list}', [A::class, 'listUpdate']);
+    Route::post('lists/{list}/archive', [A::class, 'listArchive']);
+    Route::post('lists/{list}/restore', [A::class, 'listRestore']);
+    Route::delete('lists/{list}', [A::class, 'listDelete']);
     Route::post('lists/{list}/members', [A::class, 'membership']);
     Route::post('segments', [A::class, 'segment']);
     Route::patch('segments/{segment}', [A::class, 'segment']);
@@ -68,6 +72,9 @@ Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')-
     Route::post('campaigns/{campaign}/ready', [$c, 'ready']);
     Route::post('campaigns/{campaign}/schedule', [$c, 'schedule']);
     Route::post('campaigns/{campaign}/cancel', [$c, 'cancel']);
+    Route::post('campaigns/{campaign}/archive', [$c, 'archive']);
+    Route::post('campaigns/{campaign}/restore', [$c, 'restore']);
+    Route::delete('campaigns/{campaign}', [$c, 'delete']);
     Route::post('campaigns/{campaign}/prepare-test', [$c, 'prepareTest'])->middleware('throttle:10,1');
     Route::post('campaigns/{campaign}/duplicate', [$c, 'duplicate']);
     Route::get('campaigns/{campaign}/preview', [$c, 'preview']);

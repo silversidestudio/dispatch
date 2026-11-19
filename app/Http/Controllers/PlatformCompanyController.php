@@ -14,6 +14,7 @@ use App\Services\MembershipService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class PlatformCompanyController extends Controller
@@ -119,7 +120,7 @@ class PlatformCompanyController extends Controller
             $q->where('status', $s);
         }
 
-        return Inertia::render('platform-users', ['accounts' => $q->with('organisations:id,name')->orderBy('name')->paginate(15)->withQueryString(), 'filters' => $d, 'invitations' => DB::table('organisation_invitations')->latest('id')->limit(30)->get(['id', 'organisation_id', 'email', 'role', 'expires_at']), 'audit' => AuditLog::whereIn('action', ['platform.account_status_changed', 'platform.admin_promoted', 'platform.initial_admin_created'])->latest('id')->limit(30)->get()]);
+        return Inertia::render('platform-users', ['accounts' => $q->with('organisations:id,name')->orderBy('name')->paginate(15)->withQueryString(), 'filters' => $d, 'invitations' => DB::table('organisation_invitations')->latest('id')->limit(30)->get(['id', 'organisation_id', 'email', 'role', 'expires_at']), 'audit' => AuditLog::whereIn('action', ['platform.account_status_changed', 'platform.account_updated', 'platform.admin_promoted', 'platform.initial_admin_created'])->latest('id')->limit(30)->get()]);
     }
 
     public function userStatus(Request $r, User $user)
@@ -139,5 +140,36 @@ class PlatformCompanyController extends Controller
         });
 
         return back()->with('success', 'Account status updated.');
+    }
+
+    public function updateUser(Request $request, User $user)
+    {
+        Gate::authorize('platform');
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => ['required', 'email:rfc', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+        ]);
+
+        $emailChanged = false;
+        DB::transaction(function () use ($user, $data, &$emailChanged) {
+            $target = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $emailChanged = strtolower($target->email) !== strtolower($data['email']);
+            $target->name = $data['name'];
+            $target->email = strtolower($data['email']);
+            if ($emailChanged) {
+                $target->email_verified_at = null;
+            }
+            $target->save();
+            if ($emailChanged) {
+                DB::table('sessions')->where('user_id', $target->id)->delete();
+            }
+            AuditLog::record('platform.account_updated', null, ['account_id' => $target->id, 'email_changed' => $emailChanged]);
+        });
+
+        if ($emailChanged) {
+            $user->fresh()->sendEmailVerificationNotification();
+        }
+
+        return back()->with('success', $emailChanged ? 'Account details updated. A verification email was sent to the new address.' : 'Account details updated.');
     }
 }

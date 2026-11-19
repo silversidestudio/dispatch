@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Panel, Workspace } from '@/components/workspace';
 import { readableLabel } from '@/lib/labels';
 import { Link, router, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 type Account = {
     id: number;
     name: string;
@@ -24,6 +25,8 @@ export default function Users({
     audit: { id: number; action: string; metadata: { account_id?: number }; created_at: string }[];
 }) {
     const f = useForm({ search: filters.search ?? '', status: filters.status ?? '' });
+    const edit = useForm({ name: '', email: '' });
+    const [editing, setEditing] = useState<number | null>(null);
     return (
         <Workspace title="Platform users" subtitle="Accounts, company access and invitations.">
             <Panel title="User directory">
@@ -56,7 +59,7 @@ export default function Users({
                     <table className="w-full text-left text-sm">
                         <thead>
                             <tr>
-                                {['User', 'Companies', 'Status', 'Action'].map((s) => (
+                                {['User', 'Companies', 'Status', 'Actions'].map((s) => (
                                     <th key={s} className="p-3">
                                         {s}
                                     </th>
@@ -84,18 +87,75 @@ export default function Users({
                                         <DeliveryStatus status={u.status} />
                                     </td>
                                     <td>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => {
-                                                if (confirm(`Change account status for ${u.email}?`))
-                                                    router.patch(`/platform/users/${u.id}/status`, {
-                                                        status: u.status === 'active' ? 'suspended' : 'active',
+                                        {editing === u.id ? (
+                                            <form
+                                                className="min-w-64 space-y-2"
+                                                onSubmit={(e) => {
+                                                    e.preventDefault();
+                                                    edit.patch(`/platform/users/${u.id}`, {
+                                                        onSuccess: () => {
+                                                            setEditing(null);
+                                                            edit.reset();
+                                                        },
                                                     });
-                                            }}
-                                        >
-                                            {u.status === 'active' ? 'Suspend' : 'Activate'}
-                                        </Button>
+                                                }}
+                                            >
+                                                <Input
+                                                    aria-label="User name"
+                                                    value={edit.data.name}
+                                                    onChange={(e) => edit.setData('name', e.target.value)}
+                                                />
+                                                <Input
+                                                    aria-label="User email"
+                                                    type="email"
+                                                    value={edit.data.email}
+                                                    onChange={(e) => edit.setData('email', e.target.value)}
+                                                />
+                                                {edit.errors.name && <p className="text-destructive text-xs">{edit.errors.name}</p>}
+                                                {edit.errors.email && <p className="text-destructive text-xs">{edit.errors.email}</p>}
+                                                <div className="flex gap-2">
+                                                    <Button size="sm" disabled={edit.processing}>
+                                                        Save
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setEditing(null);
+                                                            edit.reset();
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </div>
+                                            </form>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        edit.setData({ name: u.name, email: u.email });
+                                                        setEditing(u.id);
+                                                    }}
+                                                >
+                                                    Edit details
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        if (confirm(`Change account status for ${u.email}?`))
+                                                            router.patch(`/platform/users/${u.id}/status`, {
+                                                                status: u.status === 'active' ? 'suspended' : 'active',
+                                                            });
+                                                    }}
+                                                >
+                                                    {u.status === 'active' ? 'Suspend' : 'Activate'}
+                                                </Button>
+                                            </div>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

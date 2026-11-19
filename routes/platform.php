@@ -13,5 +13,6 @@ Route::middleware(['auth', 'verified'])->prefix('platform')->group(function () {
     Route::delete('companies/{organisation}/members/{member}', [C::class, 'remove']);
     Route::post('companies/{organisation}/transfer', [C::class, 'transfer']);
     Route::get('users', [C::class, 'users']);
+    Route::patch('users/{user}', [C::class, 'updateUser']);
     Route::patch('users/{user}/status', [C::class, 'userStatus']);
 });

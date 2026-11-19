@@ -1,5 +1,9 @@
 # Database design
 
+## Record lifecycle — 19 November 2026
+
+Migration `2026_11_19_000001_add_archive_and_trash_support.php` adds soft-delete timestamps to contacts, mailing lists and campaigns, plus `archived_at` timestamps to lists and campaigns. Archive and trash views remain tenant-scoped. Deleted contacts retain their unique email reservation, eligibility evidence, memberships, suppression record and delivery history; restore does not grant eligibility. Mailing lists and campaigns with dependent audience or delivery history are protected from deletion. No automatic purge is scheduled.
+
 The application uses Laravel's `mysql` connection. This workstation provides MariaDB 13; the foundation migration is exercised against that MySQL-compatible server. Native Oracle MySQL has not been exercised here. Fast default tests use isolated in-memory SQLite; the same suite can be run against the separate MySQL-compatible test database.
 
 ## Phase 1A tables

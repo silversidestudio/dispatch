@@ -6,6 +6,7 @@ import { Errors, Panel, Workspace } from '@/components/workspace';
 import { readableLabel } from '@/lib/labels';
 import { SharedData } from '@/types';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { CalendarClock, CircleCheckBig, LoaderCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Campaign } from './campaigns';
 export default function Detail({
@@ -48,6 +49,7 @@ export default function Detail({
               ? 'SendGrid checks the request. No email is delivered to the recipient.'
               : `The campaign runs inside ${appName}. No email is sent.`;
     const base = `/organisations/${company.id}/campaigns/${campaign.id}`;
+    const canManageCampaign = canManage && !campaign.archived_at;
     const f = useForm({ scheduled_at: '', confirmation: '' });
     const test = useForm({ email: '', mode: 'simulation', confirmation: 'PREPARE' });
     const [link, setLink] = useState('');
@@ -61,7 +63,7 @@ export default function Detail({
             title={campaign.name}
             subtitle={`${readableLabel(campaign.status)} · ${deliveryLabel} · ${campaign.subject}`}
             actions={
-                canManage && (
+                canManageCampaign && (
                     <div className="flex flex-wrap gap-2">
                         {campaign.status === 'draft' && (
                             <Button variant="outline" asChild>
@@ -99,7 +101,37 @@ export default function Detail({
             }
         >
             <Errors errors={errors as Record<string, string>} />
-            {canManage && (
+            {campaign.status === 'scheduled' && campaign.scheduled_at && (
+                <div className="mb-5 flex items-start gap-3 rounded-xl border border-sky-500/30 bg-sky-500/10 p-4" role="status">
+                    <CalendarClock aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-sky-700 dark:text-sky-300" />
+                    <div>
+                        <p className="font-semibold">Campaign scheduled</p>
+                        <p className="text-sm">This campaign is set to send {new Date(campaign.scheduled_at).toLocaleString()}.</p>
+                    </div>
+                </div>
+            )}
+            {campaign.status === 'processing' && (
+                <div className="mb-5 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4" role="status">
+                    <LoaderCircle aria-hidden="true" className="mt-0.5 size-5 shrink-0 animate-spin text-amber-700 dark:text-amber-300" />
+                    <div>
+                        <p className="font-semibold">Campaign is sending</p>
+                        <p className="text-sm">Delivery activity and results will update below as the queue processes recipients.</p>
+                    </div>
+                </div>
+            )}
+            {campaign.status === 'completed' && (
+                <div className="mb-5 flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4" role="status">
+                    <CircleCheckBig aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-emerald-700 dark:text-emerald-300" />
+                    <div>
+                        <p className="font-semibold">{mode === 'simulation' ? 'Simulation completed' : 'Campaign processing completed'}</p>
+                        <p className="text-sm">
+                            Finished {campaign.completed_at ? new Date(campaign.completed_at).toLocaleString() : '—'}. Review delivered and failed
+                            results below.
+                        </p>
+                    </div>
+                </div>
+            )}
+            {canManageCampaign && (
                 <Panel
                     title="Test this campaign"
                     description={`Create a separate draft for one existing eligible contact. Simulation stays in ${appName}. SendGrid test mode checks the request but does not deliver an email.`}
@@ -166,16 +198,14 @@ export default function Detail({
                 </dl>
                 {mode === 'sendgrid_live' && preflight.pilot?.enabled && (
                     <p className="bg-muted/40 mt-4 rounded-lg border p-3 text-xs">
-                        Live sends are currently limited to approved test recipients, up to {preflight.pilot.daily_limit} attempts each day. This limit applies to the whole workspace.
+                        Live sends are currently limited to approved test recipients, up to {preflight.pilot.daily_limit} attempts each day. This
+                        limit applies to the whole workspace.
                     </p>
                 )}
             </Panel>
             <Metrics data={stats} />
             {campaign.delivery_mode === 'simulation' && stats.eligible_at_snapshot > 0 && (
-                <Panel
-                    title="Simulation results"
-                    description={`Each contact is counted once, even if ${appName} made more than one attempt.`}
-                >
+                <Panel title="Simulation results" description={`Each contact is counted once, even if ${appName} made more than one attempt.`}>
                     <div className="space-y-4">
                         {[
                             ['Simulated accepted', stats.simulated_acceptances],
@@ -217,12 +247,12 @@ export default function Detail({
                             The campaign is ready for this delivery mode. A live SendGrid campaign will ask for confirmation before scheduling.
                         </p>
                     )}
-                    {canManage && campaign.status === 'draft' && (
+                    {canManageCampaign && campaign.status === 'draft' && (
                         <Button className="mt-4" disabled={!!preflight.errors.length} onClick={() => router.post(base + '/ready')}>
                             Mark ready
                         </Button>
                     )}
-                    {canManage && campaign.status === 'ready' && (
+                    {canManageCampaign && campaign.status === 'ready' && (
                         <form
                             className="mt-5 flex flex-wrap items-end gap-3"
                             onSubmit={(e) => {
@@ -348,11 +378,16 @@ export default function Detail({
                                 <span className="text-muted-foreground mt-1 block">
                                     {(
                                         {
-                                            pilot_configuration_invalid: 'The platform’s test-send settings need attention. Contact the platform administrator.',
-                                            pilot_recipient_not_allowed: 'An address is outside the approved test list. Update the audience or contact the platform administrator.',
-                                            pilot_scope_blocked: 'This company or audience is not included in the current test. Contact the platform administrator.',
-                                            pilot_daily_limit_reached: 'The daily test limit has been reached. Try again tomorrow or contact the platform administrator.',
-                                            pilot_attempt_already_reserved: 'This message already has a recorded attempt. Check its activity before trying again.',
+                                            pilot_configuration_invalid:
+                                                'The platform’s test-send settings need attention. Contact the platform administrator.',
+                                            pilot_recipient_not_allowed:
+                                                'An address is outside the approved test list. Update the audience or contact the platform administrator.',
+                                            pilot_scope_blocked:
+                                                'This company or audience is not included in the current test. Contact the platform administrator.',
+                                            pilot_daily_limit_reached:
+                                                'The daily test limit has been reached. Try again tomorrow or contact the platform administrator.',
+                                            pilot_attempt_already_reserved:
+                                                'This message already has a recorded attempt. Check its activity before trying again.',
                                         } as Record<string, string>
                                     )[h.metadata?.diagnostic ?? ''] ?? 'Review the pilot settings before resuming.'}
                                 </span>

@@ -2,7 +2,7 @@ import { Company, Field, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
 import { readableLabel } from '@/lib/labels';
-import { Link, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 type Rule = { field: string; value: string; key: string };
 type Segment = { id: number; name: string; rules: Rule[]; total: number; eligible: number };
@@ -50,11 +50,20 @@ export default function Audiences({
     lists,
     segments,
     canManage,
+    view,
 }: {
     company: Company;
-    lists: { id: number; name: string; description: string | null; contacts_count: number }[];
+    lists: {
+        id: number;
+        name: string;
+        description: string | null;
+        contacts_count: number;
+        deleted_at?: string | null;
+        archived_at?: string | null;
+    }[];
     segments: Segment[];
     canManage: boolean;
+    view: 'active' | 'archived' | 'trash';
 }) {
     const base = `/organisations/${company.id}`;
     const f = useForm({ name: '', description: '' });
@@ -67,21 +76,78 @@ export default function Audiences({
         <Workspace title="Audiences" subtitle={`${company.name} · Lists organise contacts; eligibility is managed on each contact.`}>
             <div className="grid gap-6 lg:grid-cols-2">
                 <div className="space-y-6">
-                    <Panel title="Mailing lists" description="Find and open a list to manage its contacts.">
-                        <Field label="Filter lists" value={search} change={setSearch} />
+                    <Panel title="Mailing lists" description="Keep current audiences here; archive lists you no longer use.">
+                        <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Mailing list view">
+                            {(['active', 'archived', 'trash'] as const).map((tab) => (
+                                <Button
+                                    key={tab}
+                                    size="sm"
+                                    variant={view === tab ? 'default' : 'outline'}
+                                    onClick={() => router.get(`${base}/audiences`, { view: tab }, { preserveState: true })}
+                                >
+                                    {{ active: 'Active', archived: 'Archived', trash: 'Recently deleted' }[tab]}
+                                </Button>
+                            ))}
+                        </div>
+                        {view !== 'trash' && <Field label="Filter lists" value={search} change={setSearch} />}
                         <div className="mt-4 space-y-3">
                             {filteredLists.map((list) => (
-                                <Link
-                                    href={`${base}/lists/${list.id}`}
-                                    key={list.id}
-                                    className="hover:bg-muted/40 block rounded-xl border p-4 transition-colors"
-                                >
-                                    <p className="font-medium">
-                                        {list.name}
+                                <div key={list.id} className="rounded-xl border p-4">
+                                    {view === 'trash' ? (
+                                        <p className="font-medium">{list.name}</p>
+                                    ) : (
+                                        <Link href={`${base}/lists/${list.id}`} className="font-medium underline">
+                                            {list.name}
+                                        </Link>
+                                    )}
+                                    {view !== 'trash' && (
                                         <span className="text-muted-foreground float-right text-sm">{list.contacts_count} contacts</span>
-                                    </p>
+                                    )}
                                     <p className="text-muted-foreground mt-1 text-sm">{list.description || 'No description'}</p>
-                                </Link>
+                                    {canManage && (
+                                        <div className="mt-3 flex gap-2">
+                                            {view === 'active' && (
+                                                <>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            if (
+                                                                confirm(
+                                                                    'Archive this list? Contacts will stay in the company and the list can be restored later.',
+                                                                )
+                                                            )
+                                                                router.post(`${base}/lists/${list.id}/archive`);
+                                                        }}
+                                                    >
+                                                        Archive
+                                                    </Button>
+                                                </>
+                                            )}
+                                            {view !== 'active' && (
+                                                <Button size="sm" variant="outline" onClick={() => router.post(`${base}/lists/${list.id}/restore`)}>
+                                                    Restore
+                                                </Button>
+                                            )}
+                                            {view !== 'trash' && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        if (
+                                                            confirm(
+                                                                'Move this list to Recently deleted? Lists used in campaign history or dynamic segments must stay archived.',
+                                                            )
+                                                        )
+                                                            router.delete(`${base}/lists/${list.id}`);
+                                                    }}
+                                                >
+                                                    Delete
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                             {filteredLists.length === 0 && (
                                 <p className="text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
@@ -90,7 +156,7 @@ export default function Audiences({
                             )}
                         </div>
                     </Panel>
-                    {canManage && (
+                    {canManage && view === 'active' && (
                         <Panel
                             title="Create a mailing list"
                             description="Give the list a clear name so it’s easy to recognise when choosing a campaign audience."

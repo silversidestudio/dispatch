@@ -66,6 +66,9 @@ class CampaignService
         DB::transaction(function () use ($campaign) {
             $c = Campaign::whereKey($campaign->id)->lockForUpdate()->firstOrFail();
             $this->requireState($c, ['draft']);
+            if ($c->archived_at || $c->trashed()) {
+                throw ValidationException::withMessages(['campaign' => 'Restore this campaign before preparing it for sending.']);
+            }
             $p = $this->preflight($c);
             if ($p['errors']) {
                 throw ValidationException::withMessages(['campaign' => implode(' ', $p['errors'])]);
@@ -79,6 +82,9 @@ class CampaignService
         DB::transaction(function () use ($campaign, $when, $confirmed) {
             $c = Campaign::whereKey($campaign->id)->lockForUpdate()->firstOrFail();
             $this->requireState($c, ['ready']);
+            if ($c->archived_at || $c->trashed()) {
+                throw ValidationException::withMessages(['campaign' => 'Restore this campaign before scheduling it.']);
+            }
             Organisation::whereKey($c->organisation_id)->lockForUpdate()->firstOrFail();
             if ($c->delivery_mode === 'sendgrid_live') {
                 if (! $confirmed) {

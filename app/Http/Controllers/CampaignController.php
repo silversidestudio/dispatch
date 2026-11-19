@@ -36,11 +36,51 @@ class CampaignController extends Controller
         abort_unless($c->organisation_id === $o->id, 404);
     }
 
-    public function index(Organisation $organisation)
+    public function index(Request $request, Organisation $organisation)
     {
         Gate::authorize('view', $organisation);
+        $view = $request->validate(['view' => 'nullable|in:active,archived,trash'])['view'] ?? 'active';
+        $query = Campaign::where('organisation_id', $organisation->id);
+        if ($view === 'trash') {
+            $query->onlyTrashed();
+        } else {
+            $query->whereNull('deleted_at');
+            $view === 'active' ? $query->whereNull('archived_at') : $query->whereNotNull('archived_at');
+        }
 
-        return Inertia::render('campaigns', ['company' => $organisation, 'campaigns' => Campaign::where('organisation_id', $organisation->id)->latest()->paginate(15), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+        return Inertia::render('campaigns', ['company' => $organisation, 'campaigns' => $query->latest()->paginate(15)->withQueryString(), 'view' => $view, 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+    }
+
+    public function archive(Organisation $organisation, Campaign $campaign)
+    {
+        $this->scope($organisation, $campaign, 'manageCampaigns');
+        abort_if(in_array($campaign->status, ['scheduled', 'processing', 'paused'], true), 422, 'Cancel or finish this campaign before archiving it.');
+        $campaign->update(['archived_at' => now()]);
+        AuditLog::record('campaign.archived', $organisation->id, ['campaign_id' => $campaign->id]);
+
+        return back()->with('success', 'Campaign archived. Its delivery history and reports are retained.');
+    }
+
+    public function delete(Organisation $organisation, Campaign $campaign)
+    {
+        $this->scope($organisation, $campaign, 'manageCampaigns');
+        abort_unless($campaign->status === 'draft' && ! $campaign->snapshot, 422, 'Only unsent draft campaigns can be deleted. Archive this campaign to keep its history.');
+        $campaign->delete();
+        AuditLog::record('campaign.deleted', $organisation->id, ['campaign_id' => $campaign->id]);
+
+        return back()->with('success', 'Campaign moved to Recently deleted.');
+    }
+
+    public function restore(Organisation $organisation, int $campaign)
+    {
+        Gate::authorize('manageCampaigns', $organisation);
+        $record = Campaign::withTrashed()->where('organisation_id', $organisation->id)->findOrFail($campaign);
+        abort_unless($record->status === 'draft' && ! $record->snapshot, 422, 'This campaign cannot be restored to an editable draft.');
+        $record->restore();
+        $record->update(['archived_at' => null]);
+        AuditLog::record('campaign.restored', $organisation->id, ['campaign_id' => $record->id]);
+
+        return back()->with('success', 'Campaign restored as a draft.');
     }
 
     public function create(Organisation $organisation)
@@ -52,12 +92,13 @@ class CampaignController extends Controller
 
     private function form(Organisation $o, ?Campaign $c)
     {
-        return Inertia::render('campaign-editor', ['company' => $o, 'campaign' => $c, 'defaultEmail' => app(EmailStarterTemplates::class)->basic($o->email_branding ?? []), 'identities' => SendingIdentity::where('organisation_id', $o->id)->get(), 'lists' => MailingList::where('organisation_id', $o->id)->get(['id', 'name']), 'segments' => Segment::where('organisation_id', $o->id)->get(['id', 'name']), 'templates' => EmailTemplate::where('organisation_id', $o->id)->get(), 'canManage' => Gate::allows('manageCampaigns', $o)]);
+        return Inertia::render('campaign-editor', ['company' => $o, 'campaign' => $c, 'defaultEmail' => app(EmailStarterTemplates::class)->basic($o->email_branding ?? []), 'identities' => SendingIdentity::where('organisation_id', $o->id)->get(), 'lists' => MailingList::where('organisation_id', $o->id)->whereNull('archived_at')->get(['id', 'name']), 'segments' => Segment::where('organisation_id', $o->id)->get(['id', 'name']), 'templates' => EmailTemplate::where('organisation_id', $o->id)->get(), 'canManage' => Gate::allows('manageCampaigns', $o)]);
     }
 
     public function edit(Organisation $organisation, Campaign $campaign)
     {
         $this->scope($organisation, $campaign, 'manageCampaigns');
+        abort_if($campaign->archived_at, 422, 'Restore this campaign before editing it.');
         app(CampaignService::class)->requireState($campaign, ['draft']);
         abort_if($campaign->snapshot, 422);
 
@@ -69,6 +110,7 @@ class CampaignController extends Controller
         Gate::authorize('manageCampaigns', $organisation);
         if ($campaign) {
             $this->scope($organisation, $campaign, 'manageCampaigns');
+            abort_if($campaign->archived_at, 422, 'Restore this campaign before editing it.');
         }$d = $r->validate(['delivery_mode' => 'sometimes|in:simulation,sendgrid_sandbox,sendgrid_live', 'open_tracking' => 'sometimes|boolean', 'click_tracking' => 'sometimes|boolean', 'name' => 'required|string|max:120', 'subject' => 'required|string|max:255', 'preview_text' => 'nullable|string|max:255', 'sending_identity_id' => ['required', 'integer', Rule::exists('sending_identities', 'id')->where('organisation_id', $organisation->id)], 'reply_to' => 'nullable|email:rfc|max:254', 'audience_type' => 'required|in:list,segment', 'audience_id' => 'required|integer', 'html' => 'required|string|max:200000', 'text_body' => 'required|string|max:100000']);
         $d += ['delivery_mode' => 'simulation', 'open_tracking' => false, 'click_tracking' => false];
         app(AudienceService::class)->query($organisation->id, $d['audience_type'], $d['audience_id']);

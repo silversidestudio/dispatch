@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Models\Campaign;
+use App\Models\CampaignRecipient;
 use App\Models\Contact;
 use App\Models\EligibilityRecord;
 use App\Models\Organisation;
@@ -19,17 +21,23 @@ class ContactController extends Controller
     public function index(Request $r, Organisation $organisation)
     {
         Gate::authorize('view', $organisation);
-        $d = $r->validate(['search' => 'nullable|string|max:120', 'status' => 'nullable|in:active,archived', 'eligibility' => 'nullable|string|max:40', 'sort' => 'nullable|in:email,created_at,first_name']);
-        $q = Contact::where('organisation_id', $organisation->id);
+        $d = $r->validate(['search' => 'nullable|string|max:120', 'eligibility' => 'nullable|string|max:40', 'sort' => 'nullable|in:email,created_at,first_name', 'view' => 'nullable|in:active,archived,trash']);
+        $view = $d['view'] ?? 'active';
+        $q = Contact::query()->where('organisation_id', $organisation->id);
+        if ($view === 'trash') {
+            $q->onlyTrashed();
+        } else {
+            $q->whereNull('deleted_at')->where('status', $view === 'archived' ? 'archived' : 'active');
+        }
         if ($s = $d['search'] ?? null) {
             $q->where(fn ($q) => $q->where('email', 'like', "%$s%")->orWhere('first_name', 'like', "%$s%")->orWhere('last_name', 'like', "%$s%"));
-        }foreach (['status', 'eligibility'] as $key) {
+        }foreach (['eligibility'] as $key) {
             if ($v = $d[$key] ?? null) {
                 $q->where($key, $v);
             }
         }
 
-        return Inertia::render('contacts', ['company' => $organisation, 'contacts' => $q->orderBy($d['sort'] ?? 'created_at', 'desc')->paginate(20)->withQueryString(), 'filters' => $d, 'canManage' => Gate::allows('manageCampaigns', $organisation), 'stats' => ['total' => Contact::where('organisation_id', $organisation->id)->count(), 'eligible' => app(EligibilityService::class)->query($organisation->id)->count(), 'suppressed' => Suppression::where('organisation_id', $organisation->id)->count()]]);
+        return Inertia::render('contacts', ['company' => $organisation, 'contacts' => $q->orderBy($d['sort'] ?? 'created_at', 'desc')->paginate(20)->withQueryString(), 'filters' => [...$d, 'view' => $view], 'canManage' => Gate::allows('manageCampaigns', $organisation), 'stats' => ['total' => Contact::where('organisation_id', $organisation->id)->count(), 'eligible' => app(EligibilityService::class)->query($organisation->id)->count(), 'suppressed' => Suppression::where('organisation_id', $organisation->id)->count()]]);
     }
 
     private function data(Request $r, Organisation $o, ?Contact $c = null): array
@@ -108,19 +116,58 @@ class ContactController extends Controller
     public function bulk(Request $r, Organisation $organisation)
     {
         Gate::authorize('manageCampaigns', $organisation);
-        $d = $r->validate(['ids' => 'required|array|min:1|max:200', 'ids.*' => 'integer', 'action' => 'required|in:archive,suppress']);
-        $contacts = Contact::where('organisation_id', $organisation->id)->whereIn('id', $d['ids'])->get();
+        $d = $r->validate(['ids' => 'required|array|min:1|max:200', 'ids.*' => 'integer', 'action' => 'required|in:archive,unarchive,restore,delete,suppress', 'view' => 'nullable|in:active,archived,trash']);
+        $query = Contact::query()->where('organisation_id', $organisation->id);
+        if (($d['view'] ?? '') === 'trash') {
+            abort_unless($d['action'] === 'restore', 422, 'Only restore is available from Recently deleted.');
+            $query->onlyTrashed();
+        } else {
+            abort_if($d['action'] === 'restore', 422, 'Choose Recently deleted to restore removed contacts.');
+            if ($d['action'] === 'unarchive') {
+                abort_unless(($d['view'] ?? '') === 'archived', 422);
+                $query->where('status', 'archived');
+            }
+        }
+        $contacts = $query->whereIn('id', $d['ids'])->get();
         abort_unless($contacts->count() === count(array_unique($d['ids'])), 404);
+        if ($d['action'] === 'delete') {
+            $activeCampaignHasRecipients = CampaignRecipient::whereIn('contact_id', $contacts->modelKeys())
+                ->whereIn('campaign_id', Campaign::whereIn('status', ['scheduled', 'processing', 'paused'])->select('id'))
+                ->exists();
+            abort_if($activeCampaignHasRecipients, 422, 'A selected contact is part of a scheduled or active campaign. Cancel or finish that campaign before deleting the contact.');
+        }
         DB::transaction(function () use ($contacts, $d, $organisation) {
             foreach ($contacts as $c) {
                 if ($d['action'] === 'archive') {
                     $c->update(['status' => 'archived']);
+                } elseif ($d['action'] === 'unarchive') {
+                    $c->update(['status' => 'active']);
+                } elseif ($d['action'] === 'restore') {
+                    $c->restore();
+                } elseif ($d['action'] === 'delete') {
+                    $c->delete();
                 } else {
                     app(EligibilityService::class)->suppress($c, 'administratively_blocked', 'Bulk administrative suppression.');
-                }AuditLog::record('contact.'.$d['action'], $organisation->id, ['contact_id' => $c->id]);
+                }
+                $auditAction = match ($d['action']) {
+                    'restore' => 'contact.restored',
+                    'unarchive' => 'contact.unarchived',
+                    default => 'contact.'.$d['action'],
+                };
+                AuditLog::record($auditAction, $organisation->id, ['contact_id' => $c->id]);
             }
         });
 
         return back()->with('success', 'Selected contacts updated.');
+    }
+
+    public function restore(Organisation $organisation, int $contact)
+    {
+        Gate::authorize('manageCampaigns', $organisation);
+        $c = Contact::onlyTrashed()->where('organisation_id', $organisation->id)->findOrFail($contact);
+        $c->restore();
+        AuditLog::record('contact.restored', $organisation->id, ['contact_id' => $c->id]);
+
+        return back()->with('success', 'Contact restored. Its eligibility and suppression status are unchanged.');
     }
 }

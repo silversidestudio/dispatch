@@ -13,15 +13,15 @@ class AudienceService
     {
         $q = $eligible ? app(EligibilityService::class)->query($org) : Contact::where('organisation_id', $org);
         if ($type === 'list') {
-            MailingList::where('organisation_id', $org)->findOrFail($id);
+            MailingList::where('organisation_id', $org)->whereNull('archived_at')->findOrFail($id);
 
-            return $q->whereHas('lists', fn ($l) => $l->where('mailing_lists.id', $id)->where('organisation_id', $org));
+            return $q->whereHas('lists', fn ($l) => $l->where('mailing_lists.id', $id)->where('organisation_id', $org)->whereNull('mailing_lists.archived_at'));
         }
         $s = Segment::where('organisation_id', $org)->findOrFail($id);
         foreach ($s->rules as $rule) {
             $value = $rule['value'];
             switch ($rule['field']) {
-                case 'list_id':$q->whereHas('lists', fn ($l) => $l->where('mailing_lists.id', (int) $value)->where('organisation_id', $org));
+                case 'list_id':$q->whereHas('lists', fn ($l) => $l->where('mailing_lists.id', (int) $value)->where('organisation_id', $org)->whereNull('mailing_lists.archived_at'));
                     break;
                 case 'created_after':$q->whereDate('created_at', '>=', $value);
                     break;
@@ -46,7 +46,7 @@ class AudienceService
                 validator($r, ['key' => 'required|regex:/^[a-zA-Z][a-zA-Z0-9_]{0,39}$/'])->validate();
             }
             if ($r['field'] === 'list_id') {
-                MailingList::where('organisation_id', $org)->findOrFail((int) $r['value']);
+                MailingList::where('organisation_id', $org)->whereNull('archived_at')->findOrFail((int) $r['value']);
             }if (in_array($r['field'], ['created_after', 'created_before'])) {
                 validator($r, ['value' => 'date_format:Y-m-d'])->validate();
             }
