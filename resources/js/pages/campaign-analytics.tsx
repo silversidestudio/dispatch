@@ -3,7 +3,7 @@ import { Company, Field, Metrics, Page, Pages, Select } from '@/components/marke
 import { Button } from '@/components/ui/button';
 import { Panel, Workspace } from '@/components/workspace';
 import { modeLabel, readableLabel } from '@/lib/labels';
-import { Link, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import { Activity, Download, Eye, MousePointerClick, Send, ShieldCheck } from 'lucide-react';
 export type Analytics = {
     available: boolean;
@@ -36,17 +36,26 @@ export default function CampaignAnalytics({
     recipients,
     filters,
     recentEvents,
+    recentEventsPerPage,
 }: {
     company: Company;
     campaign: { id: number; name: string; status: string };
     analytics: Analytics;
     recipients: Page<RecipientActivity>;
     filters: { from?: string; to?: string; search?: string; status?: string };
-    recentEvents: { id: number; type: string; occurred_at: string | null; provider_message_id: string | null }[];
+    recentEvents: Page<{ id: number; type: string; occurred_at: string | null; provider_message_id: string | null }>;
+    recentEventsPerPage: number;
 }) {
     const base = `/organisations/${company.id}/campaigns/${campaign.id}`;
     const f = useForm({ from: filters.from ?? '', to: filters.to ?? '', search: filters.search ?? '', status: filters.status ?? '' });
-    const query = new URLSearchParams(Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1]))).toString();
+    const filterParams = Object.fromEntries(Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1])));
+    const query = new URLSearchParams(filterParams).toString();
+    const changeRecentEventsPageSize = (value: string) =>
+        router.get(
+            `${base}/analytics`,
+            { ...filterParams, recent_events_per_page: value, recent_events_page: 1, page: recipients.current_page },
+            { preserveScroll: true, preserveState: true, only: ['recentEvents', 'recentEventsPerPage'] },
+        );
     return (
         <Workspace
             title={`${campaign.name} · Analytics`}
@@ -63,8 +72,8 @@ export default function CampaignAnalytics({
             <div className="bg-muted/20 rounded-xl border p-5 text-sm">
                 <p>
                     {analytics.available
-                    ? 'Delivered means the receiving mail server accepted the message. It does not confirm that the message reached the inbox.'
-                    : 'This campaign has no live delivery results. A SendGrid test and a simulation do not deliver messages.'}
+                        ? 'Delivered means the receiving mail server accepted the message. It does not confirm that the message reached the inbox.'
+                        : 'This campaign has no live delivery results. A SendGrid test and a simulation do not deliver messages.'}
                 </p>
                 <p className="text-muted-foreground mt-2">
                     Open and click counts are estimates. Privacy services and automated security checks can add or hide activity, so they do not
@@ -134,7 +143,10 @@ export default function CampaignAnalytics({
                 </div>
             </Panel>
             <div className="grid gap-6 lg:grid-cols-2">
-                <Panel title="Delivery activity" description="Unique recipients for each event. One recipient may appear in more than one category over time.">
+                <Panel
+                    title="Delivery activity"
+                    description="Unique recipients for each event. One recipient may appear in more than one category over time."
+                >
                     {['processed', 'delivered', 'deferred', 'bounced', 'blocked', 'dropped', 'complaints', 'unsubscribes'].map((k) => (
                         <div className="mb-3" key={k}>
                             <div className="mb-1 flex justify-between text-sm">
@@ -150,10 +162,7 @@ export default function CampaignAnalytics({
                         </div>
                     ))}
                 </Panel>
-                <Panel
-                    title="Campaign activity over time"
-                    description="Daily delivery and tracked engagement events. Dates use UTC."
-                >
+                <Panel title="Campaign activity over time" description="Daily delivery and tracked engagement events. Dates use UTC.">
                     <div className="space-y-4">
                         {analytics.activity.map((a) => (
                             <div key={a.day} className="rounded-lg border p-3">
@@ -261,18 +270,26 @@ export default function CampaignAnalytics({
                 <Pages page={recipients} />
             </Panel>
             <Panel title="Recent SendGrid events" description="Events received in the selected date range.">
-                {!recentEvents.length && (
+                <div className="mb-3 ml-auto max-w-40">
+                    <Select label="Events per page" value={String(recentEventsPerPage)} change={changeRecentEventsPageSize}>
+                        <option value="10">10 per page</option>
+                        <option value="50">50 per page</option>
+                        <option value="100">100 per page</option>
+                    </Select>
+                </div>
+                {!recentEvents.data.length && (
                     <p className="text-muted-foreground flex items-center gap-2 text-sm">
                         <Activity aria-hidden="true" className="size-4" />
                         No SendGrid events in this date range.
                     </p>
                 )}
-                {recentEvents.map((e) => (
+                {recentEvents.data.map((e) => (
                     <p className="border-b py-3 text-sm" key={e.id}>
                         {e.occurred_at ? new Date(e.occurred_at).toLocaleString() : 'Unknown event time'} · {readableLabel(e.type)} ·{' '}
                         {e.provider_message_id}
                     </p>
                 ))}
+                <Pages page={recentEvents} />
             </Panel>
         </Workspace>
     );

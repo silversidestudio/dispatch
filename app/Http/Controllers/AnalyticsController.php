@@ -26,7 +26,7 @@ class AnalyticsController extends Controller
 
     private function filters(Request $r): array
     {
-        return $r->validate(['from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d'.($r->filled('from') ? '|after_or_equal:from' : ''), 'search' => 'nullable|string|max:120', 'status' => 'nullable|in:delivered,deferred,bounce,blocked,dropped,open,click,unsubscribe,spamreport']);
+        return $r->validate(['from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d'.($r->filled('from') ? '|after_or_equal:from' : ''), 'search' => 'nullable|string|max:120', 'status' => 'nullable|in:delivered,deferred,bounce,blocked,dropped,open,click,unsubscribe,spamreport', 'recent_events_per_page' => ['sometimes', 'in:10,50,100']]);
     }
 
     public function show(Request $r, Organisation $organisation, Campaign $campaign, CampaignAnalytics $s)
@@ -46,8 +46,14 @@ class AnalyticsController extends Controller
         }
         $recipients = $q->paginate(20)->withQueryString();
         $recipients->through(fn ($r) => collect($s->recipient($r))->except(['events', 'attempts'])->all());
+        $recentEventsPerPage = (int) ($d['recent_events_per_page'] ?? 10);
+        $recentEvents = $s->events($campaign, $d['from'] ?? null, $d['to'] ?? null)
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('id')
+            ->paginate($recentEventsPerPage, ['*'], 'recent_events_page')
+            ->withQueryString();
 
-        return Inertia::render('campaign-analytics', ['company' => $organisation, 'campaign' => $campaign->only(['id', 'name', 'status']), 'analytics' => $s->summary($campaign, $d['from'] ?? null, $d['to'] ?? null), 'recipients' => $recipients, 'filters' => $d, 'recentEvents' => $s->events($campaign, $d['from'] ?? null, $d['to'] ?? null)->orderByDesc('occurred_at')->limit(30)->get()]);
+        return Inertia::render('campaign-analytics', ['company' => $organisation, 'campaign' => $campaign->only(['id', 'name', 'status']), 'analytics' => $s->summary($campaign, $d['from'] ?? null, $d['to'] ?? null), 'recipients' => $recipients, 'filters' => $d, 'recentEvents' => $recentEvents, 'recentEventsPerPage' => $recentEventsPerPage]);
     }
 
     public function recipient(Organisation $organisation, Campaign $campaign, CampaignRecipient $recipient, CampaignAnalytics $s)

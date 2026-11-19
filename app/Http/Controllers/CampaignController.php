@@ -142,9 +142,15 @@ class CampaignController extends Controller
         return redirect("/organisations/$organisation->id/campaigns/$c->id")->with('success', 'Campaign draft saved.');
     }
 
-    public function show(Organisation $organisation, Campaign $campaign)
+    public function show(Request $request, Organisation $organisation, Campaign $campaign)
     {
         $this->scope($organisation, $campaign);
+        $filters = $request->validate([
+            'events_per_page' => ['sometimes', 'in:10,50,100'],
+            'history_per_page' => ['sometimes', 'in:10,50,100'],
+        ]);
+        $eventsPerPage = (int) ($filters['events_per_page'] ?? 10);
+        $historyPerPage = (int) ($filters['history_per_page'] ?? 10);
         $stats = $this->stats($campaign);
         if (($campaign->snapshot['delivery_mode'] ?? $campaign->delivery_mode) !== 'simulation') {
             $stats = ['original_audience' => $campaign->audience_count, 'eligible_recipients' => $campaign->recipients()->count(), 'excluded' => $campaign->excluded_count, 'provider_attempts' => $stats['simulated_attempts'], 'api_acceptances' => $campaign->recipients()->where('status', 'accepted')->count(), 'uncertain' => $campaign->recipients()->where('status', 'uncertain')->count(), 'sandbox_validated' => $campaign->recipients()->where('status', 'sandbox_validated')->count()];
@@ -156,8 +162,10 @@ class CampaignController extends Controller
             'preflight' => app(CampaignService::class)->preflight($campaign),
             'stats' => $stats,
             'recipients' => $campaign->recipients()->orderBy('id')->paginate(25)->withQueryString(),
-            'events' => DeliveryEvent::where('organisation_id', $organisation->id)->where('campaign_id', $campaign->id)->latest('id')->paginate(25, ['*'], 'events_page')->withQueryString(),
-            'history' => AuditLog::where('organisation_id', $organisation->id)->where('metadata->campaign_id', $campaign->id)->orderByDesc('id')->paginate(25, ['*'], 'history_page')->withQueryString(),
+            'events' => DeliveryEvent::where('organisation_id', $organisation->id)->where('campaign_id', $campaign->id)->latest('id')->paginate($eventsPerPage, ['*'], 'events_page')->withQueryString(),
+            'history' => AuditLog::where('organisation_id', $organisation->id)->where('metadata->campaign_id', $campaign->id)->orderByDesc('id')->paginate($historyPerPage, ['*'], 'history_page')->withQueryString(),
+            'eventsPerPage' => $eventsPerPage,
+            'historyPerPage' => $historyPerPage,
             'canManage' => Gate::allows('manageCampaigns', $organisation),
         ]);
     }

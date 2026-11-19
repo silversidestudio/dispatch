@@ -18,6 +18,8 @@ export default function Detail({
     recipients,
     events,
     history,
+    eventsPerPage,
+    historyPerPage,
     canManage,
 }: {
     company: Company;
@@ -38,6 +40,8 @@ export default function Detail({
     recipients: Page<{ id: number; email: string; status: string; attempt_count: number }>;
     events: Page<{ id: number; type: string; created_at: string; simulated: boolean }>;
     history: Page<{ id: number; action: string; created_at: string; metadata?: { diagnostic?: string } }>;
+    eventsPerPage: number;
+    historyPerPage: number;
     canManage: boolean;
 }) {
     const mode = campaign.delivery_mode;
@@ -54,6 +58,19 @@ export default function Detail({
     const f = useForm({ scheduled_at: '', confirmation: '' });
     const test = useForm({ email: '', mode: 'simulation', confirmation: 'PREPARE' });
     const [link, setLink] = useState('');
+    const changePageSize = (panel: 'events' | 'history', value: string) => {
+        router.get(
+            base,
+            {
+                events_per_page: panel === 'events' ? value : eventsPerPage,
+                history_per_page: panel === 'history' ? value : historyPerPage,
+                events_page: panel === 'events' ? 1 : events.current_page,
+                history_page: panel === 'history' ? 1 : history.current_page,
+                page: recipients.current_page,
+            },
+            { preserveScroll: true, preserveState: true, only: ['events', 'history', 'eventsPerPage', 'historyPerPage'] },
+        );
+    };
     useEffect(() => {
         if (!['scheduled', 'processing'].includes(campaign.status)) return;
         const t = setInterval(() => router.reload({ only: ['campaign', 'stats', 'recipients', 'events', 'history'] }), 2500);
@@ -358,6 +375,13 @@ export default function Detail({
             </Panel>
             <div className="grid gap-6 lg:grid-cols-2">
                 <Panel title={campaign.delivery_mode === 'simulation' ? 'Simulated delivery events' : 'Submission and provider events'}>
+                    <div className="mb-3 ml-auto max-w-40">
+                        <Select label="Events per page" value={String(eventsPerPage)} change={(value) => changePageSize('events', value)}>
+                            <option value="10">10 per page</option>
+                            <option value="50">50 per page</option>
+                            <option value="100">100 per page</option>
+                        </Select>
+                    </div>
                     {events.data.map((e) => (
                         <p className="border-b py-3 text-sm" key={e.id}>
                             {e.type === 'sandbox_validated'
@@ -371,6 +395,13 @@ export default function Detail({
                     <Pages page={events} />
                 </Panel>
                 <Panel title="Campaign state history">
+                    <div className="mb-3 ml-auto max-w-40">
+                        <Select label="History per page" value={String(historyPerPage)} change={(value) => changePageSize('history', value)}>
+                            <option value="10">10 per page</option>
+                            <option value="50">50 per page</option>
+                            <option value="100">100 per page</option>
+                        </Select>
+                    </div>
                     {history.data.map((h) => (
                         <p className="border-b py-3 text-sm" key={h.id}>
                             {h.action === 'campaign.pilot_blocked' ? 'Pilot blocked' : readableLabel(h.action)} ·{' '}

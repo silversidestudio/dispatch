@@ -127,11 +127,26 @@ it('paginates provider events and campaign state history independently', functio
     $this->actingAs($user)->get("/organisations/$organisation->id/campaigns/$campaign->id?events_page=2&history_page=2")
         ->assertInertia(fn (Assert $page) => $page
             ->where('events.total', 26)
+            ->where('events.per_page', 10)
             ->where('events.current_page', 2)
-            ->has('events.data', 1)
+            ->has('events.data', 10)
             ->where('history.total', 26)
+            ->where('history.per_page', 10)
             ->where('history.current_page', 2)
-            ->has('history.data', 1));
+            ->has('history.data', 10)
+            ->where('eventsPerPage', 10)
+            ->where('historyPerPage', 10));
+
+    $this->actingAs($user)->get("/organisations/$organisation->id/campaigns/$campaign->id?events_per_page=50&history_per_page=100")
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('events.per_page', 50)
+            ->where('events.current_page', 1)
+            ->has('events.data', 26)
+            ->where('history.per_page', 100)
+            ->where('history.current_page', 1)
+            ->has('history.data', 26)
+            ->where('eventsPerPage', 50)
+            ->where('historyPerPage', 100));
 });
 
 it('passes the selected contact view to the page for its selected styling and section heading', function () {

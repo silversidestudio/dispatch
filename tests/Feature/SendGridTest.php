@@ -273,6 +273,38 @@ it('matches analytics date and event filters against the same verified event', f
     $this->get($url.'&status=unsubscribe')->assertInertia(fn (AssertableInertia $p) => $p->where('recipients.total', 1));
 });
 
+it('paginates recent SendGrid events with a default of ten and selectable page sizes', function () {
+    [$u, $o, $c, $r] = sgFixture();
+    $attempt = sgAttempt($r);
+
+    foreach (range(1, 26) as $index) {
+        ingestSg(sgEvent($attempt, 'processed', ['timestamp' => time() + $index]));
+    }
+
+    $url = "/organisations/$o->id/campaigns/$c->id/analytics";
+    $this->actingAs($u)->get($url.'?recent_events_page=2')
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('recentEvents.total', 29)
+            ->where('recentEvents.per_page', 10)
+            ->where('recentEvents.current_page', 2)
+            ->has('recentEvents.data', 10)
+            ->where('recentEventsPerPage', 10));
+
+    $this->get($url.'?recent_events_per_page=50')
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('recentEvents.per_page', 50)
+            ->where('recentEvents.current_page', 1)
+            ->has('recentEvents.data', 29)
+            ->where('recentEventsPerPage', 50));
+
+    $this->get($url.'?recent_events_per_page=100')
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('recentEvents.per_page', 100)
+            ->where('recentEvents.current_page', 1)
+            ->has('recentEvents.data', 29)
+            ->where('recentEventsPerPage', 100));
+});
+
 it('reports signed company feedback through the queued path without double-counting engagement', function () {
     [$u, $o, $c, $r] = sgFixture();
     $a = sgAttempt($r);
