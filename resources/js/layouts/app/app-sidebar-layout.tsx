@@ -49,6 +49,7 @@ function WorkspaceTheme() {
 
 export default function AppSidebarLayout({ children, breadcrumbs = [] }: { children: React.ReactNode; breadcrumbs?: BreadcrumbItem[] }) {
     const { appearance } = useAppearance();
+    const { name: systemName } = usePage<SharedData>().props;
     return (
         <AppShell variant="sidebar">
             <WorkspaceTheme />
@@ -58,7 +59,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: { child
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {children}
                 <footer className="text-muted-foreground mt-auto border-t px-6 py-3 text-center text-xs">
-                    by Silverside Web Solutions
+                    {systemName} by Silverside Web Solutions
                 </footer>
             </AppContent>
         </AppShell>
