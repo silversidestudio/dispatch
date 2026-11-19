@@ -1,7 +1,6 @@
+import { BrandColorControl } from '@/components/brand-color-control';
 import { Field } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Errors, Panel } from '@/components/workspace';
 import { useForm } from '@inertiajs/react';
 export type Branding = {
@@ -12,39 +11,6 @@ export type Branding = {
     footer_text?: string | null;
     signature_text?: string | null;
 };
-
-function EmailBrandColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-    const id = label.toLowerCase().replaceAll(' ', '-');
-    const validColor = /^#[0-9a-fA-F]{6}$/.test(value);
-
-    return (
-        <div className="space-y-2">
-            <Label htmlFor={`${id}-hex`}>{label}</Label>
-            <div className="flex items-center gap-3">
-                <Input
-                    id={`${id}-picker`}
-                    type="color"
-                    className="h-11 w-16 shrink-0 cursor-pointer p-1"
-                    value={validColor ? value : '#21564b'}
-                    onChange={(event) => onChange(event.target.value)}
-                    aria-label={`${label} colour picker`}
-                />
-                <Input
-                    id={`${id}-hex`}
-                    className="min-w-0 font-mono uppercase"
-                    value={value}
-                    onChange={(event) => onChange(event.target.value)}
-                    aria-label={`${label} hex value`}
-                    aria-describedby={`${id}-preview`}
-                />
-            </div>
-            <div id={`${id}-preview`} className="text-muted-foreground flex items-center gap-2 text-xs" aria-live="polite">
-                <span className="size-4 rounded border" style={{ backgroundColor: validColor ? value : '#21564b' }} aria-hidden="true" />
-                {validColor ? value.toUpperCase() : 'Enter a six-digit hex colour, for example #230EF4.'}
-            </div>
-        </div>
-    );
-}
 
 export function EmailBranding({ id, branding, canUpdate }: { id: number; branding?: Branding | null; canUpdate: boolean }) {
     const f = useForm({
@@ -73,17 +39,17 @@ export function EmailBranding({ id, branding, canUpdate }: { id: number; brandin
                         <Field label="Default footer information" value={f.data.footer_text} change={(v) => f.setData('footer_text', v)} />
                     </div>
                     <div className="grid gap-4 sm:grid-cols-3">
-                        <EmailBrandColorField
+                        <BrandColorControl
                             label="Primary brand colour"
                             value={f.data.primary_color}
                             onChange={(value) => f.setData('primary_color', value)}
                         />
-                        <EmailBrandColorField
+                        <BrandColorControl
                             label="Secondary colour"
                             value={f.data.secondary_color}
                             onChange={(value) => f.setData('secondary_color', value)}
                         />
-                        <EmailBrandColorField
+                        <BrandColorControl
                             label="Default button colour"
                             value={f.data.button_color}
                             onChange={(value) => f.setData('button_color', value)}
