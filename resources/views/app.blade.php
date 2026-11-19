@@ -6,6 +6,12 @@
 
         <meta name="application-name" content="{{ config('app.name') }}">
         <link rel="icon" type="image/svg+xml" href="/favicon-light.svg" data-theme-favicon>
+        <link rel="icon" type="image/png" sizes="32x32" href="/app-icon-32.png">
+        <link rel="manifest" href="/site.webmanifest">
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png">
+        <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
+        <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
 

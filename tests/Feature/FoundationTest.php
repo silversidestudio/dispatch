@@ -14,6 +14,20 @@ function workspaceFor(User $u, string $role = 'owner'): Organisation
 
     return $o;
 }
+it('publishes iPad Home Screen icon metadata for the configured application name', function () {
+    $this->get('/login')
+        ->assertOk()
+        ->assertSee('rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png"', false)
+        ->assertSee('rel="manifest" href="/site.webmanifest"', false)
+        ->assertSee('name="apple-mobile-web-app-title"', false);
+
+    $this->get('/site.webmanifest')
+        ->assertOk()
+        ->assertJsonPath('name', config('app.name'))
+        ->assertJsonPath('start_url', '/dashboard')
+        ->assertJsonPath('icons.0.sizes', '192x192')
+        ->assertJsonPath('icons.1.sizes', '512x512');
+});
 it('requires verification for organisation and platform operations', function () {
     $u = User::factory()->unverified()->create();
     $this->actingAs($u)->get('/organisations')->assertRedirect('/verify-email');
