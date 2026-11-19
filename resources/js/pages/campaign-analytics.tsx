@@ -270,8 +270,8 @@ export default function CampaignAnalytics({
                 <Pages page={recipients} />
             </Panel>
             <Panel title="Recent SendGrid events" description="Events received in the selected date range.">
-                <div className="mb-3 ml-auto max-w-40">
-                    <Select label="Events per page" value={String(recentEventsPerPage)} change={changeRecentEventsPageSize}>
+                <div className="mb-3 flex justify-end">
+                    <Select compact label="Events per page" value={String(recentEventsPerPage)} change={changeRecentEventsPageSize}>
                         <option value="10">10 per page</option>
                         <option value="50">50 per page</option>
                         <option value="100">100 per page</option>

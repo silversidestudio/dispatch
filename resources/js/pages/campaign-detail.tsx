@@ -375,8 +375,8 @@ export default function Detail({
             </Panel>
             <div className="grid gap-6 lg:grid-cols-2">
                 <Panel title={campaign.delivery_mode === 'simulation' ? 'Simulated delivery events' : 'Submission and provider events'}>
-                    <div className="mb-3 ml-auto max-w-40">
-                        <Select label="Events per page" value={String(eventsPerPage)} change={(value) => changePageSize('events', value)}>
+                    <div className="mb-3 flex justify-end">
+                        <Select compact label="Events per page" value={String(eventsPerPage)} change={(value) => changePageSize('events', value)}>
                             <option value="10">10 per page</option>
                             <option value="50">50 per page</option>
                             <option value="100">100 per page</option>
@@ -395,8 +395,8 @@ export default function Detail({
                     <Pages page={events} />
                 </Panel>
                 <Panel title="Campaign state history">
-                    <div className="mb-3 ml-auto max-w-40">
-                        <Select label="History per page" value={String(historyPerPage)} change={(value) => changePageSize('history', value)}>
+                    <div className="mb-3 flex justify-end">
+                        <Select compact label="History per page" value={String(historyPerPage)} change={(value) => changePageSize('history', value)}>
                             <option value="10">10 per page</option>
                             <option value="50">50 per page</option>
                             <option value="100">100 per page</option>

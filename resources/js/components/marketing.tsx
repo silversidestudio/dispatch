@@ -43,14 +43,30 @@ export function Field({
         </div>
     );
 }
-export function Select({ label, value, change, children }: { label: string; value: string; change: (s: string) => void; children: ReactNode }) {
+export function Select({
+    label,
+    value,
+    change,
+    children,
+    compact = false,
+}: {
+    label: string;
+    value: string;
+    change: (s: string) => void;
+    children: ReactNode;
+    compact?: boolean;
+}) {
     const id = useId();
     return (
-        <div className="space-y-2">
-            <Label htmlFor={id}>{label}</Label>
+        <div className={compact ? 'flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2' : 'space-y-2'}>
+            <Label className={compact ? 'text-muted-foreground text-xs sm:whitespace-nowrap' : undefined} htmlFor={id}>
+                {label}
+            </Label>
             <select
                 id={id}
-                className="bg-background h-10 w-full rounded-lg border px-3 text-sm"
+                className={
+                    compact ? 'bg-background h-8 w-32 rounded-lg border px-2 text-xs' : 'bg-background h-10 w-full rounded-lg border px-3 text-sm'
+                }
                 value={value}
                 onChange={(e) => change(e.target.value)}
             >
