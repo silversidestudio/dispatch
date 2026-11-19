@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmailBranding, type Branding } from '@/components/email-branding';
 import { TrackingReview } from '@/components/provider-controls';
 import { Button } from '@/components/ui/button';
@@ -146,15 +147,17 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                                     <span>
                                         {m.name} · {readableLabel(m.role)}
                                     </span>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                            if (confirm(`Remove ${m.name}?`)) router.delete(`/organisations/${organisation.id}/members/${m.id}`);
-                                        }}
-                                    >
-                                        Remove member
-                                    </Button>
+                                    <ConfirmDialog
+                                        trigger={
+                                            <Button size="sm" variant="outline">
+                                                Remove member
+                                            </Button>
+                                        }
+                                        title={`Remove ${m.name} from this company?`}
+                                        description="They will lose access to this company. Their account and activity history will remain."
+                                        confirmLabel="Remove member"
+                                        onConfirm={() => router.delete(`/organisations/${organisation.id}/members/${m.id}`)}
+                                    />
                                 </div>
                             ))}
                     </div>

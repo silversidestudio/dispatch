@@ -1,9 +1,11 @@
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DeliveryStatus, EligibilityStatus } from '@/components/delivery-status';
 import { Company, Contact, Field, Metrics, Page, Pages, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
 import { contactFieldLabel, eligibilityLabel } from '@/lib/labels';
 import { Link, router, useForm } from '@inertiajs/react';
+import { Check } from 'lucide-react';
 import { useState } from 'react';
 export default function Contacts({
     company,
@@ -29,10 +31,16 @@ export default function Contacts({
         view,
     });
     const [ids, setIds] = useState<number[]>([]);
+    const sectionTitle = { active: 'Active contacts', archived: 'Archived contacts', trash: 'Recently deleted contacts' }[view];
+    const sectionDescription = {
+        active: 'Contacts available in this workspace. Eligibility and suppression are checked separately before campaign sending.',
+        archived: 'Archived contacts remain stored but are excluded from campaign audiences.',
+        trash: 'Deleted contacts are hidden from normal use and can be restored. Suppression history is retained.',
+    }[view];
     return (
         <Workspace
             title="Contacts"
-            subtitle={`${company.name} · Eligibility shows whether a contact can be included in a campaign.`}
+            subtitle={`${company.name} · Viewing: ${{ active: 'Active contacts', archived: 'Archived contacts', trash: 'Recently deleted contacts' }[view]} · Eligibility shows whether a contact can be included in a campaign.`}
             actions={
                 <Button variant="outline" asChild>
                     <Link href={base + '/imports'}>CSV imports</Link>
@@ -40,15 +48,18 @@ export default function Contacts({
             }
         >
             <Metrics data={stats} />
-            <Panel title="Contact directory">
+            <Panel title={sectionTitle} description={sectionDescription}>
                 <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Contact view">
                     {(['active', 'archived', 'trash'] as const).map((tab) => (
                         <Button
                             key={tab}
                             size="sm"
                             variant={view === tab ? 'default' : 'outline'}
+                            aria-pressed={view === tab}
+                            className={view === tab ? 'ring-primary ring-2 ring-offset-2' : ''}
                             onClick={() => router.get(base + '/contacts', { ...search.data, view: tab }, { preserveState: true })}
                         >
+                            {view === tab && <Check aria-hidden="true" />}
                             {{ active: 'Active', archived: 'Archived', trash: 'Recently deleted' }[tab]}
                         </Button>
                     ))}
@@ -112,15 +123,15 @@ export default function Contacts({
                             </Button>
                         )}
                         {view !== 'trash' && (
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    if (confirm('Move the selected contacts to Recently deleted? Campaign and suppression history will be retained.'))
-                                        router.post(base + '/contacts/bulk', { ids, action: 'delete', view }, { onSuccess: () => setIds([]) });
-                                }}
-                            >
-                                Delete selected
-                            </Button>
+                            <ConfirmDialog
+                                trigger={<Button variant="outline">Delete selected</Button>}
+                                title="Move contacts to Recently deleted?"
+                                description="Campaign and suppression history will be retained. You can restore these contacts later."
+                                confirmLabel="Move to Recently deleted"
+                                onConfirm={() =>
+                                    router.post(base + '/contacts/bulk', { ids, action: 'delete', view }, { onSuccess: () => setIds([]) })
+                                }
+                            />
                         )}
                         {view === 'trash' && (
                             <Button

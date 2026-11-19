@@ -37,7 +37,7 @@ class ContactController extends Controller
             }
         }
 
-        return Inertia::render('contacts', ['company' => $organisation, 'contacts' => $q->orderBy($d['sort'] ?? 'created_at', 'desc')->paginate(20)->withQueryString(), 'filters' => [...$d, 'view' => $view], 'canManage' => Gate::allows('manageCampaigns', $organisation), 'stats' => ['total' => Contact::where('organisation_id', $organisation->id)->count(), 'eligible' => app(EligibilityService::class)->query($organisation->id)->count(), 'suppressed' => Suppression::where('organisation_id', $organisation->id)->count()]]);
+        return Inertia::render('contacts', ['company' => $organisation, 'contacts' => $q->orderBy($d['sort'] ?? 'created_at', 'desc')->paginate(20)->withQueryString(), 'filters' => [...$d, 'view' => $view], 'view' => $view, 'canManage' => Gate::allows('manageCampaigns', $organisation), 'stats' => ['total' => Contact::where('organisation_id', $organisation->id)->count(), 'eligible' => app(EligibilityService::class)->query($organisation->id)->count(), 'suppressed' => Suppression::where('organisation_id', $organisation->id)->count()]]);
     }
 
     private function data(Request $r, Organisation $o, ?Contact $c = null): array

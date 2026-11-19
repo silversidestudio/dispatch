@@ -1,10 +1,11 @@
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DeliveryStatus } from '@/components/delivery-status';
 import { Company, Page, Pages } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Panel, Workspace } from '@/components/workspace';
 import { modeLabel } from '@/lib/labels';
 import { Link, router } from '@inertiajs/react';
-import { Mail, Plus } from 'lucide-react';
+import { Check, Mail, Plus } from 'lucide-react';
 export type Campaign = {
     delivery_mode: string;
     open_tracking: boolean;
@@ -40,7 +41,7 @@ export default function Campaigns({
     return (
         <Workspace
             title="Campaigns"
-            subtitle={`${company.name} · Drafts, scheduled sends and campaign history.`}
+            subtitle={`${company.name} · Viewing: ${{ active: 'Active campaigns', archived: 'Archived campaigns', trash: 'Recently deleted campaigns' }[view]} · Drafts, scheduled sends and campaign history.`}
             actions={
                 canManage && (
                     <Button asChild>
@@ -52,15 +53,27 @@ export default function Campaigns({
                 )
             }
         >
-            <Panel title="Campaign history">
+            <Panel
+                title={{ active: 'Active campaigns', archived: 'Archived campaigns', trash: 'Recently deleted campaigns' }[view]}
+                description={
+                    {
+                        active: 'Campaigns you are preparing, scheduling, or monitoring.',
+                        archived: 'Campaigns kept for reference with their delivery history and reports.',
+                        trash: 'Only unsent drafts appear here; restore one to continue editing.',
+                    }[view]
+                }
+            >
                 <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Campaign view">
                     {(['active', 'archived', 'trash'] as const).map((tab) => (
                         <Button
                             key={tab}
                             size="sm"
                             variant={view === tab ? 'default' : 'outline'}
+                            aria-pressed={view === tab}
+                            className={view === tab ? 'ring-primary ring-2 ring-offset-2' : ''}
                             onClick={() => router.get(base, { view: tab }, { preserveState: true })}
                         >
+                            {view === tab && <Check aria-hidden="true" />}
                             {{ active: 'Active', archived: 'Archived', trash: 'Recently deleted' }[tab]}
                         </Button>
                     ))}
@@ -98,32 +111,31 @@ export default function Campaigns({
                                         <td className="p-2">
                                             <div className="flex flex-wrap gap-2">
                                                 {view === 'active' && !['scheduled', 'processing', 'paused'].includes(c.status) && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            if (
-                                                                confirm(
-                                                                    'Archive this campaign? Its delivery history and reports will remain available.',
-                                                                )
-                                                            )
-                                                                router.post(`${base}/${c.id}/archive`);
-                                                        }}
-                                                    >
-                                                        Archive
-                                                    </Button>
+                                                    <ConfirmDialog
+                                                        trigger={
+                                                            <Button size="sm" variant="outline">
+                                                                Archive
+                                                            </Button>
+                                                        }
+                                                        title={`Archive “${c.name}”?`}
+                                                        description="Its delivery history, provider events and reports will remain available."
+                                                        confirmLabel="Archive campaign"
+                                                        confirmVariant="default"
+                                                        onConfirm={() => router.post(`${base}/${c.id}/archive`)}
+                                                    />
                                                 )}
                                                 {view !== 'trash' && c.status === 'draft' && !c.snapshot && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            if (confirm('Move this unsent draft to Recently deleted?'))
-                                                                router.delete(`${base}/${c.id}`);
-                                                        }}
-                                                    >
-                                                        Delete
-                                                    </Button>
+                                                    <ConfirmDialog
+                                                        trigger={
+                                                            <Button size="sm" variant="outline">
+                                                                Delete
+                                                            </Button>
+                                                        }
+                                                        title={`Move “${c.name}” to Recently deleted?`}
+                                                        description="This unsent draft can be restored later. Campaigns with a recipient snapshot cannot be deleted."
+                                                        confirmLabel="Move to Recently deleted"
+                                                        onConfirm={() => router.delete(`${base}/${c.id}`)}
+                                                    />
                                                 )}
                                                 {view !== 'active' && (
                                                     <Button size="sm" variant="outline" onClick={() => router.post(`${base}/${c.id}/restore`)}>

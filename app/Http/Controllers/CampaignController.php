@@ -139,7 +139,16 @@ class CampaignController extends Controller
             $stats = ['original_audience' => $campaign->audience_count, 'eligible_recipients' => $campaign->recipients()->count(), 'excluded' => $campaign->excluded_count, 'provider_attempts' => $stats['simulated_attempts'], 'api_acceptances' => $campaign->recipients()->where('status', 'accepted')->count(), 'uncertain' => $campaign->recipients()->where('status', 'uncertain')->count(), 'sandbox_validated' => $campaign->recipients()->where('status', 'sandbox_validated')->count()];
         }
 
-        return Inertia::render('campaign-detail', ['company' => $organisation, 'campaign' => $campaign, 'preflight' => app(CampaignService::class)->preflight($campaign), 'stats' => $stats, 'recipients' => $campaign->recipients()->orderBy('id')->paginate(25), 'events' => DeliveryEvent::where('organisation_id', $organisation->id)->where('campaign_id', $campaign->id)->latest('id')->limit(30)->get(), 'history' => AuditLog::where('organisation_id', $organisation->id)->where('metadata->campaign_id', $campaign->id)->orderBy('id')->get(), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+        return Inertia::render('campaign-detail', [
+            'company' => $organisation,
+            'campaign' => $campaign,
+            'preflight' => app(CampaignService::class)->preflight($campaign),
+            'stats' => $stats,
+            'recipients' => $campaign->recipients()->orderBy('id')->paginate(25)->withQueryString(),
+            'events' => DeliveryEvent::where('organisation_id', $organisation->id)->where('campaign_id', $campaign->id)->latest('id')->paginate(25, ['*'], 'events_page')->withQueryString(),
+            'history' => AuditLog::where('organisation_id', $organisation->id)->where('metadata->campaign_id', $campaign->id)->orderByDesc('id')->paginate(25, ['*'], 'history_page')->withQueryString(),
+            'canManage' => Gate::allows('manageCampaigns', $organisation),
+        ]);
     }
 
     public function stats(Campaign $c): array

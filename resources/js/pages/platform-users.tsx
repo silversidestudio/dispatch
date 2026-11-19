@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DeliveryStatus } from '@/components/delivery-status';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,18 +143,26 @@ export default function Users({
                                                 >
                                                     Edit details
                                                 </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        if (confirm(`Change account status for ${u.email}?`))
-                                                            router.patch(`/platform/users/${u.id}/status`, {
-                                                                status: u.status === 'active' ? 'suspended' : 'active',
-                                                            });
-                                                    }}
-                                                >
-                                                    {u.status === 'active' ? 'Suspend' : 'Activate'}
-                                                </Button>
+                                                <ConfirmDialog
+                                                    trigger={
+                                                        <Button variant="outline" size="sm">
+                                                            {u.status === 'active' ? 'Suspend' : 'Activate'}
+                                                        </Button>
+                                                    }
+                                                    title={`${u.status === 'active' ? 'Suspend' : 'Activate'} ${u.name}’s account?`}
+                                                    description={
+                                                        u.status === 'active'
+                                                            ? 'They will lose access to Dispatch and their active sessions will be signed out. You can activate the account again later.'
+                                                            : 'They will be able to sign in again using their existing account.'
+                                                    }
+                                                    confirmLabel={u.status === 'active' ? 'Suspend account' : 'Activate account'}
+                                                    confirmVariant={u.status === 'active' ? 'destructive' : 'default'}
+                                                    onConfirm={() =>
+                                                        router.patch(`/platform/users/${u.id}/status`, {
+                                                            status: u.status === 'active' ? 'suspended' : 'active',
+                                                        })
+                                                    }
+                                                />
                                             </div>
                                         )}
                                     </td>

@@ -1,8 +1,10 @@
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Company, Field, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
 import { readableLabel } from '@/lib/labels';
 import { Link, router, useForm } from '@inertiajs/react';
+import { Check } from 'lucide-react';
 import { useState } from 'react';
 type Rule = { field: string; value: string; key: string };
 type Segment = { id: number; name: string; rules: Rule[]; total: number; eligible: number };
@@ -73,18 +75,33 @@ export default function Audiences({
     const [preview, setPreview] = useState<SegmentPreview | null>(null);
     const filteredLists = lists.filter((list) => list.name.toLowerCase().includes(search.toLowerCase()));
     return (
-        <Workspace title="Audiences" subtitle={`${company.name} · Lists organise contacts; eligibility is managed on each contact.`}>
+        <Workspace
+            title="Audiences"
+            subtitle={`${company.name} · Viewing: ${{ active: 'Active mailing lists', archived: 'Archived mailing lists', trash: 'Recently deleted mailing lists' }[view]} · Eligibility is managed on each contact.`}
+        >
             <div className="grid gap-6 lg:grid-cols-2">
                 <div className="space-y-6">
-                    <Panel title="Mailing lists" description="Keep current audiences here; archive lists you no longer use.">
+                    <Panel
+                        title={{ active: 'Active mailing lists', archived: 'Archived mailing lists', trash: 'Recently deleted mailing lists' }[view]}
+                        description={
+                            {
+                                active: 'Current lists available when building a campaign audience.',
+                                archived: 'Retired lists kept for reference; they are unavailable to new campaign audiences.',
+                                trash: 'Deleted lists can be restored. Contact memberships are retained.',
+                            }[view]
+                        }
+                    >
                         <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Mailing list view">
                             {(['active', 'archived', 'trash'] as const).map((tab) => (
                                 <Button
                                     key={tab}
                                     size="sm"
                                     variant={view === tab ? 'default' : 'outline'}
+                                    aria-pressed={view === tab}
+                                    className={view === tab ? 'ring-primary ring-2 ring-offset-2' : ''}
                                     onClick={() => router.get(`${base}/audiences`, { view: tab }, { preserveState: true })}
                                 >
+                                    {view === tab && <Check aria-hidden="true" />}
                                     {{ active: 'Active', archived: 'Archived', trash: 'Recently deleted' }[tab]}
                                 </Button>
                             ))}
@@ -108,20 +125,18 @@ export default function Audiences({
                                         <div className="mt-3 flex gap-2">
                                             {view === 'active' && (
                                                 <>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            if (
-                                                                confirm(
-                                                                    'Archive this list? Contacts will stay in the company and the list can be restored later.',
-                                                                )
-                                                            )
-                                                                router.post(`${base}/lists/${list.id}/archive`);
-                                                        }}
-                                                    >
-                                                        Archive
-                                                    </Button>
+                                                    <ConfirmDialog
+                                                        trigger={
+                                                            <Button size="sm" variant="outline">
+                                                                Archive
+                                                            </Button>
+                                                        }
+                                                        title={`Archive “${list.name}”?`}
+                                                        description="Contacts will stay in the company. You can restore this list later."
+                                                        confirmLabel="Archive list"
+                                                        confirmVariant="default"
+                                                        onConfirm={() => router.post(`${base}/lists/${list.id}/archive`)}
+                                                    />
                                                 </>
                                             )}
                                             {view !== 'active' && (
@@ -130,20 +145,17 @@ export default function Audiences({
                                                 </Button>
                                             )}
                                             {view !== 'trash' && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        if (
-                                                            confirm(
-                                                                'Move this list to Recently deleted? Lists used in campaign history or dynamic segments must stay archived.',
-                                                            )
-                                                        )
-                                                            router.delete(`${base}/lists/${list.id}`);
-                                                    }}
-                                                >
-                                                    Delete
-                                                </Button>
+                                                <ConfirmDialog
+                                                    trigger={
+                                                        <Button size="sm" variant="outline">
+                                                            Delete
+                                                        </Button>
+                                                    }
+                                                    title={`Move “${list.name}” to Recently deleted?`}
+                                                    description="Lists used in campaign history or dynamic segments must stay archived. Contacts will not be deleted."
+                                                    confirmLabel="Move to Recently deleted"
+                                                    onConfirm={() => router.delete(`${base}/lists/${list.id}`)}
+                                                />
                                             )}
                                         </div>
                                     )}

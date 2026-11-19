@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DeliveryStatus } from '@/components/delivery-status';
 import { EmailPreview } from '@/components/email-preview';
 import { Company, Field, Metrics, Page, Pages, Select } from '@/components/marketing';
@@ -35,8 +36,8 @@ export default function Detail({
     };
     stats: Record<string, number>;
     recipients: Page<{ id: number; email: string; status: string; attempt_count: number }>;
-    events: { id: number; type: string; created_at: string; simulated: boolean }[];
-    history: { id: number; action: string; created_at: string; metadata?: { diagnostic?: string } }[];
+    events: Page<{ id: number; type: string; created_at: string; simulated: boolean }>;
+    history: Page<{ id: number; action: string; created_at: string; metadata?: { diagnostic?: string } }>;
     canManage: boolean;
 }) {
     const mode = campaign.delivery_mode;
@@ -87,14 +88,13 @@ export default function Detail({
                             Duplicate
                         </Button>
                         {['draft', 'ready', 'scheduled', 'processing', 'paused'].includes(campaign.status) && (
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    if (confirm('Cancel this campaign? Recorded attempts will remain.')) router.post(base + '/cancel');
-                                }}
-                            >
-                                Cancel campaign
-                            </Button>
+                            <ConfirmDialog
+                                trigger={<Button variant="outline">Cancel campaign</Button>}
+                                title="Cancel this campaign?"
+                                description="No further recipients will be submitted. A request already accepted by the provider cannot be recalled; recorded attempts will remain in campaign history."
+                                confirmLabel="Cancel campaign"
+                                onConfirm={() => router.post(base + '/cancel')}
+                            />
                         )}
                     </div>
                 )
@@ -358,7 +358,7 @@ export default function Detail({
             </Panel>
             <div className="grid gap-6 lg:grid-cols-2">
                 <Panel title={campaign.delivery_mode === 'simulation' ? 'Simulated delivery events' : 'Submission and provider events'}>
-                    {events.map((e) => (
+                    {events.data.map((e) => (
                         <p className="border-b py-3 text-sm" key={e.id}>
                             {e.type === 'sandbox_validated'
                                 ? 'Sandbox validated — no email sent'
@@ -367,10 +367,11 @@ export default function Detail({
                             {new Date(e.created_at).toLocaleString()}
                         </p>
                     ))}
-                    {!events.length && <p className="text-muted-foreground text-sm">No delivery events yet.</p>}
+                    {!events.data.length && <p className="text-muted-foreground text-sm">No delivery events yet.</p>}
+                    <Pages page={events} />
                 </Panel>
                 <Panel title="Campaign state history">
-                    {history.map((h) => (
+                    {history.data.map((h) => (
                         <p className="border-b py-3 text-sm" key={h.id}>
                             {h.action === 'campaign.pilot_blocked' ? 'Pilot blocked' : readableLabel(h.action)} ·{' '}
                             {new Date(h.created_at).toLocaleString()}
@@ -394,6 +395,7 @@ export default function Detail({
                             )}
                         </p>
                     ))}
+                    <Pages page={history} />
                 </Panel>
             </div>
         </Workspace>

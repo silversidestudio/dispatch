@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DeliveryStatus } from '@/components/delivery-status';
 import { ProviderIdentity, VerifyIdentity } from '@/components/provider-controls';
 import { Button } from '@/components/ui/button';
@@ -119,15 +120,17 @@ export default function Company({
                                         )}
                                     </td>
                                     <td>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => {
-                                                if (confirm(`Remove ${m.name}?`)) router.delete(`${base}/members/${m.id}`);
-                                            }}
-                                        >
-                                            Remove
-                                        </Button>
+                                        <ConfirmDialog
+                                            trigger={
+                                                <Button size="sm" variant="outline">
+                                                    Remove
+                                                </Button>
+                                            }
+                                            title={`Remove ${m.name} from this company?`}
+                                            description="They will lose access to this company. Their account and activity history will remain."
+                                            confirmLabel="Remove member"
+                                            onConfirm={() => router.delete(`${base}/members/${m.id}`)}
+                                        />
                                     </td>
                                 </tr>
                             ))}
@@ -136,7 +139,7 @@ export default function Company({
                 </div>
             </Panel>
             <div className="grid gap-6 lg:grid-cols-2">
-            <Panel title="Add a member">
+                <Panel title="Add a member">
                     <form
                         className="space-y-3"
                         onSubmit={(e) => {

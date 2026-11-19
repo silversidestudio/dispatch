@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useState } from 'react';
 export function PlainTextAlternative({
     companyId,
@@ -14,9 +15,9 @@ export function PlainTextAlternative({
     editable?: boolean;
 }) {
     const [busy, setBusy] = useState(false),
-        [error, setError] = useState('');
+        [error, setError] = useState(''),
+        [confirmOpen, setConfirmOpen] = useState(false);
     async function update() {
-        if (value.trim() && !confirm('Replace the plain-text alternative with text from the current email?')) return;
         setBusy(true);
         setError('');
         try {
@@ -46,7 +47,13 @@ export function PlainTextAlternative({
                     Plain-text alternative
                 </label>
                 {editable && (
-                    <Button type="button" variant="outline" size="sm" disabled={busy} onClick={update}>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => (value.trim() ? setConfirmOpen(true) : void update())}
+                    >
                         {busy ? 'Updating…' : 'Update from email'}
                     </Button>
                 )}
@@ -67,6 +74,30 @@ export function PlainTextAlternative({
                     {error}
                 </p>
             )}
+            <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Replace the plain-text alternative?</DialogTitle>
+                        <DialogDescription>
+                            This will replace the text currently in the plain-text editor with a version generated from the current email.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>
+                            Keep current text
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                setConfirmOpen(false);
+                                void update();
+                            }}
+                        >
+                            Replace text
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

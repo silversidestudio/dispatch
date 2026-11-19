@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmailPreview } from '@/components/email-preview';
 import { Company } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
@@ -120,19 +121,22 @@ export default function Templates({
                                             >
                                                 <Copy className="size-3.5" />
                                             </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                aria-label={`Delete ${t.name}`}
-                                                className="text-destructive hover:text-destructive"
-                                                onClick={() => {
-                                                    if (confirm(`Delete “${t.name}” from Your Library? Campaign content will remain unchanged.`)) {
-                                                        router.delete(`${base}/${t.id}`);
-                                                    }
-                                                }}
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                            </Button>
+                                            <ConfirmDialog
+                                                trigger={
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        aria-label={`Delete ${t.name}`}
+                                                        className="text-destructive hover:text-destructive"
+                                                    >
+                                                        <Trash2 className="size-3.5" />
+                                                    </Button>
+                                                }
+                                                title={`Delete “${t.name}” from Your Library?`}
+                                                description="Campaign content already using this template will remain unchanged."
+                                                confirmLabel="Delete template"
+                                                onConfirm={() => router.delete(`${base}/${t.id}`)}
+                                            />
                                         </>
                                     )}
                                 </div>
@@ -154,7 +158,9 @@ export default function Templates({
                 <div className="mb-5">
                     <div className="mb-2 flex items-center gap-2">
                         <Sparkles className="size-4 text-emerald-600" />
-                        <p className="text-xs font-medium tracking-widest uppercase">{customGallery ? 'Relaxa collection' : 'The Studio collection · v2'}</p>
+                        <p className="text-xs font-medium tracking-widest uppercase">
+                            {customGallery ? 'Relaxa collection' : 'The Studio collection · v2'}
+                        </p>
                     </div>
                     <h2 className="text-lg font-semibold">{customGallery ? 'Relaxa webinar designs' : 'Designed to make a good impression'}</h2>
                     <p className="text-muted-foreground mt-1 text-sm">
