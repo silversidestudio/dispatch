@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
 import { readableLabel } from '@/lib/labels';
 import { useForm } from '@inertiajs/react';
+import { CheckCircle2, CircleDashed } from 'lucide-react';
 import { useState } from 'react';
 export type Identity = {
     id: number;
@@ -25,7 +26,7 @@ export default function Identities({
     company: Company;
     identities: (Identity & ProviderIdentity)[];
     canManage: boolean;
-    readiness: { provider: string; enabled: boolean; configured: boolean; live_enabled: boolean };
+    readiness: { provider: string; enabled: boolean; configured: boolean; webhook_configured: boolean; live_enabled: boolean };
     canVerify: boolean;
 }) {
     const f = useForm({ name: '', email: '', reply_to: '', is_default: false as boolean });
@@ -33,15 +34,34 @@ export default function Identities({
     const [id, setId] = useState<number | null>(null);
     const base = `/organisations/${company.id}/identities`;
     return (
-        <Workspace
-            title="Sending setup"
-            subtitle="Choose the From address recipients will see and connect this company’s SendGrid account."
-        >
+        <Workspace title="Sending setup" subtitle="Choose the From address recipients will see and connect this company’s SendGrid account.">
             {canManage && (
                 <Panel
                     title="SendGrid account"
-                    description="This key is used only for this company. Saving a new key clears the sender check; live sending stays off until setup is complete."
+                    description="Keys are hidden after saving. The status below shows which company credentials are stored. Saving SendGrid details clears the sender check; live sending stays off until setup is complete."
                 >
+                    <div className="mb-4 flex flex-wrap gap-2" aria-label="Stored SendGrid credentials">
+                        {[
+                            { label: 'API key', configured: readiness.configured },
+                            { label: 'Webhook verification key', configured: readiness.webhook_configured },
+                        ].map(({ label, configured }) => (
+                            <span
+                                key={label}
+                                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${
+                                    configured
+                                        ? 'border-emerald-600/20 bg-emerald-600/10 text-emerald-700 dark:text-emerald-300'
+                                        : 'text-muted-foreground bg-muted/40'
+                                }`}
+                            >
+                                {configured ? (
+                                    <CheckCircle2 className="size-4" aria-hidden="true" />
+                                ) : (
+                                    <CircleDashed className="size-4" aria-hidden="true" />
+                                )}
+                                {label}: {configured ? 'Saved' : 'Not saved'}
+                            </span>
+                        ))}
+                    </div>
                     <form
                         className="space-y-4"
                         autoComplete="off"
@@ -64,7 +84,8 @@ export default function Identities({
                             change={(v) => credentials.setData('sendgrid_webhook_key', v)}
                         />
                         <p className="text-sm">
-                            SendGrid webhook address: <code>/webhooks/sendgrid/{company.id}</code>. Saving without a verification key removes the stored key.
+                            SendGrid webhook address: <code>/webhooks/sendgrid/{company.id}</code>. Saving without a verification key removes the
+                            stored key.
                         </p>
                         <Errors errors={credentials.errors} />
                         <Button disabled={credentials.processing}>Save SendGrid details</Button>
@@ -73,8 +94,9 @@ export default function Identities({
             )}
             <Panel title="Provider readiness">
                 <p className="text-sm">
-                    Delivery service: {readableLabel(readiness.provider)} · Account: {readiness.enabled && readiness.configured ? 'Connected' : 'Not connected'}{' '}
-                    · Live sending: {readiness.live_enabled ? 'Available after campaign checks' : 'Off'}
+                    Delivery service: {readableLabel(readiness.provider)} · Account:{' '}
+                    {readiness.enabled && readiness.configured ? 'Connected' : 'Not connected'} · Live sending:{' '}
+                    {readiness.live_enabled ? 'Available after campaign checks' : 'Off'}
                 </p>
                 <p className="text-muted-foreground mt-3 text-xs">
                     SendGrid provides the domain records to add at your DNS provider. In Cloudflare, its CNAME records must use DNS-only mode. DMARC
