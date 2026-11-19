@@ -32,7 +32,7 @@ export default function Organisations({
                             .map((o) => (
                                 <div key={o.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
                                     <div className="flex items-center gap-3">
-                                        <Building2 className="size-5 text-indigo-500" />
+                                        <Building2 className="text-primary size-5" />
                                         <div>
                                             <Link href={`/organisations/${o.id}`} className="text-sm font-medium hover:underline">
                                                 {o.name}

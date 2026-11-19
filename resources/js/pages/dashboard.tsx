@@ -33,7 +33,7 @@ export default function Dashboard({
                 </Button>
             }
         >
-            <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-5">
+            <div className="border-primary/20 bg-primary/5 rounded-xl border p-5">
                 <p className="text-sm font-medium">
                     Delivery provider: {providerStatus.provider} · Live delivery{' '}
                     {providerStatus.live_enabled ? 'enabled by configuration; approval still required' : 'disabled'}
@@ -62,7 +62,7 @@ export default function Dashboard({
                             </p>
                             <progress
                                 aria-label={`Delivery progress ${c.name}`}
-                                className="mt-3 h-2 w-full accent-indigo-600"
+                                className="accent-primary mt-3 h-2 w-full"
                                 value={c.analytics.counts.delivered}
                                 max={Math.max(1, c.analytics.counts.eligible_recipients)}
                             />

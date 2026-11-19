@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Errors, Panel, Workspace } from '@/components/workspace';
+import { WorkspaceBranding } from '@/components/workspace-branding';
 import { readableLabel } from '@/lib/labels';
 import { router, useForm } from '@inertiajs/react';
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
         website: string | null;
         postal_address: string | null;
         email_branding?: Branding | null;
+        workspace_branding?: { primary_color?: string } | null;
         tracking: { open: boolean; click: boolean; reviewed_at: string | null };
     };
     canUpdate: boolean;
@@ -50,6 +52,7 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                     {canUpdate && <Button disabled={f.processing}>Save changes</Button>}
                 </form>
             </Panel>
+            <WorkspaceBranding id={organisation.id} primaryColor={organisation.workspace_branding?.primary_color} canUpdate={canUpdate} />
             <EmailBranding id={organisation.id} branding={organisation.email_branding} canUpdate={canUpdate} />
             {canManageMembers && (
                 <>
@@ -99,7 +102,10 @@ export default function OrganisationSettings({ organisation, canUpdate, canManag
                 </>
             )}
             {canManageMembers && (
-                <Panel title="Ownership and membership" description="Transfer ownership before removing the current owner. A workspace always needs an owner.">
+                <Panel
+                    title="Ownership and membership"
+                    description="Transfer ownership before removing the current owner. A workspace always needs an owner."
+                >
                     <form
                         className="flex flex-wrap gap-3"
                         onSubmit={(e) => {

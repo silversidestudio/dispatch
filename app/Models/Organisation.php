@@ -15,7 +15,7 @@ class Organisation extends Model
 
     protected function casts(): array
     {
-        return ['sendgrid_api_key' => 'encrypted', 'sendgrid_webhook_key' => 'encrypted', 'email_branding' => 'array', 'open_tracking_enabled' => 'boolean', 'click_tracking_enabled' => 'boolean', 'tracking_reviewed_at' => 'datetime'];
+        return ['sendgrid_api_key' => 'encrypted', 'sendgrid_webhook_key' => 'encrypted', 'email_branding' => 'array', 'workspace_branding' => 'array', 'open_tracking_enabled' => 'boolean', 'click_tracking_enabled' => 'boolean', 'tracking_reviewed_at' => 'datetime'];
     }
 
     public function sendGridCredentialFingerprint(): ?string

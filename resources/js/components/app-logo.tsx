@@ -5,7 +5,7 @@ export default function AppLogo() {
     const { name } = usePage<SharedData>().props;
     return (
         <>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-600 text-white">
+            <div className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-xl">
                 <Send className="size-5" />
             </div>
             <div className="ml-1 grid flex-1 text-left">

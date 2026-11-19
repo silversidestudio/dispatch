@@ -44,6 +44,30 @@ it('isolates settings switching and audit activity between organisations', funct
     $this->post("/organisations/{$ob->id}/invitations", ['email' => 'x@example.test', 'role' => 'viewer'])->assertForbidden();
     $this->withSession(['organisation_id' => $ob->id])->get('/dashboard')->assertInertia(fn (Assert $p) => $p->where('organisation.id', $oa->id)->has('activity', 0));
 });
+it('lets workspace administrators save an isolated interface accent colour', function () {
+    $owner = User::factory()->create();
+    $viewer = User::factory()->create();
+    $organisation = workspaceFor($owner);
+    $otherOrganisation = workspaceFor($viewer);
+
+    $this->actingAs($owner)
+        ->patch("/organisations/{$organisation->id}/workspace-branding", ['primary_color' => '#230EF4'])
+        ->assertRedirect();
+
+    expect($organisation->fresh()->workspace_branding)->toBe(['primary_color' => '#230ef4']);
+    $this->assertDatabaseHas('audit_logs', ['action' => 'workspace_branding.updated', 'organisation_id' => $organisation->id]);
+
+    $this->withSession(['organisation_id' => $organisation->id])->get('/dashboard')
+        ->assertInertia(fn (Assert $page) => $page->where('workspaceBranding.primary_color', '#230ef4'));
+    $this->actingAs($viewer)
+        ->patch("/organisations/{$organisation->id}/workspace-branding", ['primary_color' => '#ff0000'])
+        ->assertForbidden();
+    $this->actingAs($owner)
+        ->patch("/organisations/{$organisation->id}/workspace-branding", ['primary_color' => 'not-a-colour'])
+        ->assertSessionHasErrors('primary_color');
+
+    expect($otherOrganisation->fresh()->workspace_branding)->toBeNull();
+});
 it('enforces the role matrix', function (string $role, bool $update, bool $members, bool $campaigns) {
     $u = User::factory()->create();
     $o = workspaceFor($u, $role);

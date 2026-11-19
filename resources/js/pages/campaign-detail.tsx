@@ -192,7 +192,7 @@ export default function Detail({
                                 </div>
                                 <progress
                                     aria-label={String(label)}
-                                    className="h-2 w-full accent-indigo-600"
+                                    className="accent-primary h-2 w-full"
                                     value={Number(value)}
                                     max={stats.eligible_at_snapshot}
                                 />

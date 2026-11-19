@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganisationController;
 use App\Http\Controllers\PlatformController;
-use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route(auth()->check() ? 'dashboard' : 'login'))->name('home');
@@ -17,6 +17,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/organisations/{organisation}/switch', [OrganisationController::class, 'switch'])->name('organisations.switch');
     Route::get('/organisations/{organisation}', [OrganisationController::class, 'show'])->name('organisations.show');
     Route::patch('/organisations/{organisation}', [OrganisationController::class, 'update'])->name('organisations.update');
+    Route::patch('/organisations/{organisation}/workspace-branding', [OrganisationController::class, 'updateWorkspaceBranding'])->name('organisations.workspace-branding');
     Route::post('/organisations/{organisation}/invitations', [OrganisationController::class, 'invite'])->middleware('throttle:10,1')->name('organisations.invite');
     Route::patch('/organisations/{organisation}/members/{member}', [OrganisationController::class, 'role'])->name('organisations.role');
     Route::post('/invitations/{token}', [OrganisationController::class, 'accept'])->middleware('throttle:10,1');

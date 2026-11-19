@@ -24,6 +24,7 @@ export interface NavItem {
 export interface SharedData {
     organisations: {id:number;name:string}[];
     currentOrganisationId: number | null;
+    workspaceBranding: { primary_color?: string } | null;
     flash: {success?:string;invitation_url?:string};
     name: string;
     quote: { message: string; author: string };

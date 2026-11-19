@@ -142,7 +142,7 @@ export default function CampaignAnalytics({
                                 <span>{analytics.counts[k]}</span>
                             </div>
                             <progress
-                                className="h-2 w-full accent-indigo-600"
+                                className="accent-primary h-2 w-full"
                                 aria-label={k}
                                 value={analytics.counts[k]}
                                 max={Math.max(1, analytics.counts.eligible_recipients)}
@@ -168,7 +168,7 @@ export default function CampaignAnalytics({
                                     <div key={name} className="flex items-center gap-3 text-xs">
                                         <span className="w-24 shrink-0">{name}</span>
                                         <progress
-                                            className="h-2 w-full accent-indigo-600"
+                                            className="accent-primary h-2 w-full"
                                             aria-label={`${name} ${a.day}`}
                                             value={Number(n)}
                                             max={Math.max(

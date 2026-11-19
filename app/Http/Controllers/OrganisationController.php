@@ -54,12 +54,23 @@ class OrganisationController extends Controller
         return back()->with('success', 'Organisation updated.');
     }
 
+    public function updateWorkspaceBranding(Request $r, Organisation $organisation)
+    {
+        Gate::authorize('update', $organisation);
+        $data = $r->validate(['primary_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/']]);
+
+        $organisation->forceFill(['workspace_branding' => ['primary_color' => strtolower($data['primary_color'])]])->save();
+        AuditLog::record('workspace_branding.updated', $organisation->id, ['primary_color' => strtolower($data['primary_color'])]);
+
+        return back()->with('success', 'Workspace appearance saved.');
+    }
+
     public function show(Request $r, Organisation $organisation)
     {
         Gate::authorize('view', $organisation);
         $owner = Gate::allows('manageMembers', $organisation);
 
-        return Inertia::render('organisation-settings', ['organisation' => ['id' => $organisation->id, 'name' => $organisation->name, 'website' => $organisation->website, 'postal_address' => $organisation->postal_address, 'email_branding' => $organisation->email_branding, 'tracking' => ['open' => (bool) $organisation->open_tracking_enabled, 'click' => (bool) $organisation->click_tracking_enabled, 'reviewed_at' => $organisation->tracking_reviewed_at]], 'canUpdate' => Gate::allows('update', $organisation), 'canManageMembers' => $owner, 'members' => $owner ? $organisation->members()->get()->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'role' => $u->pivot->role]) : [], 'invitations' => $owner ? DB::table('organisation_invitations')->where('organisation_id', $organisation->id)->get(['id', 'email', 'role', 'expires_at']) : []]);
+        return Inertia::render('organisation-settings', ['organisation' => ['id' => $organisation->id, 'name' => $organisation->name, 'website' => $organisation->website, 'postal_address' => $organisation->postal_address, 'email_branding' => $organisation->email_branding, 'workspace_branding' => $organisation->workspace_branding, 'tracking' => ['open' => (bool) $organisation->open_tracking_enabled, 'click' => (bool) $organisation->click_tracking_enabled, 'reviewed_at' => $organisation->tracking_reviewed_at]], 'canUpdate' => Gate::allows('update', $organisation), 'canManageMembers' => $owner, 'members' => $owner ? $organisation->members()->get()->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'role' => $u->pivot->role]) : [], 'invitations' => $owner ? DB::table('organisation_invitations')->where('organisation_id', $organisation->id)->get(['id', 'email', 'role', 'expires_at']) : []]);
     }
 
     public function invite(Request $r, Organisation $organisation)
