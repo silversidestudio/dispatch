@@ -59,7 +59,15 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: { child
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {children}
                 <footer className="text-muted-foreground mt-auto border-t px-6 py-3 text-center text-xs">
-                    {systemName} developed by Silverside Web Solutions
+                    {systemName} developed by{' '}
+                    <a
+                        href="https://silverside.co"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-foreground underline underline-offset-4"
+                    >
+                        Silverside Web Solutions
+                    </a>
                 </footer>
             </AppContent>
         </AppShell>
