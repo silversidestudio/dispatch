@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <meta name="application-name" content="{{ config('app.name') }}">
+        <meta name="theme-color" content="#ffffff" data-workspace-theme-color>
         <link rel="icon" type="image/svg+xml" href="/favicon-light.svg" data-theme-favicon>
         <link rel="icon" type="image/png" sizes="32x32" href="/app-icon-32.png">
         <link rel="manifest" href="/site.webmanifest">

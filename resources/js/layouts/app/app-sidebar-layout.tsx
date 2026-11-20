@@ -21,6 +21,8 @@ function WorkspaceTheme() {
             root.style.removeProperty('--sidebar-primary');
             root.style.removeProperty('--sidebar-primary-foreground');
             root.style.removeProperty('--sidebar-ring');
+            const themeColour = document.querySelector<HTMLMetaElement>('meta[data-workspace-theme-color]');
+            themeColour?.setAttribute('content', root.classList.contains('dark') ? '#0a0a0a' : '#ffffff');
         };
 
         if (!primaryColor || !/^#[0-9a-fA-F]{6}$/.test(primaryColor)) {
@@ -40,6 +42,7 @@ function WorkspaceTheme() {
         root.style.setProperty('--sidebar-primary', primaryColor);
         root.style.setProperty('--sidebar-primary-foreground', foreground);
         root.style.setProperty('--sidebar-ring', primaryColor);
+        document.querySelector<HTMLMetaElement>('meta[data-workspace-theme-color]')?.setAttribute('content', primaryColor);
 
         return clearWorkspaceTheme;
     }, [primaryColor]);

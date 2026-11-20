@@ -8,6 +8,9 @@ const applyTheme = (appearance: Appearance) => {
     const isDark = appearance === 'dark' || (appearance === 'system' && prefersDark());
 
     document.documentElement.classList.toggle('dark', isDark);
+    const themeColour = document.querySelector<HTMLMetaElement>('meta[data-workspace-theme-color]');
+    const workspaceColour = document.documentElement.style.getPropertyValue('--primary').trim();
+    themeColour?.setAttribute('content', /^#[0-9a-fA-F]{6}$/.test(workspaceColour) ? workspaceColour : isDark ? '#0a0a0a' : '#ffffff');
     const favicon = document.querySelector<HTMLLinkElement>('link[data-theme-favicon]');
     if (favicon) favicon.href = isDark ? '/favicon-dark.svg' : '/favicon-light.svg';
 };

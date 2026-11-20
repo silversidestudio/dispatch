@@ -25,8 +25,20 @@ it('publishes iPad Home Screen icon metadata for the configured application name
         ->assertOk()
         ->assertJsonPath('name', config('app.name'))
         ->assertJsonPath('start_url', '/dashboard')
+        ->assertJsonPath('theme_color', '#ffffff')
         ->assertJsonPath('icons.0.sizes', '192x192')
         ->assertJsonPath('icons.1.sizes', '512x512');
+});
+it('uses the active organisation brand colour for the browser and install theme', function () {
+    $user = User::factory()->create();
+    $organisation = workspaceFor($user);
+    $organisation->forceFill(['workspace_branding' => ['primary_color' => '#9929BD']])->save();
+
+    $this->actingAs($user)
+        ->withSession(['organisation_id' => $organisation->id])
+        ->get('/site.webmanifest')
+        ->assertOk()
+        ->assertJsonPath('theme_color', '#9929bd');
 });
 it('requires verification for organisation and platform operations', function () {
     $u = User::factory()->unverified()->create();

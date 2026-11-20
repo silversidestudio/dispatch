@@ -3,11 +3,21 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class WebManifestController extends Controller
 {
-    public function __invoke(): JsonResponse
+    public function __invoke(Request $request): JsonResponse
     {
+        $organisation = $request->user()?->organisations()
+            ->where('organisations.status', 'active')
+            ->whereKey($request->session()->get('organisation_id'))
+            ->first(['organisations.id', 'organisations.workspace_branding']);
+        $workspaceColour = $organisation?->workspace_branding['primary_color'] ?? null;
+        $themeColour = is_string($workspaceColour) && preg_match('/^#[0-9a-fA-F]{6}$/', $workspaceColour)
+            ? strtolower($workspaceColour)
+            : '#ffffff';
+
         return response()->json([
             'name' => config('app.name'),
             'short_name' => config('app.name'),
@@ -15,11 +25,11 @@ class WebManifestController extends Controller
             'scope' => '/',
             'display' => 'standalone',
             'background_color' => '#f8fafc',
-            'theme_color' => '#6d28d9',
+            'theme_color' => $themeColour,
             'icons' => [
                 ['src' => '/app-icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
                 ['src' => '/app-icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
             ],
-        ], 200, ['Content-Type' => 'application/manifest+json', 'Cache-Control' => 'public, max-age=3600']);
+        ], 200, ['Content-Type' => 'application/manifest+json', 'Cache-Control' => 'private, max-age=300']);
     }
 }
