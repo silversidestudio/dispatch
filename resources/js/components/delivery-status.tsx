@@ -32,7 +32,7 @@ export function StatusPill({ label, tone = 'neutral' }: { label: string; tone?: 
 
 export function DeliveryStatus({ status, label }: { status?: string | null; label?: string }) {
     const value = status ?? '';
-    const green = ['active', 'verified', 'completed', 'delivered', 'accepted', 'sandbox_validated', 'imported'];
+    const green = ['active', 'verified', 'completed', 'delivered', 'accepted', 'sandbox_validated', 'imported', 'added', 'existing'];
     const amber = [
         'pending',
         'queued',

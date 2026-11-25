@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\ProcessContactImport;
+use App\Jobs\ProcessSuppressionImport;
 use App\Models\Contact;
 use App\Models\ContactImport;
 use App\Models\EligibilityRecord;
@@ -8,10 +9,12 @@ use App\Models\ImportRow;
 use App\Models\MailingList;
 use App\Models\Segment;
 use App\Models\Suppression;
+use App\Models\SuppressionImport;
 use App\Models\User;
 use App\Services\AudienceService;
 use App\Services\CsvImportService;
 use App\Services\EligibilityService;
+use App\Services\SuppressionImportService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -146,4 +149,93 @@ it('never restores suppressed addresses through CSV import and keeps eligibility
     $new = Contact::where('organisation_id', $o->id)->where('email', 'new@example.test')->firstOrFail();
     app(EligibilityService::class)->suppress($new, 'unsubscribed');
     expect(app(EligibilityService::class)->eligible($new))->toBeFalse();
+});
+
+it('imports legacy unsubscribes as company-wide suppression without creating contacts and is idempotent', function () {
+    Storage::fake();
+    Queue::fake();
+    $user = User::factory()->create();
+    $organisation = workspaceFor($user);
+    $otherOrganisation = workspaceFor($user);
+    Suppression::create([
+        'organisation_id' => $organisation->id,
+        'email' => 'already@example.test',
+        'reason' => 'hard_bounce',
+        'evidence' => 'Previously reported as a hard bounce.',
+    ]);
+    $contact = contactFor($organisation, 'known@example.test');
+    app(EligibilityService::class)->record($contact, [
+        'basis' => 'consent',
+        'evidence' => 'Contact consented through the company signup form.',
+        'method' => 'Website form',
+        'recorded_at' => now()->subDay(),
+    ]);
+    $otherContact = contactFor($otherOrganisation, 'known@example.test');
+    app(EligibilityService::class)->record($otherContact, [
+        'basis' => 'consent',
+        'evidence' => 'Separate company consent record.',
+        'method' => 'Website form',
+        'recorded_at' => now()->subDay(),
+    ]);
+
+    $this->actingAs($user)->post("/organisations/$organisation->id/suppressions/imports", [
+        'source' => 'Historical client unsubscribe list',
+        'evidence' => 'Exported from previous email service.',
+        'file' => UploadedFile::fake()->createWithContent('unsubscribes.csv', "Email address,Date\nKnown@Example.test,2024-01-01\nold@example.test,2023-06-12\nOLD@example.test,2023-06-12\nalready@example.test,2022-01-01\nnot-an-email,2023-06-12\n"),
+    ])->assertRedirect();
+
+    $import = SuppressionImport::sole();
+    $this->post("/organisations/$organisation->id/suppressions/imports/$import->id/start", ['email_column' => 0])->assertRedirect();
+    Queue::assertPushed(ProcessSuppressionImport::class);
+    app(SuppressionImportService::class)->process($import->fresh());
+
+    $import->refresh();
+    expect($import->status)->toBe('completed')
+        ->and($import->added)->toBe(2)
+        ->and($import->existing)->toBe(2)
+        ->and($import->rejected)->toBe(1)
+        ->and(Contact::where('organisation_id', $organisation->id)->count())->toBe(1)
+        ->and(Suppression::where('organisation_id', $organisation->id)->pluck('email')->all())->toBe(['already@example.test', 'known@example.test', 'old@example.test'])
+        ->and(Suppression::where('organisation_id', $organisation->id)->where('email', 'already@example.test')->value('reason'))->toBe('hard_bounce')
+        ->and(app(EligibilityService::class)->eligible($contact->fresh()))->toBeFalse()
+        ->and(app(EligibilityService::class)->eligible($otherContact->fresh()))->toBeTrue();
+
+    Storage::put('imports/active-contacts.csv', "email\nold@example.test\n");
+    $contactImport = ContactImport::create([
+        'organisation_id' => $organisation->id,
+        'user_id' => $user->id,
+        'path' => 'imports/active-contacts.csv',
+        'source' => 'Active contact list',
+        'headers' => ['email'],
+        'mapping' => ['email' => 0],
+        'status' => 'queued',
+        'total' => 1,
+    ]);
+    app(CsvImportService::class)->process($contactImport);
+    $laterImportedContact = Contact::where('organisation_id', $organisation->id)->where('email', 'old@example.test')->firstOrFail();
+    expect($laterImportedContact->eligibility)->toBe('unsubscribed')
+        ->and(app(EligibilityService::class)->eligible($laterImportedContact))->toBeFalse();
+
+    $import->update(['status' => 'failed']);
+    app(SuppressionImportService::class)->process($import->fresh());
+    expect(Suppression::where('organisation_id', $organisation->id)->count())->toBe(3)
+        ->and($import->fresh()->added)->toBe(2)
+        ->and($import->fresh()->processed)->toBe(5);
+});
+
+it('keeps suppression import views and files scoped to the company', function () {
+    Storage::fake();
+    $owner = User::factory()->create();
+    $outsider = User::factory()->create();
+    $organisation = workspaceFor($owner);
+    $otherOrganisation = workspaceFor($outsider);
+    $this->actingAs($owner)->post("/organisations/$organisation->id/suppressions/imports", [
+        'source' => 'Historic unsubscribe file',
+        'file' => UploadedFile::fake()->createWithContent('unsubscribes.csv', "email\nstop@example.test\n"),
+    ])->assertRedirect();
+    $import = SuppressionImport::sole();
+
+    $this->actingAs($outsider)->get("/organisations/$organisation->id/suppressions")->assertForbidden();
+    $this->get("/organisations/$otherOrganisation->id/suppressions/imports/$import->id")->assertNotFound();
+    $this->get("/organisations/$otherOrganisation->id/suppressions/imports/$import->id/errors")->assertNotFound();
 });

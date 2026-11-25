@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Errors, Panel, Workspace } from '@/components/workspace';
 import { Link, useForm } from '@inertiajs/react';
+import { ShieldBan } from 'lucide-react';
 export type Import = {
     id: number;
     status: string;
@@ -24,6 +25,7 @@ export default function Imports({ company, imports, canManage }: { company: Comp
         <Workspace
             title="Contact imports"
             subtitle="New CSV contacts follow this workspace’s import setting. The import records their source but does not verify permission to email them. Existing suppressions are kept."
+            actions={<Button variant="outline" asChild><Link href={`/organisations/${company.id}/suppressions`}><ShieldBan aria-hidden="true" /> Global suppressions</Link></Button>}
         >
             {canManage && (
                 <Panel

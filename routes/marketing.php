@@ -9,6 +9,7 @@ use App\Http\Controllers\ContentController;
 use App\Http\Controllers\ImportController as I;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\SendGridWebhookController;
+use App\Http\Controllers\SuppressionController;
 use App\Http\Controllers\UnsubscribeController;
 use App\Services\UnsubscribeService;
 use Illuminate\Http\Request;
@@ -44,6 +45,11 @@ Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')-
     Route::get('imports/{import}', [I::class, 'show']);
     Route::post('imports/{import}/start', [I::class, 'start']);
     Route::get('imports/{import}/errors', [I::class, 'errors']);
+    Route::get('suppressions', [SuppressionController::class, 'index']);
+    Route::post('suppressions/imports', [SuppressionController::class, 'upload'])->middleware('throttle:10,1');
+    Route::get('suppressions/imports/{import}', [SuppressionController::class, 'show']);
+    Route::post('suppressions/imports/{import}/start', [SuppressionController::class, 'start']);
+    Route::get('suppressions/imports/{import}/errors', [SuppressionController::class, 'errors']);
 });
 Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')->group(function () {
     $c = ContentController::class;

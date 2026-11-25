@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Errors, Panel, Workspace } from '@/components/workspace';
 import { contactFieldLabel, eligibilityLabel } from '@/lib/labels';
 import { Link, router, useForm } from '@inertiajs/react';
-import { Check } from 'lucide-react';
+import { Check, ShieldBan } from 'lucide-react';
 import { useState } from 'react';
 export default function Contacts({
     company,
@@ -42,9 +42,10 @@ export default function Contacts({
             title="Contacts"
             subtitle={`${company.name} · Viewing: ${{ active: 'Active contacts', archived: 'Archived contacts', trash: 'Recently deleted contacts' }[view]} · Eligibility shows whether a contact can be included in a campaign.`}
             actions={
-                <Button variant="outline" asChild>
-                    <Link href={base + '/imports'}>CSV imports</Link>
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" asChild><Link href={base + '/imports'}>CSV imports</Link></Button>
+                    <Button variant="outline" asChild><Link href={base + '/suppressions'}><ShieldBan aria-hidden="true" /> Global suppressions</Link></Button>
+                </div>
             }
         >
             <Metrics data={stats} />
