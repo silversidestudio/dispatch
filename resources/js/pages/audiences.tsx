@@ -62,6 +62,7 @@ export default function Audiences({
         contacts_count: number;
         deleted_at?: string | null;
         archived_at?: string | null;
+        delete_block_reason?: string | null;
     }[];
     segments: Segment[];
     canManage: boolean;
@@ -144,19 +145,27 @@ export default function Audiences({
                                                     Restore
                                                 </Button>
                                             )}
-                                            {view !== 'trash' && (
-                                                <ConfirmDialog
-                                                    trigger={
-                                                        <Button size="sm" variant="outline">
-                                                            Delete
+                                            {view !== 'trash' &&
+                                                (list.delete_block_reason ? (
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <Button size="sm" variant="outline" disabled title={list.delete_block_reason}>
+                                                            Delete unavailable
                                                         </Button>
-                                                    }
-                                                    title={`Move “${list.name}” to Recently deleted?`}
-                                                    description="Lists used in campaign history or dynamic segments must stay archived. Contacts will not be deleted."
-                                                    confirmLabel="Move to Recently deleted"
-                                                    onConfirm={() => router.delete(`${base}/lists/${list.id}`)}
-                                                />
-                                            )}
+                                                        <span className="text-muted-foreground text-xs">{list.delete_block_reason}</span>
+                                                    </div>
+                                                ) : (
+                                                    <ConfirmDialog
+                                                        trigger={
+                                                            <Button size="sm" variant="outline">
+                                                                Delete
+                                                            </Button>
+                                                        }
+                                                        title={`Move “${list.name}” to Recently deleted?`}
+                                                        description="The list will be removed from active and archived views. Contacts and campaign history will be retained."
+                                                        confirmLabel="Move to Recently deleted"
+                                                        onConfirm={() => router.delete(`${base}/lists/${list.id}`)}
+                                                    />
+                                                ))}
                                         </div>
                                     )}
                                 </div>

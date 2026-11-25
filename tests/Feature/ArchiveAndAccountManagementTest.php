@@ -64,6 +64,9 @@ it('allows list archive and restore but protects lists used by campaigns', funct
     $this->delete("/organisations/$organisation->id/lists/$list->id")
         ->assertRedirect()
         ->assertSessionHasErrors(['list' => 'This list is used by campaign history, so it cannot be deleted. You can archive it instead.']);
+
+    $this->get("/organisations/$organisation->id/audiences?view=active")
+        ->assertInertia(fn (Assert $page) => $page->where('lists.0.delete_block_reason', 'This list is used by campaign history. Archive it instead.'));
 });
 
 it('moves an unused mailing list to recently deleted without removing its contacts', function () {
@@ -75,11 +78,16 @@ it('moves an unused mailing list to recently deleted without removing its contac
 
     $this->actingAs($user)
         ->delete("/organisations/$organisation->id/lists/$list->id")
-        ->assertRedirect();
+        ->assertRedirect("/organisations/$organisation->id/audiences?view=trash");
 
     expect(MailingList::withTrashed()->findOrFail($list->id)->trashed())->toBeTrue();
     $this->assertDatabaseHas('contact_mailing_list', ['mailing_list_id' => $list->id, 'contact_id' => $contact->id]);
-    $this->get("/organisations/$organisation->id/audiences?view=trash")->assertOk();
+    $this->get("/organisations/$organisation->id/audiences?view=active")
+        ->assertInertia(fn (Assert $page) => $page->where('lists', []));
+    $this->get("/organisations/$organisation->id/audiences?view=archived")
+        ->assertInertia(fn (Assert $page) => $page->where('lists', []));
+    $this->get("/organisations/$organisation->id/audiences?view=trash")
+        ->assertInertia(fn (Assert $page) => $page->where('lists.0.id', $list->id));
 });
 
 it('moves only unsent drafts to recently deleted and preserves sent campaign records', function () {

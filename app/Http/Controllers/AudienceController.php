@@ -29,7 +29,35 @@ class AudienceController extends Controller
             $view === 'active' ? $lists->whereNull('archived_at') : $lists->whereNotNull('archived_at');
         }
 
-        return Inertia::render('audiences', ['company' => $organisation, 'lists' => $lists->withCount('contacts')->latest()->get(), 'view' => $view, 'segments' => Segment::where('organisation_id', $organisation->id)->get()->map(fn ($s) => [...$s->toArray(), 'total' => app(AudienceService::class)->query($organisation->id, 'segment', $s->id)->count(), 'eligible' => app(AudienceService::class)->query($organisation->id, 'segment', $s->id, true)->count()]), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+        $campaignListIds = Campaign::withTrashed()
+            ->where('organisation_id', $organisation->id)
+            ->where('audience_type', 'list')
+            ->pluck('audience_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $segmentListIds = Segment::where('organisation_id', $organisation->id)
+            ->get(['rules'])
+            ->flatMap(fn (Segment $segment) => collect($segment->rules)
+                ->filter(fn (array $rule) => ($rule['field'] ?? null) === 'list_id')
+                ->map(fn (array $rule) => (int) ($rule['value'] ?? 0)))
+            ->unique()
+            ->values()
+            ->all();
+        $lists = $lists->withCount('contacts')->latest()->get()->map(function (MailingList $list) use ($campaignListIds, $segmentListIds) {
+            $reasons = [];
+            if (in_array($list->id, $campaignListIds, true)) {
+                $reasons[] = 'campaign history';
+            }
+            if (in_array($list->id, $segmentListIds, true)) {
+                $reasons[] = 'a dynamic segment';
+            }
+
+            $list->setAttribute('delete_block_reason', $reasons ? 'This list is used by '.implode(' and ', $reasons).'. Archive it instead.' : null);
+
+            return $list;
+        });
+
+        return Inertia::render('audiences', ['company' => $organisation, 'lists' => $lists, 'view' => $view, 'segments' => Segment::where('organisation_id', $organisation->id)->get()->map(fn ($s) => [...$s->toArray(), 'total' => app(AudienceService::class)->query($organisation->id, 'segment', $s->id)->count(), 'eligible' => app(AudienceService::class)->query($organisation->id, 'segment', $s->id, true)->count()]), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
     }
 
     public function listStore(Request $r, Organisation $organisation)
@@ -94,7 +122,8 @@ class AudienceController extends Controller
         $list->delete();
         AuditLog::record('list.deleted', $organisation->id, ['list_id' => $list->id]);
 
-        return back()->with('success', 'List moved to Recently deleted. Its membership and contact records are retained.');
+        return redirect("/organisations/$organisation->id/audiences?view=trash")
+            ->with('success', 'List moved to Recently deleted. Its membership and contact records are retained.');
     }
 
     public function show(Request $r, Organisation $organisation, MailingList $list)
