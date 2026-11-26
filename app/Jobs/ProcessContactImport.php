@@ -25,7 +25,14 @@ class ProcessContactImport implements ShouldQueue
 
     public function handle(CsvImportService $service): void
     {
-        $service->process(ContactImport::findOrFail($this->importId));
+        if ($service->processChunk(ContactImport::findOrFail($this->importId))) {
+            self::dispatch($this->importId)->afterCommit();
+            return;
+        }
+        $import = ContactImport::find($this->importId);
+        if ($import?->status === 'completed') {
+            app(InAppNotificationService::class)->importFinished($import);
+        }
     }
 
     public function failed(?\Throwable $e): void

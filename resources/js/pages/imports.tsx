@@ -1,5 +1,5 @@
 import { DeliveryStatus } from '@/components/delivery-status';
-import { Company, Field, Page, Pages } from '@/components/marketing';
+import { Company, Field, Page, Pages, Select } from '@/components/marketing';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Link, useForm } from '@inertiajs/react';
 import { ShieldBan } from 'lucide-react';
 export type Import = {
     id: number;
+    mailing_list_id: number | null;
     status: string;
     source: string;
     total: number;
@@ -18,8 +19,9 @@ export type Import = {
     mapping: Record<string, number | null> | null;
     failure: string | null;
 };
-export default function Imports({ company, imports, canManage }: { company: Company; imports: Page<Import>; canManage: boolean }) {
-    const f = useForm({ file: null as File | null, source: 'CSV import' });
+type MailingListOption = { id: number; name: string };
+export default function Imports({ company, imports, lists, maxRows, canManage }: { company: Company; imports: Page<Import>; lists: MailingListOption[]; maxRows: number; canManage: boolean }) {
+    const f = useForm({ file: null as File | null, source: 'CSV import', mailing_list_id: '' });
     const base = `/organisations/${company.id}/imports`;
     return (
         <Workspace
@@ -30,9 +32,9 @@ export default function Imports({ company, imports, canManage }: { company: Comp
             {canManage && (
                 <Panel
                     title="Upload CSV"
-                    description="CSV files can be up to 5 MB, with 10,000 rows and 30 columns. Include one header row with unique column names."
+                    description={`CSV files can be up to 5 MB, with up to ${maxRows.toLocaleString()} contact rows and 30 columns. Include one header row with unique column names.`}
                 >
-                    <form
+                    {lists.length ? <form
                         className="max-w-xl space-y-4"
                         onSubmit={(e) => {
                             e.preventDefault();
@@ -42,9 +44,13 @@ export default function Imports({ company, imports, canManage }: { company: Comp
                         <Label htmlFor="csv">CSV file</Label>
                         <Input id="csv" type="file" accept=".csv,.txt" required onChange={(e) => f.setData('file', e.target.files?.[0] ?? null)} />
                         <Field label="Contact source" required value={f.data.source} change={(v) => f.setData('source', v)} />
+                        <Select label="Add contacts to" value={f.data.mailing_list_id} change={(value) => f.setData('mailing_list_id', value)}>
+                            <option value="">Choose a mailing list</option>
+                            {lists.map((list) => <option key={list.id} value={list.id}>{list.name}</option>)}
+                        </Select>
                         <Errors errors={f.errors} />
-                        <Button disabled={f.processing}>Upload and preview</Button>
-                    </form>
+                        <Button disabled={f.processing || !f.data.mailing_list_id}>Upload and preview</Button>
+                    </form> : <p className="text-muted-foreground text-sm">Create a mailing list before uploading contacts.</p>}
                 </Panel>
             )}
             <Panel title="Import history">
