@@ -34,7 +34,7 @@ class ContentController extends Controller
 
         return Inertia::render('identities', [
             'company' => $organisation,
-            'identities' => SendingIdentity::where('organisation_id', $organisation->id)->get(),
+            'identities' => SendingIdentity::where('organisation_id', $organisation->id)->with('dmarcReviewedBy:id,name')->get(),
             'webhookUrl' => rtrim(config('app.url'), '/').'/webhooks/sendgrid/'.$organisation->id,
             'canManage' => $canManage,
             'readiness' => $readiness,
@@ -56,6 +56,18 @@ class ContentController extends Controller
             }$d['domain'] = substr(strrchr($d['email'], '@'), 1);
             $d['verification_status'] = 'unverified';
             if ($identity) {
+                if (strtolower($identity->domain) !== strtolower($d['domain'])) {
+                    $d += [
+                        'provider_authorised' => false,
+                        'provider_domain_id' => null,
+                        'verified_at' => null,
+                        'spf_status' => 'not_checked',
+                        'dkim_status' => 'not_checked',
+                        'dmarc_status' => 'not_checked',
+                        'dmarc_reviewed_at' => null,
+                        'dmarc_reviewed_by_user_id' => null,
+                    ];
+                }
                 $identity->update($d);
             } else {
                 SendingIdentity::create(['organisation_id' => $organisation->id, ...$d]);

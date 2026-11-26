@@ -15,6 +15,8 @@ export type Identity = {
     domain: string;
     verification_status: string;
     is_default: boolean;
+    dmarc_reviewed_at: string | null;
+    dmarc_reviewed_by: { name: string } | null;
 };
 export default function Identities({
     company,
@@ -125,10 +127,15 @@ export default function Identities({
                                 Sending domain: {i.domain} · <DeliveryStatus status={i.verification_status} />
                                 <br />
                                 SPF: {readableLabel(i.spf_status)} · DKIM: {readableLabel(i.dkim_status)} · Domain DMARC policy:{' '}
-                                {i.dmarc_status === 'not_checked' ? 'Manual review needed' : readableLabel(i.dmarc_status)} · Last SendGrid check:{' '}
+                                {i.dmarc_reviewed_at
+                                    ? `Manually reviewed ${new Date(i.dmarc_reviewed_at).toLocaleDateString()} by ${i.dmarc_reviewed_by?.name ?? 'a workspace administrator'}`
+                                    : 'Not recorded as reviewed'}
+                                <br />
+                                Last SendGrid domain check:{' '}
                                 {i.verified_at ? new Date(i.verified_at).toLocaleString() : 'Never'}
                             </p>
                             {canVerify && <VerifyIdentity companyId={company.id} identity={i} />}
+                            {canManage && <ReviewDmarc companyId={company.id} identity={i} />}
                             {canManage && (
                                 <Button
                                     className="mt-4"
@@ -175,5 +182,35 @@ export default function Identities({
                 </Panel>
             )}
         </Workspace>
+    );
+}
+
+function ReviewDmarc({ companyId, identity }: { companyId: number; identity: Identity & ProviderIdentity }) {
+    const form = useForm<{ confirmed: boolean }>({ confirmed: false });
+
+    return (
+        <form
+            className="mt-4 space-y-3 border-t pt-4"
+            onSubmit={(event) => {
+                event.preventDefault();
+                form.post(`/organisations/${companyId}/identities/${identity.id}/dmarc-review`, { onSuccess: () => form.reset() });
+            }}
+        >
+            <label className="flex items-start gap-2 text-sm">
+                <input
+                    className="mt-1 accent-primary"
+                    type="checkbox"
+                    required
+                    checked={form.data.confirmed}
+                    onChange={(event) => form.setData('confirmed', event.target.checked)}
+                />
+                <span>I have checked the DMARC TXT record for {identity.domain}.</span>
+            </label>
+            <Errors errors={form.errors} />
+            <Button size="sm" variant="outline" disabled={form.processing || !form.data.confirmed}>
+                {identity.dmarc_reviewed_at ? 'Record a new DMARC check' : 'Mark DMARC as reviewed'}
+            </Button>
+            <p className="text-muted-foreground text-xs">This records who checked and when. Dispatch does not verify the DNS record.</p>
+        </form>
     );
 }

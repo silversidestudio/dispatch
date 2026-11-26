@@ -21,7 +21,7 @@ class ProviderController extends Controller
         DB::transaction(function () use ($organisation, $d) {
             $o = Organisation::whereKey($organisation->id)->lockForUpdate()->firstOrFail();
             $o->forceFill(['sendgrid_api_key' => $d['sendgrid_api_key'], 'sendgrid_webhook_key' => $d['sendgrid_webhook_key'] ?? null])->save();
-            SendingIdentity::where('organisation_id', $o->id)->update(['provider_authorised' => false, 'verification_status' => 'unverified', 'verified_at' => null, 'provider_domain_id' => null, 'spf_status' => 'not_checked', 'dkim_status' => 'not_checked', 'dmarc_status' => 'not_checked']);
+            SendingIdentity::where('organisation_id', $o->id)->update(['provider_authorised' => false, 'verification_status' => 'unverified', 'verified_at' => null, 'provider_domain_id' => null, 'spf_status' => 'not_checked', 'dkim_status' => 'not_checked']);
             AuditLog::record('sendgrid.credentials_updated', $o->id);
         });
 
@@ -46,11 +46,32 @@ class ProviderController extends Controller
         DB::transaction(function () use ($organisation, $identity, $d, $verified) {
             $current = Organisation::whereKey($organisation->id)->lockForUpdate()->firstOrFail();
             abort_unless($current->sendGridCredentialFingerprint() === $organisation->sendGridCredentialFingerprint(), 409, 'Credentials changed; verify again.');
-            $identity->update(['provider_domain_id' => $d['domain_id'], 'provider_authorised' => $verified, 'verification_status' => $verified ? 'verified' : 'unverified', 'verified_at' => $verified ? now() : null, 'spf_status' => $verified ? 'provider_authenticated' : 'not_checked', 'dkim_status' => $verified ? 'provider_authenticated' : 'not_checked', 'dmarc_status' => 'not_checked']);
+            $identity->update(['provider_domain_id' => $d['domain_id'], 'provider_authorised' => $verified, 'verification_status' => $verified ? 'verified' : 'unverified', 'verified_at' => $verified ? now() : null, 'spf_status' => $verified ? 'provider_authenticated' : 'not_checked', 'dkim_status' => $verified ? 'provider_authenticated' : 'not_checked']);
             AuditLog::record('identity.provider_status_reviewed', $organisation->id, ['identity_id' => $identity->id, 'verified' => $verified]);
         });
 
         return back()->with('success', $verified ? 'Stored SendGrid domain status verified and identity authorised. DMARC still requires independent review.' : 'Identity is not verified; live delivery remains blocked.');
+    }
+
+    public function reviewDmarc(Request $request, Organisation $organisation, SendingIdentity $identity)
+    {
+        Gate::authorize('update', $organisation);
+        abort_unless($identity->organisation_id === $organisation->id, 404);
+        $request->validate(['confirmed' => 'required|accepted']);
+
+        DB::transaction(function () use ($identity, $organisation, $request) {
+            $identity->update([
+                'dmarc_status' => 'manually_reviewed',
+                'dmarc_reviewed_at' => now(),
+                'dmarc_reviewed_by_user_id' => $request->user()->id,
+            ]);
+            AuditLog::record('identity.dmarc_manually_reviewed', $organisation->id, [
+                'identity_id' => $identity->id,
+                'domain' => $identity->domain,
+            ]);
+        });
+
+        return back()->with('success', 'Manual DMARC review recorded. Dispatch has not checked the DNS record itself.');
     }
 
     public function tracking(Request $r, Organisation $organisation)
