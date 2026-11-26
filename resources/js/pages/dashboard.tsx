@@ -13,9 +13,11 @@ export default function Dashboard({
     performance,
     alerts,
     providerStatus,
+    canUseSimulation,
 }: {
     organisation: { id: number; name: string; role: string; members: number };
     providerStatus: { provider: string; configured: boolean; live_enabled: boolean };
+    canUseSimulation: boolean;
     performance: { id: number; name: string; analytics: Analytics }[];
     alerts: { id: number; campaign_id: number; type: string; occurred_at: string | null }[];
     stats: Record<string, number>;
@@ -34,18 +36,25 @@ export default function Dashboard({
             }
         >
             <div className="border-primary/20 bg-primary/5 rounded-xl border p-5">
-                <p className="text-sm font-medium">
-                    Delivery provider: {providerStatus.provider} · Live delivery{' '}
-                    {providerStatus.live_enabled ? 'enabled by configuration; approval still required' : 'disabled'}
-                </p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                    All activity below comes from stored company data. Simulated acceptance is not confirmed inbox delivery.
-                </p>
+                {canUseSimulation ? (
+                    <>
+                        <p className="text-sm font-medium">
+                            Delivery provider: {providerStatus.provider} · Live delivery{' '}
+                            {providerStatus.live_enabled ? 'enabled by configuration; approval still required' : 'disabled'}
+                        </p>
+                        <p className="text-muted-foreground mt-1 text-xs">All activity below comes from stored company data. Simulated acceptance is not confirmed inbox delivery.</p>
+                    </>
+                ) : (
+                    <>
+                        <p className="text-sm font-medium">SendGrid account: {providerStatus.configured ? 'Connected' : 'Not connected'}</p>
+                        <p className="text-muted-foreground mt-1 text-xs">Campaigns are checked for sender setup and eligible recipients before scheduling.</p>
+                    </>
+                )}
             </div>
             <Metrics data={stats} />
             <Panel
                 title="Recent campaign performance"
-                description="SendGrid results are shown separately from simulations. Rates appear when there are enough delivery events to calculate them."
+                description={canUseSimulation ? 'SendGrid results are shown separately from simulations. Rates appear when there are enough delivery events to calculate them.' : 'Rates appear when there are enough delivery events to calculate them.'}
             >
                 <div className="grid gap-4 md:grid-cols-2">
                     {performance.map((c) => (
@@ -114,7 +123,7 @@ export default function Dashboard({
                         ['Mailing lists & segments', 'audiences'],
                         ['Email templates', 'templates'],
                         ['Sending identities', 'identities'],
-                        ['Simulation reports', 'reports'],
+                        [canUseSimulation ? 'Simulation reports' : 'Campaign reports', 'reports'],
                     ].map(([name, path]) => (
                         <Button key={path} variant="outline" asChild>
                             <Link href={`${base}/${path}`}>{name}</Link>

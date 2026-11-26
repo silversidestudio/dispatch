@@ -39,8 +39,12 @@ class CampaignController extends Controller
     public function index(Request $request, Organisation $organisation)
     {
         Gate::authorize('view', $organisation);
+        $canUseSimulation = (bool) $request->user()->is_platform_admin;
         $view = $request->validate(['view' => 'nullable|in:active,archived,trash'])['view'] ?? 'active';
         $query = Campaign::where('organisation_id', $organisation->id);
+        if (! $canUseSimulation) {
+            $query->where('delivery_mode', 'sendgrid_live');
+        }
         if ($view === 'trash') {
             $query->onlyTrashed();
         } else {
@@ -48,7 +52,7 @@ class CampaignController extends Controller
             $view === 'active' ? $query->whereNull('archived_at') : $query->whereNotNull('archived_at');
         }
 
-        return Inertia::render('campaigns', ['company' => $organisation, 'campaigns' => $query->latest()->paginate(15)->withQueryString(), 'view' => $view, 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+        return Inertia::render('campaigns', ['company' => $organisation, 'campaigns' => $query->latest()->paginate(15)->withQueryString(), 'view' => $view, 'canManage' => Gate::allows('manageCampaigns', $organisation), 'canUseSimulation' => $canUseSimulation]);
     }
 
     public function archive(Organisation $organisation, Campaign $campaign)
@@ -103,7 +107,7 @@ class CampaignController extends Controller
 
     private function form(Organisation $o, ?Campaign $c)
     {
-        return Inertia::render('campaign-editor', ['company' => $o, 'campaign' => $c, 'defaultEmail' => app(EmailStarterTemplates::class)->basic($o->email_branding ?? []), 'identities' => SendingIdentity::where('organisation_id', $o->id)->get(), 'lists' => MailingList::where('organisation_id', $o->id)->whereNull('archived_at')->get(['id', 'name']), 'segments' => Segment::where('organisation_id', $o->id)->get(['id', 'name']), 'templates' => EmailTemplate::where('organisation_id', $o->id)->get(), 'canManage' => Gate::allows('manageCampaigns', $o)]);
+        return Inertia::render('campaign-editor', ['company' => $o, 'campaign' => $c, 'defaultEmail' => app(EmailStarterTemplates::class)->basic($o->email_branding ?? []), 'identities' => SendingIdentity::where('organisation_id', $o->id)->get(), 'lists' => MailingList::where('organisation_id', $o->id)->whereNull('archived_at')->get(['id', 'name']), 'segments' => Segment::where('organisation_id', $o->id)->get(['id', 'name']), 'templates' => EmailTemplate::where('organisation_id', $o->id)->get(), 'canManage' => Gate::allows('manageCampaigns', $o), 'canUseSimulation' => (bool) auth()->user()->is_platform_admin]);
     }
 
     public function edit(Organisation $organisation, Campaign $campaign)
@@ -123,6 +127,12 @@ class CampaignController extends Controller
             $this->scope($organisation, $campaign, 'manageCampaigns');
             abort_if($campaign->archived_at, 422, 'Restore this campaign before editing it.');
         }$d = $r->validate(['delivery_mode' => 'sometimes|in:simulation,sendgrid_sandbox,sendgrid_live', 'open_tracking' => 'sometimes|boolean', 'click_tracking' => 'sometimes|boolean', 'name' => 'required|string|max:120', 'subject' => 'required|string|max:255', 'preview_text' => 'nullable|string|max:255', 'sending_identity_id' => ['required', 'integer', Rule::exists('sending_identities', 'id')->where('organisation_id', $organisation->id)], 'reply_to' => 'nullable|email:rfc|max:254', 'audience_type' => 'required|in:list,segment', 'audience_id' => 'required|integer', 'html' => 'required|string|max:200000', 'text_body' => 'required|string|max:100000']);
+        if (! $r->user()->is_platform_admin) {
+            if (isset($d['delivery_mode']) && $d['delivery_mode'] !== 'sendgrid_live') {
+                throw ValidationException::withMessages(['delivery_mode' => 'Live SendGrid is the available delivery option for this workspace.']);
+            }
+            $d['delivery_mode'] = 'sendgrid_live';
+        }
         $d += ['delivery_mode' => 'simulation', 'open_tracking' => false, 'click_tracking' => false];
         app(AudienceService::class)->query($organisation->id, $d['audience_type'], $d['audience_id']);
         $d['html'] = app(EmailContentService::class)->clean($d['html']);
@@ -145,6 +155,7 @@ class CampaignController extends Controller
     public function show(Request $request, Organisation $organisation, Campaign $campaign)
     {
         $this->scope($organisation, $campaign);
+        abort_unless($request->user()->is_platform_admin || $campaign->delivery_mode === 'sendgrid_live', 404);
         $filters = $request->validate([
             'events_per_page' => ['sometimes', 'in:10,50,100'],
             'history_per_page' => ['sometimes', 'in:10,50,100'],
@@ -167,6 +178,7 @@ class CampaignController extends Controller
             'eventsPerPage' => $eventsPerPage,
             'historyPerPage' => $historyPerPage,
             'canManage' => Gate::allows('manageCampaigns', $organisation),
+            'canUseSimulation' => (bool) $request->user()->is_platform_admin,
         ]);
     }
 
@@ -182,6 +194,7 @@ class CampaignController extends Controller
     public function ready(Organisation $organisation, Campaign $campaign)
     {
         $this->scope($organisation, $campaign, 'manageCampaigns');
+        abort_unless(auth()->user()->is_platform_admin || $campaign->delivery_mode === 'sendgrid_live', 403);
         app(CampaignService::class)->ready($campaign);
 
         return back()->with('success', 'Campaign is ready for the selected delivery mode.');
@@ -190,6 +203,7 @@ class CampaignController extends Controller
     public function schedule(Request $r, Organisation $organisation, Campaign $campaign)
     {
         $this->scope($organisation, $campaign, 'manageCampaigns');
+        abort_unless($r->user()->is_platform_admin || $campaign->delivery_mode === 'sendgrid_live', 403);
         $d = $r->validate(['scheduled_at' => 'nullable|date|after_or_equal:now', 'confirmation' => 'nullable|in:SEND']);
         $when = isset($d['scheduled_at']) ? Carbon::parse($d['scheduled_at']) : now();
         app(CampaignService::class)->schedule($campaign, $when, ($d['confirmation'] ?? '') === 'SEND');
@@ -224,7 +238,8 @@ class CampaignController extends Controller
     public function prepareTest(Request $r, Organisation $organisation, Campaign $campaign)
     {
         $this->scope($organisation, $campaign, 'manageCampaigns');
-        $d = $r->validate(['email' => 'required|email:rfc|max:254', 'mode' => 'required|in:simulation,sendgrid_sandbox', 'confirmation' => 'required|in:PREPARE']);
+        $testModes = $r->user()->is_platform_admin ? ['simulation', 'sendgrid_sandbox', 'sendgrid_live'] : ['sendgrid_live'];
+        $d = $r->validate(['email' => 'required|email:rfc|max:254', 'mode' => ['required', Rule::in($testModes)], 'confirmation' => 'required|in:PREPARE']);
         $contact = Contact::where('organisation_id', $organisation->id)->where('email', strtolower(trim($d['email'])))->first();
         if (! $contact || ! app(EligibilityService::class)->eligible($contact)) {
             throw ValidationException::withMessages(['email' => 'Choose an existing eligible, unsuppressed company contact with permission for this test.']);
@@ -278,6 +293,7 @@ class CampaignController extends Controller
 
     public function unsubscribe(Organisation $organisation, Campaign $campaign, CampaignRecipient $recipient)
     {
+        abort_unless(auth()->user()?->is_platform_admin, 403);
         $this->scope($organisation, $campaign);
         abort_unless($recipient->campaign_id === $campaign->id && $recipient->organisation_id === $organisation->id, 404);
         $c = Contact::where('organisation_id', $organisation->id)->where('email', $recipient->email)->findOrFail($recipient->contact_id);
@@ -288,8 +304,9 @@ class CampaignController extends Controller
     public function reporting(Organisation $organisation)
     {
         Gate::authorize('view', $organisation);
-        $campaigns = Campaign::where('organisation_id', $organisation->id)->whereNotNull('snapshot')->latest()->limit(30)->get();
+        $canUseSimulation = (bool) auth()->user()->is_platform_admin;
+        $campaigns = Campaign::where('organisation_id', $organisation->id)->whereNotNull('snapshot')->when(! $canUseSimulation, fn ($query) => $query->where('delivery_mode', 'sendgrid_live'))->latest()->limit(30)->get();
 
-        return Inertia::render('reports', ['company' => $organisation, 'reports' => $campaigns->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'status' => $c->status, 'mode' => $c->snapshot['delivery_mode'] ?? 'simulation', 'date' => $c->created_at, ...$this->stats($c)])]);
+        return Inertia::render('reports', ['company' => $organisation, 'reports' => $campaigns->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'status' => $c->status, 'mode' => $c->snapshot['delivery_mode'] ?? 'simulation', 'date' => $c->created_at, ...$this->stats($c)]), 'canUseSimulation' => $canUseSimulation]);
     }
 }

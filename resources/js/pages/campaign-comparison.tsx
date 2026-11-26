@@ -8,14 +8,16 @@ export default function Comparison({
     company,
     campaigns,
     filters,
+    canUseSimulation,
 }: {
     company: Company;
     campaigns: Page<{ id: number; name: string; scheduled_at: string | null; status: string; analytics: Analytics }>;
     filters: { from?: string; to?: string };
+    canUseSimulation: boolean;
 }) {
     const f = useForm({ from: filters.from ?? '', to: filters.to ?? '' });
     return (
-        <Workspace title="Campaign comparison" subtitle="Compare campaign results. Simulations and unavailable rates are marked N/A.">
+        <Workspace title="Campaign comparison" subtitle={canUseSimulation ? 'Compare campaign results. Simulations and unavailable rates are marked N/A.' : 'Compare SendGrid campaign performance across send dates.'}>
             <Panel title="Campaign performance">
                 <form
                     className="mb-5 flex flex-wrap items-end gap-3"
@@ -55,7 +57,7 @@ export default function Comparison({
                                         <Link className="underline" href={`/organisations/${company.id}/campaigns/${c.id}/analytics`}>
                                             {c.name}
                                         </Link>
-                                        <p className="text-muted-foreground text-xs">{modeLabel(c.analytics.mode)}</p>
+                                        {canUseSimulation && <p className="text-muted-foreground text-xs">{modeLabel(c.analytics.mode)}</p>}
                                     </td>
                                     <td>{c.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString() : '—'}</td>
                                     <td>{c.analytics.counts.original_audience}</td>

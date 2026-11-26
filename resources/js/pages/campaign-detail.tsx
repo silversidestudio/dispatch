@@ -21,6 +21,7 @@ export default function Detail({
     eventsPerPage,
     historyPerPage,
     canManage,
+    canUseSimulation,
 }: {
     company: Company;
     campaign: Campaign;
@@ -43,20 +44,23 @@ export default function Detail({
     eventsPerPage: number;
     historyPerPage: number;
     canManage: boolean;
+    canUseSimulation: boolean;
 }) {
     const mode = campaign.delivery_mode;
-    const deliveryLabel = mode === 'sendgrid_live' ? 'Live SendGrid' : mode === 'sendgrid_sandbox' ? 'SendGrid test' : 'Simulation';
+    const deliveryLabel = mode === 'sendgrid_live' ? 'Live SendGrid' : canUseSimulation ? (mode === 'sendgrid_sandbox' ? 'SendGrid test' : 'Simulation') : 'Campaign activity';
     const { errors, name: appName } = usePage<SharedData>().props;
     const deliveryNotice =
         mode === 'sendgrid_live'
             ? 'This campaign will send to eligible recipients after you confirm the schedule.'
-            : mode === 'sendgrid_sandbox'
+            : !canUseSimulation
+              ? 'Review the campaign status and recorded activity below.'
+              : mode === 'sendgrid_sandbox'
               ? 'SendGrid checks the request. No email is delivered to the recipient.'
               : `The campaign runs inside ${appName}. No email is sent.`;
     const base = `/organisations/${company.id}/campaigns/${campaign.id}`;
-    const canManageCampaign = canManage && !campaign.archived_at;
+    const canManageCampaign = canManage && !campaign.archived_at && (canUseSimulation || mode === 'sendgrid_live');
     const f = useForm({ scheduled_at: '', confirmation: '' });
-    const test = useForm({ email: '', mode: 'simulation', confirmation: 'PREPARE' });
+    const test = useForm({ email: '', mode: canUseSimulation ? 'simulation' : 'sendgrid_live', confirmation: 'PREPARE' });
     const [link, setLink] = useState('');
     const changePageSize = (panel: 'events' | 'history', value: string) => {
         router.get(
@@ -140,7 +144,7 @@ export default function Detail({
                 <div className="mb-5 flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4" role="status">
                     <CircleCheckBig aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-emerald-700 dark:text-emerald-300" />
                     <div>
-                        <p className="font-semibold">{mode === 'simulation' ? 'Simulation completed' : 'Campaign processing completed'}</p>
+                        <p className="font-semibold">{mode === 'simulation' && canUseSimulation ? 'Simulation completed' : 'Campaign processing completed'}</p>
                         <p className="text-sm">
                             Finished {campaign.completed_at ? new Date(campaign.completed_at).toLocaleString() : '—'}. Review delivered and failed
                             results below.
@@ -151,7 +155,7 @@ export default function Detail({
             {canManageCampaign && (
                 <Panel
                     title="Test this campaign"
-                    description={`Create a separate draft for one existing eligible contact. Simulation stays in ${appName}. SendGrid test mode checks the request but does not deliver an email.`}
+                    description={canUseSimulation ? `Create a separate draft for one existing eligible contact. Simulation stays in ${appName}. SendGrid test mode checks the request but does not deliver an email.` : 'Prepare a separate live campaign for one existing eligible contact. It sends a real email only after you review it and confirm scheduling.'}
                 >
                     <form
                         className="grid items-end gap-3 md:grid-cols-3"
@@ -161,11 +165,16 @@ export default function Detail({
                         }}
                     >
                         <Field label="Test recipient" type="email" value={test.data.email} change={(v) => test.setData('email', v)} />
-                        <Select label="Test mode" value={test.data.mode} change={(v) => test.setData('mode', v)}>
-                            <option value="simulation">Simulation</option>
-                            <option value="sendgrid_sandbox">SendGrid test · no email delivered</option>
-                        </Select>
-                        <Button disabled={test.processing}>Create test draft</Button>
+                        {canUseSimulation ? (
+                            <Select label="Test mode" value={test.data.mode} change={(v) => test.setData('mode', v)}>
+                                <option value="simulation">Simulation</option>
+                                <option value="sendgrid_sandbox">SendGrid test · no email delivered</option>
+                                <option value="sendgrid_live">SendGrid live · email delivered</option>
+                            </Select>
+                        ) : (
+                            <p className="pb-2 text-sm font-medium">Live SendGrid email</p>
+                        )}
+                        <Button disabled={test.processing}>{canUseSimulation ? 'Create test draft' : 'Prepare live test'}</Button>
                         <Errors errors={test.errors} />
                     </form>
                 </Panel>
@@ -221,8 +230,8 @@ export default function Detail({
                     </p>
                 )}
             </Panel>
-            <Metrics data={stats} />
-            {campaign.delivery_mode === 'simulation' && stats.eligible_at_snapshot > 0 && (
+            {(canUseSimulation || mode !== 'simulation') && <Metrics data={stats} />}
+            {canUseSimulation && campaign.delivery_mode === 'simulation' && stats.eligible_at_snapshot > 0 && (
                 <Panel title="Simulation results" description={`Each contact is counted once, even if ${appName} made more than one attempt.`}>
                     <div className="space-y-4">
                         {[
@@ -329,7 +338,7 @@ export default function Detail({
                     <table className="w-full text-left text-sm">
                         <thead>
                             <tr>
-                                {['Recipient', 'Status', 'Attempts', 'Unsubscribe test'].map((s) => (
+                                {['Recipient', 'Status', 'Attempts', ...(canUseSimulation ? ['Unsubscribe test'] : [])].map((s) => (
                                     <th key={s} className="p-3">
                                         {s}
                                     </th>
@@ -347,7 +356,7 @@ export default function Detail({
                                         />
                                     </td>
                                     <td>{r.attempt_count}</td>
-                                    <td>
+                                    {canUseSimulation && <td>
                                         <Button
                                             size="sm"
                                             variant="outline"
@@ -359,7 +368,7 @@ export default function Detail({
                                         >
                                             Generate local link
                                         </Button>
-                                    </td>
+                                    </td>}
                                 </tr>
                             ))}
                         </tbody>
@@ -375,7 +384,7 @@ export default function Detail({
                 )}
             </Panel>
             <div className="grid gap-6 lg:grid-cols-2">
-                <Panel title={campaign.delivery_mode === 'simulation' ? 'Simulated delivery events' : 'Submission and provider events'}>
+                {(canUseSimulation || mode !== 'simulation') && <Panel title={campaign.delivery_mode === 'simulation' ? 'Simulated delivery events' : 'Submission and provider events'}>
                     <div className="mb-3 flex justify-end">
                         <Select compact label="Events per page" value={String(eventsPerPage)} change={(value) => changePageSize('events', value)}>
                             <option value="10">10 per page</option>
@@ -394,7 +403,7 @@ export default function Detail({
                     ))}
                     {!events.data.length && <p className="text-muted-foreground text-sm">No delivery events yet.</p>}
                     <Pages page={events} />
-                </Panel>
+                </Panel>}
                 <Panel title="Campaign state history">
                     <div className="mb-3 flex justify-end">
                         <Select compact label="History per page" value={String(historyPerPage)} change={(value) => changePageSize('history', value)}>

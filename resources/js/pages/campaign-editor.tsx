@@ -18,6 +18,7 @@ export default function Editor({
     segments,
     templates,
     defaultEmail,
+    canUseSimulation,
 }: {
     company: Company;
     campaign: Campaign | null;
@@ -26,9 +27,10 @@ export default function Editor({
     segments: { id: number; name: string }[];
     templates: Template[];
     defaultEmail: { html: string; text_body: string };
+    canUseSimulation: boolean;
 }) {
     const f = useForm({
-        delivery_mode: campaign?.delivery_mode ?? 'simulation',
+        delivery_mode: canUseSimulation ? campaign?.delivery_mode ?? 'simulation' : 'sendgrid_live',
         open_tracking: campaign?.open_tracking ?? false,
         click_tracking: campaign?.click_tracking ?? false,
         name: campaign?.name ?? '',
@@ -88,13 +90,17 @@ export default function Editor({
                 </Panel>
                 <Panel
                     title="Sending and tracking"
-                    description="Choose a test or live send. Tracking is optional and remains off unless your organisation has approved it."
+                    description={canUseSimulation ? 'Choose a test or live send. Tracking is optional and remains off unless your organisation has approved it.' : 'Campaigns use the connected SendGrid account. Tracking remains off unless your organisation has approved it.'}
                 >
-                    <Select label="Delivery mode" value={f.data.delivery_mode} change={(v) => f.setData('delivery_mode', v)}>
-                        <option value="simulation">Simulation · stays in {appName}</option>
-                        <option value="sendgrid_sandbox">SendGrid test · no email delivered</option>
-                        <option value="sendgrid_live">Send with SendGrid</option>
-                    </Select>
+                    {canUseSimulation ? (
+                        <Select label="Delivery mode" value={f.data.delivery_mode} change={(v) => f.setData('delivery_mode', v)}>
+                            <option value="simulation">Simulation · stays in {appName}</option>
+                            <option value="sendgrid_sandbox">SendGrid test · no email delivered</option>
+                            <option value="sendgrid_live">Send with SendGrid</option>
+                        </Select>
+                    ) : (
+                        <p className="text-sm font-medium">Send with SendGrid</p>
+                    )}
                     <div className="mt-4 flex flex-wrap gap-4">
                         <label className="flex gap-2 text-sm">
                             <input type="checkbox" checked={f.data.open_tracking} onChange={(e) => f.setData('open_tracking', e.target.checked)} />

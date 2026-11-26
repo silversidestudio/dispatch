@@ -30,11 +30,13 @@ export default function Campaigns({
     company,
     campaigns,
     canManage,
+    canUseSimulation,
     view,
 }: {
     company: Company;
     campaigns: Page<Campaign>;
     canManage: boolean;
+    canUseSimulation: boolean;
     view: 'active' | 'archived' | 'trash';
 }) {
     const base = `/organisations/${company.id}/campaigns`;
@@ -100,7 +102,7 @@ export default function Campaigns({
                                                 {c.name}
                                             </Link>
                                         )}
-                                        <p className="text-muted-foreground mt-1 text-xs">{modeLabel(c.delivery_mode)}</p>
+                                        {canUseSimulation && <p className="text-muted-foreground mt-1 text-xs">{modeLabel(c.delivery_mode)}</p>}
                                     </td>
                                     <td>{c.subject}</td>
                                     <td>

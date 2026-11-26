@@ -15,7 +15,15 @@ class OrganisationController extends Controller
 {
     public function index(Request $r)
     {
-        return Inertia::render('organisations', ['canCreate' => Gate::allows('platform'), 'organisationList' => $r->user()->organisations()->get()->map(fn ($o) => ['id' => $o->id, 'name' => $o->name, 'status' => $o->status, 'role' => $o->pivot->role])]);
+        $organisations = $r->user()->organisations()->get();
+        $activeOrganisations = $organisations->where('status', 'active');
+        if (! $r->user()->is_platform_admin && $activeOrganisations->count() === 1) {
+            $r->session()->put('organisation_id', $activeOrganisations->first()->id);
+
+            return to_route('dashboard');
+        }
+
+        return Inertia::render('organisations', ['canCreate' => Gate::allows('platform'), 'organisationList' => $organisations->map(fn ($o) => ['id' => $o->id, 'name' => $o->name, 'status' => $o->status, 'role' => $o->pivot->role])]);
     }
 
     public function store(Request $r)

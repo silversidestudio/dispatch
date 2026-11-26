@@ -8,7 +8,8 @@ import AppLogo from './app-logo';
 export function AppSidebar() {
     const { auth, organisations, currentOrganisationId } = usePage<SharedData>().props;
     const singleOrganisation = organisations.length === 1 && !auth.user.is_platform_admin ? organisations[0] : null;
-    const base = currentOrganisationId ? `/organisations/${currentOrganisationId}` : null;
+    const activeOrganisationId = currentOrganisationId ?? singleOrganisation?.id ?? null;
+    const base = activeOrganisationId ? `/organisations/${activeOrganisationId}` : null;
     const workspace: NavItem[] = [
         { title: 'Overview', url: '/dashboard', icon: LayoutGrid },
         { title: 'Organisations', url: '/organisations', icon: Building2 },

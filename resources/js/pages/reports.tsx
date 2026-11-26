@@ -19,14 +19,14 @@ type Report = {
     suppressed_before_submission: number;
     retries: number;
 };
-export default function Reports({ company, reports }: { company: Company; reports: Report[] }) {
+export default function Reports({ company, reports, canUseSimulation }: { company: Company; reports: Report[]; canUseSimulation: boolean }) {
     const [start, setStart] = useState('');
     const [end, setEnd] = useState('');
     const filtered = reports.filter((r) => (!start || r.date.slice(0, 10) >= start) && (!end || r.date.slice(0, 10) <= end));
     return (
         <Workspace
             title="Campaign reports"
-            subtitle="Campaign results are labelled as simulation or SendGrid activity. Acceptance by SendGrid is not the same as inbox placement."
+            subtitle={canUseSimulation ? 'Campaign results are labelled as simulation or SendGrid activity. Acceptance by SendGrid is not the same as inbox placement.' : 'Review SendGrid campaign results. Acceptance means the receiving mail server accepted the message; it does not confirm inbox placement.'}
         >
             <div>
                 <Link className="text-sm underline" href={`/organisations/${company.id}/campaign-comparison`}>
@@ -45,7 +45,7 @@ export default function Reports({ company, reports }: { company: Company; report
                                 {[
                                     'Campaign',
                                     'Status',
-                                    'Mode',
+                                    ...(canUseSimulation ? ['Mode'] : []),
                                     'Audience',
                                     'Eligible',
                                     'Excluded',
@@ -72,7 +72,7 @@ export default function Reports({ company, reports }: { company: Company; report
                                     <td className="p-3">
                                         <DeliveryStatus status={r.status} />
                                     </td>
-                                    <td className="p-3">{modeLabel(r.mode)}</td>
+                                    {canUseSimulation && <td className="p-3">{modeLabel(r.mode)}</td>}
                                     {[
                                         r.audience_at_snapshot,
                                         r.eligible_at_snapshot,

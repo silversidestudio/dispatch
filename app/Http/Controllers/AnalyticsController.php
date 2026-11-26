@@ -17,6 +17,7 @@ class AnalyticsController extends Controller
     {
         Gate::authorize('view', $o);
         abort_unless($c->organisation_id === $o->id, 404);
+        abort_unless(auth()->user()->is_platform_admin || $c->delivery_mode === 'sendgrid_live', 404);
     }
 
     private function filterEventType(Builder $events, string $type): void
@@ -92,8 +93,9 @@ class AnalyticsController extends Controller
     public function comparison(Request $r, Organisation $organisation, CampaignAnalytics $s)
     {
         Gate::authorize('view', $organisation);
+        $canUseSimulation = (bool) $r->user()->is_platform_admin;
         $d = $this->filters($r);
-        $q = Campaign::where('organisation_id', $organisation->id)->whereNotNull('snapshot');
+        $q = Campaign::where('organisation_id', $organisation->id)->whereNotNull('snapshot')->when(! $canUseSimulation, fn ($query) => $query->where('delivery_mode', 'sendgrid_live'));
         if ($d['from'] ?? null) {
             $q->whereDate('scheduled_at', '>=', $d['from']);
         }if ($d['to'] ?? null) {
@@ -101,6 +103,6 @@ class AnalyticsController extends Controller
         }$campaigns = $q->latest('scheduled_at')->paginate(15)->withQueryString();
         $campaigns->through(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'scheduled_at' => $c->scheduled_at, 'status' => $c->status, 'analytics' => $s->summary($c)]);
 
-        return Inertia::render('campaign-comparison', ['company' => $organisation, 'campaigns' => $campaigns, 'filters' => $d]);
+        return Inertia::render('campaign-comparison', ['company' => $organisation, 'campaigns' => $campaigns, 'filters' => $d, 'canUseSimulation' => $canUseSimulation]);
     }
 }
