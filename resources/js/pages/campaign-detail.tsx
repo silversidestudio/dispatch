@@ -26,7 +26,7 @@ export default function Detail({
     campaign: Campaign;
     preflight: {
         sender: string;
-        pilot?: { enabled: boolean; daily_limit: number };
+        pilot?: { enabled: boolean; recipient_allowlist_enabled: boolean; daily_limit: number };
         sender_name: string;
         sender_email: string;
         postal_address: string | null;
@@ -215,8 +215,9 @@ export default function Detail({
                 </dl>
                 {mode === 'sendgrid_live' && preflight.pilot?.enabled && (
                     <p className="bg-muted/40 mt-4 rounded-lg border p-3 text-xs">
-                        Live sends are currently limited to approved test recipients, up to {preflight.pilot.daily_limit} attempts each day. This
-                        limit applies to the whole workspace.
+                        {preflight.pilot.recipient_allowlist_enabled
+                            ? `Live sending is limited to approved test recipients, with a maximum of ${preflight.pilot.daily_limit} SendGrid submission attempts per day across the platform.`
+                            : `Live sending is available to eligible, unsuppressed contacts in this workspace, with a maximum of ${preflight.pilot.daily_limit} SendGrid submission attempts per day across the platform.`}
                     </p>
                 )}
             </Panel>
@@ -404,24 +405,24 @@ export default function Detail({
                     </div>
                     {history.data.map((h) => (
                         <p className="border-b py-3 text-sm" key={h.id}>
-                            {h.action === 'campaign.pilot_blocked' ? 'Pilot blocked' : readableLabel(h.action)} ·{' '}
+                            {h.action === 'campaign.pilot_blocked' ? 'Live send held' : readableLabel(h.action)} ·{' '}
                             {new Date(h.created_at).toLocaleString()}
                             {h.action === 'campaign.pilot_blocked' && (
                                 <span className="text-muted-foreground mt-1 block">
                                     {(
                                         {
                                             pilot_configuration_invalid:
-                                                'Live test sending is not available yet. Ask your system administrator to check the test settings.',
+                                                'Live sending is not available yet. Ask your system administrator to check the sending settings.',
                                             pilot_recipient_not_allowed:
-                                                'A recipient is not on the approved test list. Choose an approved test recipient.',
+                                                'A recipient is not on the approved test list. Ask your system administrator to update the list.',
                                             pilot_scope_blocked:
-                                                'This workspace or audience is not enabled for the current live test. Ask your system administrator for help.',
+                                                'This workspace is not enabled for live sending. Ask your system administrator for help.',
                                             pilot_daily_limit_reached:
-                                                'The daily live test limit has been reached. Try again tomorrow.',
+                                                'The daily live sending limit has been reached. Try again tomorrow.',
                                             pilot_attempt_already_reserved:
                                                 'This message already has a recorded attempt. Check its activity before trying again.',
                                         } as Record<string, string>
-                                    )[h.metadata?.diagnostic ?? ''] ?? 'Live test sending is not available. Ask your system administrator to check the test settings.'}
+                                    )[h.metadata?.diagnostic ?? ''] ?? 'Live sending is not available. Ask your system administrator to check the sending settings.'}
                                 </span>
                             )}
                         </p>

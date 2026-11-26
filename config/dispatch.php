@@ -11,6 +11,7 @@ return [
     'pilot' => [
         'enabled' => (bool) env('DISPATCH_PILOT_ENABLED', true),
         'daily_limit' => (int) env('DISPATCH_PILOT_DAILY_LIMIT', 25),
+        'recipient_allowlist_enabled' => (bool) env('DISPATCH_PILOT_RECIPIENT_ALLOWLIST_ENABLED', true),
         'recipients' => array_values(array_filter(array_map('trim', explode(',', env('DISPATCH_PILOT_RECIPIENTS', ''))))),
         'organisation_ids' => array_values(array_filter(array_map('trim', explode(',', env('DISPATCH_PILOT_ORGANISATION_IDS', ''))))),
     ],

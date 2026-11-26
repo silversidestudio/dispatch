@@ -20,7 +20,7 @@ class SendGridPilotGuard
         $errors = [];
         $emails = config('dispatch.pilot.recipients', []);
         $organisations = config('dispatch.pilot.organisation_ids', []);
-        if (! $emails || collect($emails)->contains(fn ($email) => ! filter_var($email, FILTER_VALIDATE_EMAIL))) {
+        if ($this->recipientAllowlistEnabled() && (! $emails || collect($emails)->contains(fn ($email) => ! filter_var($email, FILTER_VALIDATE_EMAIL)))) {
             $errors[] = 'Live test sending is not available yet. Ask your system administrator to check the test recipient settings.';
         }
         if (! $organisationId || ! $organisations || collect($organisations)->contains(fn ($id) => ! ctype_digit((string) $id) || (int) $id < 1) || ! in_array((string) $organisationId, array_map('strval', $organisations), true)) {
@@ -36,7 +36,12 @@ class SendGridPilotGuard
 
     public function recipientAllowed(string $email): bool
     {
-        return ! $this->enabled() || in_array(strtolower(trim($email)), array_map(fn ($v) => strtolower(trim($v)), config('dispatch.pilot.recipients', [])), true);
+        return ! $this->enabled() || ! $this->recipientAllowlistEnabled() || in_array(strtolower(trim($email)), array_map(fn ($v) => strtolower(trim($v)), config('dispatch.pilot.recipients', [])), true);
+    }
+
+    public function recipientAllowlistEnabled(): bool
+    {
+        return (bool) config('dispatch.pilot.recipient_allowlist_enabled', true);
     }
 
     public function remaining(): int

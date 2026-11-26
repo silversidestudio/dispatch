@@ -27,11 +27,12 @@ Configuration is server-only in config/dispatch.php and .env.example:
 ```dotenv
 DISPATCH_PILOT_ENABLED=true
 DISPATCH_PILOT_DAILY_LIMIT=25
+DISPATCH_PILOT_RECIPIENT_ALLOWLIST_ENABLED=true
 DISPATCH_PILOT_RECIPIENTS=
 DISPATCH_PILOT_ORGANISATION_IDS=
 ```
 
-Lists are comma-separated exact addresses/positive numeric company IDs. No domain wildcards. All existing provider/live-enable flags, verified identity and explicit campaign authorisation remain mandatory. Merely configuring pilot scope never activates delivery. The adapter also enforces the guard immediately before external HTTP.
+Recipient addresses and company IDs are comma-separated exact values. No domain wildcards. Keep `DISPATCH_PILOT_RECIPIENT_ALLOWLIST_ENABLED=true` to restrict sends to the configured addresses. Set it to `false` to let the enabled company send to any eligible, unsuppressed contact in its audiences; keep `DISPATCH_PILOT_ENABLED=true` and `DISPATCH_PILOT_DAILY_LIMIT=100` to retain the 100-attempt daily ceiling. The company ID scope, SendGrid enablement, verified sender identity, and explicit campaign authorisation remain mandatory. Merely configuring pilot scope never activates delivery. The adapter also enforces the guard immediately before external HTTP.
 
 Budget reservations commit before HTTP and count even if SendGrid rejects the request or its outcome is uncertain. Retries get a new correlation and consume a new slot; replaying the same correlation is blocked, even on a later day. All companies share the application's daily cap. Cache clearing or worker restart cannot reset it. Unused capacity does not carry forward. SendGrid traffic from another application/account tool is outside this local cap. Do not delete/refund reservation rows to force sending. Budgets/hashed reservations are intentionally retained for replay protection; define long-term archival with delivery evidence retention before removing them.
 
