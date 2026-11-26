@@ -109,8 +109,8 @@ export default function Identities({
                     {readiness.live_enabled ? 'Available after campaign checks' : 'Off'}
                 </p>
                 <p className="text-muted-foreground mt-3 text-xs">
-                    SendGrid provides the domain records to add at your DNS provider. In Cloudflare, its CNAME records must use DNS-only mode. DMARC
-                    is shown separately because it needs its own review.
+                    SendGrid checks its domain authentication. Dispatch does not check DMARC DNS automatically; review the DMARC TXT record for your
+                    sending domain separately. In Cloudflare, SendGrid CNAME records must use DNS-only mode.
                 </p>
             </Panel>
             <Panel title="Company identities">
@@ -122,8 +122,10 @@ export default function Identities({
                             </p>
                             <p className="mt-1 text-sm">{i.email}</p>
                             <p className="text-muted-foreground mt-3 text-xs">
-                                {i.domain} · <DeliveryStatus status={i.verification_status} /> · SPF: {readableLabel(i.spf_status)} · DKIM:{' '}
-                                {readableLabel(i.dkim_status)} · DMARC: {readableLabel(i.dmarc_status)} · Last check:{' '}
+                                Sending domain: {i.domain} · <DeliveryStatus status={i.verification_status} />
+                                <br />
+                                SPF: {readableLabel(i.spf_status)} · DKIM: {readableLabel(i.dkim_status)} · Domain DMARC policy:{' '}
+                                {i.dmarc_status === 'not_checked' ? 'Manual review needed' : readableLabel(i.dmarc_status)} · Last SendGrid check:{' '}
                                 {i.verified_at ? new Date(i.verified_at).toLocaleString() : 'Never'}
                             </p>
                             {canVerify && <VerifyIdentity companyId={company.id} identity={i} />}
