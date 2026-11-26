@@ -21,14 +21,14 @@ class SendGridPilotGuard
         $emails = config('dispatch.pilot.recipients', []);
         $organisations = config('dispatch.pilot.organisation_ids', []);
         if (! $emails || collect($emails)->contains(fn ($email) => ! filter_var($email, FILTER_VALIDATE_EMAIL))) {
-            $errors[] = 'The platform has not added any approved test recipients yet. Contact the platform administrator.';
+            $errors[] = 'Live test sending is not available yet. Ask your system administrator to check the test recipient settings.';
         }
         if (! $organisationId || ! $organisations || collect($organisations)->contains(fn ($id) => ! ctype_digit((string) $id) || (int) $id < 1) || ! in_array((string) $organisationId, array_map('strval', $organisations), true)) {
-            $errors[] = 'This company is not included in the current SendGrid test. Contact the platform administrator.';
+            $errors[] = 'This workspace is not enabled for the current live test. Ask your system administrator for help.';
         }
         $limit = (int) config('dispatch.pilot.daily_limit');
         if ($limit < 1 || $limit > 100) {
-            $errors[] = 'The platform’s daily test limit needs attention. Contact the platform administrator.';
+            $errors[] = 'The live test sending limit is not configured correctly. Ask your system administrator for help.';
         }
 
         return $errors;

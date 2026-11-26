@@ -34,11 +34,11 @@ export default function Identities({
     const [id, setId] = useState<number | null>(null);
     const base = `/organisations/${company.id}/identities`;
     return (
-        <Workspace title="Sending setup" subtitle="Choose the From address recipients will see and connect this company’s SendGrid account.">
+        <Workspace title="Sending setup" subtitle="Choose the sender address recipients will see and connect this workspace’s SendGrid account.">
             {canManage && (
                 <Panel
                     title="SendGrid account"
-                    description="Keys are hidden after saving. The status below shows which company credentials are stored. Saving SendGrid details clears the sender check; live sending stays off until setup is complete."
+                    description="Saved keys stay hidden. The status below confirms which details are stored. Updating them requires sender verification again; live sending stays off until setup is complete."
                 >
                     <div className="mb-4 flex flex-wrap gap-2" aria-label="Stored SendGrid credentials">
                         {[

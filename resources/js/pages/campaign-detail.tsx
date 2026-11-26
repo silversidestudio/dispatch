@@ -411,17 +411,17 @@ export default function Detail({
                                     {(
                                         {
                                             pilot_configuration_invalid:
-                                                'The platform’s test-send settings need attention. Contact the platform administrator.',
+                                                'Live test sending is not available yet. Ask your system administrator to check the test settings.',
                                             pilot_recipient_not_allowed:
-                                                'An address is outside the approved test list. Update the audience or contact the platform administrator.',
+                                                'A recipient is not on the approved test list. Choose an approved test recipient.',
                                             pilot_scope_blocked:
-                                                'This company or audience is not included in the current test. Contact the platform administrator.',
+                                                'This workspace or audience is not enabled for the current live test. Ask your system administrator for help.',
                                             pilot_daily_limit_reached:
-                                                'The daily test limit has been reached. Try again tomorrow or contact the platform administrator.',
+                                                'The daily live test limit has been reached. Try again tomorrow.',
                                             pilot_attempt_already_reserved:
                                                 'This message already has a recorded attempt. Check its activity before trying again.',
                                         } as Record<string, string>
-                                    )[h.metadata?.diagnostic ?? ''] ?? 'Review the pilot settings before resuming.'}
+                                    )[h.metadata?.diagnostic ?? ''] ?? 'Live test sending is not available. Ask your system administrator to check the test settings.'}
                                 </span>
                             )}
                         </p>

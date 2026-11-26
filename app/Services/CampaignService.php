@@ -21,9 +21,9 @@ class CampaignService
         $o = Organisation::findOrFail($c->organisation_id);
         $identity = SendingIdentity::where('organisation_id', $o->id)->find($c->sending_identity_id);
         if ($o->status !== 'active') {
-            $errors[] = 'This company is inactive. Contact the platform administrator to restore access.';
+            $errors[] = 'This workspace is inactive. Ask your system administrator to restore access.';
         }if (! $o->postal_address) {
-            $errors[] = 'Add the company postal address in Workspace settings.';
+            $errors[] = 'Add the sender postal address in Workspace settings.';
         }
         if (! $identity) {
             $errors[] = 'Choose a sender address in Sending setup.';

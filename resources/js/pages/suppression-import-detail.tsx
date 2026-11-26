@@ -50,7 +50,7 @@ export default function SuppressionImportDetail({
             subtitle={`${company.name} · Import #${job.id} · ${job.source}`}
             actions={
                 <Button variant="outline" asChild>
-                    <Link href={base}>Global suppressions</Link>
+                    <Link href={base}>Suppressed addresses</Link>
                 </Button>
             }
         >
@@ -70,7 +70,7 @@ export default function SuppressionImportDetail({
             {['preview', 'failed'].includes(job.status) && (
                 <Panel
                     title="Choose the email column"
-                    description="The selected addresses will be blocked from every campaign in this company. No contacts are created."
+                    description="The addresses in this column will be excluded from every campaign in this workspace. No contact records will be added."
                 >
                     {canManage && (
                         <form
@@ -136,7 +136,7 @@ export default function SuppressionImportDetail({
             {job.status !== 'preview' && (
                 <Panel
                     title="Import progress"
-                    description="Each address is stored as a company-wide unsubscribe. Existing suppression reasons and evidence are preserved."
+                    description="Each address is excluded from every campaign in this workspace. Existing suppression details are kept."
                 >
                     <div className="mb-4 flex items-center gap-3">
                         <DeliveryStatus status={job.status} />
@@ -153,7 +153,7 @@ export default function SuppressionImportDetail({
                     )}
                     {job.status === 'completed' && (
                         <p className="mt-4 text-sm">
-                            The imported addresses are now excluded from all campaigns in this company, including campaigns using other lists.
+                            These addresses are now excluded from all campaigns in this workspace, including campaigns using other mailing lists.
                         </p>
                     )}
                     {rows.length > 0 && (

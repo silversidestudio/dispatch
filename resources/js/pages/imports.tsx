@@ -24,8 +24,8 @@ export default function Imports({ company, imports, canManage }: { company: Comp
     return (
         <Workspace
             title="Contact imports"
-            subtitle="New CSV contacts follow this workspace’s import setting. The import records their source but does not verify permission to email them. Existing suppressions are kept."
-            actions={<Button variant="outline" asChild><Link href={`/organisations/${company.id}/suppressions`}><ShieldBan aria-hidden="true" /> Global suppressions</Link></Button>}
+            subtitle="CSV contacts can be included in campaigns. The import records where they came from, but cannot check whether they agreed to receive marketing. Suppressed addresses stay excluded."
+            actions={<Button variant="outline" asChild><Link href={`/organisations/${company.id}/suppressions`}><ShieldBan aria-hidden="true" /> Suppressed addresses</Link></Button>}
         >
             {canManage && (
                 <Panel

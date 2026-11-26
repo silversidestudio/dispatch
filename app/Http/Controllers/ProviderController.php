@@ -25,7 +25,7 @@ class ProviderController extends Controller
             AuditLog::record('sendgrid.credentials_updated', $o->id);
         });
 
-        return back()->with('success', 'Company credentials saved. Sender identities must be verified again.');
+        return back()->with('success', 'SendGrid details saved. Verify your sender address again before live sending.');
     }
 
     public function verify(Request $r, Organisation $organisation, SendingIdentity $identity)

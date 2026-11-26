@@ -54,7 +54,7 @@ export default function Organisations({
                             ))}
                         {!organisations.length && (
                             <p className="text-muted-foreground py-10 text-center text-sm">
-                                No workspaces are linked to this account yet. A platform administrator can invite you to one.
+                                This account is not linked to a workspace yet. Contact your administrator to request access.
                             </p>
                         )}
                     </div>

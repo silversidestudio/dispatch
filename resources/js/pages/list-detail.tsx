@@ -26,7 +26,7 @@ export default function List({
     const search = useForm({ search: '' });
     const [ids, setIds] = useState<number[]>([]);
     return (
-        <Workspace title={list.name} subtitle={`${eligible} current eligible recipients · Company: ${company.name}`}>
+        <Workspace title={list.name} subtitle={`${eligible} currently eligible contacts · ${company.name}`}>
             <Panel title="List details">
                 <form
                     className="flex flex-wrap items-end gap-3"
@@ -43,7 +43,7 @@ export default function List({
             </Panel>
             <Panel
                 title="Manage membership"
-                description="List membership is separate from campaign eligibility. Changes here do not remove a contact’s suppression."
+                description="Being on this list does not override a contact’s eligibility or suppression status."
             >
                 <form
                     className="mb-4 flex flex-wrap items-end gap-3"

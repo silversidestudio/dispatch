@@ -236,7 +236,7 @@ export default function Templates({
                 <DialogContent className="max-h-[94dvh] max-w-[calc(100%-1rem)] overflow-y-auto p-3 sm:max-w-4xl sm:p-6">
                     <DialogHeader>
                         <DialogTitle>{preview?.name}</DialogTitle>
-                        <DialogDescription>Sample personalisation only. Email-client rendering still needs a Gmail/Outlook check.</DialogDescription>
+                        <DialogDescription>This preview uses sample names and addresses. Email apps may display the design differently.</DialogDescription>
                     </DialogHeader>
                     {preview && (
                         <EmailPreview

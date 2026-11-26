@@ -94,7 +94,7 @@ class SuppressionController extends Controller
         $import->update(['email_column' => $data['email_column'], 'status' => 'queued', 'failure' => null]);
         ProcessSuppressionImport::dispatch($import->id)->afterCommit();
 
-        return redirect("/organisations/$organisation->id/suppressions/imports/$import->id")->with('success', 'Suppression import queued. These addresses will be excluded from all campaigns in this company.');
+        return redirect("/organisations/$organisation->id/suppressions/imports/$import->id")->with('success', 'Import started. These addresses will be excluded from all campaigns in this workspace.');
     }
 
     public function errors(Organisation $organisation, SuppressionImport $import)

@@ -34,18 +34,18 @@ export default function Suppressions({
     canManage: boolean;
 }) {
     const base = `/organisations/${company.id}/suppressions`;
-    const form = useForm({ file: null as File | null, source: 'Client historic global unsubscribe list', evidence: '' });
+    const form = useForm({ file: null as File | null, source: 'Unsubscribe list import', evidence: '' });
 
     return (
         <Workspace
-            title="Global suppressions"
-            subtitle={`${company.name} · These addresses are excluded from every campaign in this company, regardless of list.`}
+            title="Suppressed addresses"
+            subtitle={`${company.name} · Addresses here are excluded from every campaign in this workspace, regardless of mailing list.`}
         >
             <Metrics data={{ 'Suppressed addresses': total }} />
             {canManage && (
                 <Panel
                     title="Import unsubscribe list"
-                    description="Upload the client's existing opt-outs separately from contacts. This import creates suppression records only; it does not create contacts or add people to lists."
+                    description="Import a list of addresses that should not receive campaigns. They stay excluded even if added to a contact list later."
                 >
                     <form
                         className="grid max-w-3xl gap-4 sm:grid-cols-2"
@@ -64,7 +64,7 @@ export default function Suppressions({
                                 onChange={(event) => form.setData('file', event.target.files?.[0] ?? null)}
                             />
                             <p className="text-muted-foreground text-sm">
-                                Include a header row and one column containing email addresses. Up to 10,000 rows per file; larger files can be split.
+                                Use a CSV with a header row and a column of email addresses. Up to 10,000 rows per file.
                             </p>
                         </div>
                         <div className="space-y-2">
@@ -78,13 +78,13 @@ export default function Suppressions({
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="suppression-evidence">Import note (optional)</Label>
+                            <Label htmlFor="suppression-evidence">Note (optional)</Label>
                             <Input
                                 id="suppression-evidence"
                                 value={form.data.evidence}
                                 onChange={(event) => form.setData('evidence', event.target.value)}
                                 maxLength={1000}
-                                placeholder="For example, exported from NewZapp on 25 November 2026"
+                                placeholder="Add a note about this file"
                             />
                         </div>
                         <div className="sm:col-span-2">
@@ -99,7 +99,7 @@ export default function Suppressions({
 
             <Panel
                 title="Recent imports"
-                description="Imported addresses remain suppressed if they are later included in a contact CSV or another mailing list."
+                description="An address stays suppressed if it appears in a contact import or mailing list later."
             >
                 {imports.length ? (
                     <div className="overflow-x-auto">
@@ -143,7 +143,7 @@ export default function Suppressions({
 
             <Panel
                 title="Suppressed addresses"
-                description="These addresses cannot receive campaigns from this company. Existing suppression reasons are retained when an address is encountered again."
+                description="These addresses are excluded from every campaign in this workspace. Adding one again will not remove its suppression."
             >
                 {suppressions.data.length ? (
                     <div className="overflow-x-auto">
@@ -173,7 +173,7 @@ export default function Suppressions({
                     <div className="rounded-lg border border-dashed p-8 text-center">
                         <ShieldBan className="text-muted-foreground mx-auto mb-2 h-6 w-6" />
                         <p className="font-medium">No suppressed addresses yet</p>
-                        <p className="text-muted-foreground text-sm">Import the historic unsubscribe file here before importing active contacts.</p>
+                        <p className="text-muted-foreground text-sm">Import a CSV of addresses to exclude them from all campaigns.</p>
                     </div>
                 )}
                 <Pages page={suppressions} />

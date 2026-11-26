@@ -44,7 +44,7 @@ export default function Contacts({
             actions={
                 <div className="flex flex-wrap gap-2">
                     <Button variant="outline" asChild><Link href={base + '/imports'}>CSV imports</Link></Button>
-                    <Button variant="outline" asChild><Link href={base + '/suppressions'}><ShieldBan aria-hidden="true" /> Global suppressions</Link></Button>
+                    <Button variant="outline" asChild><Link href={base + '/suppressions'}><ShieldBan aria-hidden="true" /> Suppressed addresses</Link></Button>
                 </div>
             }
         >

@@ -46,7 +46,7 @@ export default function ImportDetail({
             {job.status === 'preview' && canManage && (
                 <Panel
                     title="Map columns"
-                    description="Match each CSV column to a contact field. New contacts follow this workspace’s import eligibility setting; existing contacts and suppressions are kept."
+                    description="Match each CSV column to a contact field. New contacts can be included in campaigns. Existing contacts and suppression records are kept."
                 >
                     <form
                         className="space-y-4"
