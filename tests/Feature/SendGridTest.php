@@ -9,6 +9,7 @@ use App\Models\DeliveryAttempt;
 use App\Models\DeliveryEvent;
 use App\Models\Organisation;
 use App\Models\SendingIdentity;
+use App\Models\User;
 use App\Models\WebhookBatch;
 use App\Models\WebhookReceipt;
 use App\Services\CampaignAnalytics;
@@ -59,6 +60,50 @@ it('defaults to simulation with no live sending or tracking', function () {
     expect(config('dispatch.sendgrid.live_enabled'))->toBeFalse();
     $o = Organisation::create(['name' => 'Safe default']);
     expect((bool) $o->fresh()->open_tracking_enabled)->toBeFalse();
+});
+it('lets a workspace owner verify the sender domain with that workspace SendGrid account', function () {
+    Http::preventStrayRequests();
+    config(['dispatch.sendgrid.enabled' => true, 'app.url' => 'https://campaign.example.test']);
+    $owner = User::factory()->create();
+    $organisation = workspaceFor($owner);
+    $organisation->forceFill(['sendgrid_api_key' => 'workspace-key'])->save();
+    $identity = SendingIdentity::create(['organisation_id' => $organisation->id, 'name' => 'Workspace sender', 'email' => 'news@example.test', 'domain' => 'example.test']);
+    Http::fake(['https://api.sendgrid.com/v3/whitelabel/domains/456' => Http::response(['valid' => true, 'domain' => 'example.test'], 200)]);
+
+    $this->actingAs($owner)->get("/organisations/$organisation->id/identities")
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('canVerify', true)
+            ->where('webhookUrl', "https://campaign.example.test/webhooks/sendgrid/$organisation->id"));
+
+    $this->actingAs($owner)->post("/organisations/$organisation->id/identities/$identity->id/verify", [
+        'domain_id' => 456,
+        'confirmation' => 'AUTHORISE',
+    ])->assertRedirect();
+
+    expect($identity->fresh()->provider_authorised)->toBeTrue()
+        ->and($identity->fresh()->verification_status)->toBe('verified');
+    Http::assertSent(fn ($request) => $request->url() === 'https://api.sendgrid.com/v3/whitelabel/domains/456'
+        && $request->hasHeader('Authorization', 'Bearer workspace-key'));
+});
+it('keeps sender-domain verification within owner and administrator roles and the correct workspace', function () {
+    Http::preventStrayRequests();
+    $campaignManager = User::factory()->create();
+    $organisation = workspaceFor($campaignManager, 'campaign_manager');
+    $identity = SendingIdentity::create(['organisation_id' => $organisation->id, 'name' => 'Workspace sender', 'email' => 'news@example.test', 'domain' => 'example.test']);
+    $otherOwner = User::factory()->create();
+    workspaceFor($otherOwner);
+
+    $this->actingAs($campaignManager)
+        ->get("/organisations/$organisation->id/identities")
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('canVerify', false));
+    $this->actingAs($campaignManager)
+        ->post("/organisations/$organisation->id/identities/$identity->id/verify", ['domain_id' => 456, 'confirmation' => 'AUTHORISE'])
+        ->assertForbidden();
+    $this->actingAs($otherOwner)
+        ->post("/organisations/$organisation->id/identities/$identity->id/verify", ['domain_id' => 456, 'confirmation' => 'AUTHORISE'])
+        ->assertForbidden();
+
+    Http::assertNothingSent();
 });
 it('builds a v3 sandbox request with explicit tracking and unsubscribe headers', function () {
     Http::preventStrayRequests();

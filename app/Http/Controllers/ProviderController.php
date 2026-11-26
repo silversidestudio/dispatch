@@ -30,7 +30,9 @@ class ProviderController extends Controller
 
     public function verify(Request $r, Organisation $organisation, SendingIdentity $identity)
     {
-        Gate::authorize('platform');
+        if (! Gate::allows('platform')) {
+            Gate::authorize('update', $organisation);
+        }
         abort_unless($identity->organisation_id === $organisation->id, 404);
         $d = $r->validate(['domain_id' => 'required|integer|min:1', 'confirmation' => 'required|in:AUTHORISE']);
         abort_unless(config('dispatch.sendgrid.enabled') && $organisation->sendgrid_api_key, 422, 'SendGrid credentials are not configured. No external verification performed.');

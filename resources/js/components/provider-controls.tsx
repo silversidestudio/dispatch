@@ -22,17 +22,17 @@ export function VerifyIdentity({ companyId, identity }: { companyId: number; ide
             className="mt-4 space-y-3"
             onSubmit={(e) => {
                 e.preventDefault();
-                f.post(`/platform/companies/${companyId}/identities/${identity.id}/verify`);
+                f.post(`/organisations/${companyId}/identities/${identity.id}/verify`);
             }}
         >
-            <Field label={`Authenticated-domain ID for ${identity.email}`} value={f.data.domain_id} change={(v) => f.setData('domain_id', v)} />
+            <Field label={`SendGrid authenticated-domain ID for ${identity.email}`} value={f.data.domain_id} change={(v) => f.setData('domain_id', v)} />
             <Field label="Type AUTHORISE to confirm the check" value={f.data.confirmation} change={(v) => f.setData('confirmation', v)} />
             <Errors errors={f.errors} />
             <Button variant="outline" disabled={f.processing}>
                 Check SendGrid verification
             </Button>
             <p className="text-muted-foreground text-xs">
-                Checks the status saved in SendGrid. This does not change DNS or send an email.
+                Find this ID in SendGrid under Settings → Sender Authentication → Domain Authentication. This checks the saved status; it does not change DNS or send an email.
             </p>
         </form>
     );

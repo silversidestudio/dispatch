@@ -56,6 +56,7 @@ Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')-
     Route::get('identities', [$c, 'identities']);
     Route::post('identities', [$c, 'identitySave']);
     Route::patch('identities/{identity}', [$c, 'identitySave']);
+    Route::post('identities/{identity}/verify', [ProviderController::class, 'verify']);
     Route::get('templates', [$c, 'templates']);
     Route::post('templates', [$c, 'templateSave']);
     Route::post('templates/starter', [$c, 'starter']);
@@ -101,7 +102,6 @@ Route::post('/one-click/{token}', function (Request $request, string $token) {
     return response('', 204);
 })->middleware(['signed:relative', 'throttle:30,1']);
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::post('/platform/companies/{organisation}/identities/{identity}/verify', [ProviderController::class, 'verify']);
     Route::post('/organisations/{organisation}/tracking-review', [ProviderController::class, 'tracking']);
     Route::post('/organisations/{organisation}/attempts/{attempt}/reconcile', [ProviderController::class, 'reconcile']);
 });

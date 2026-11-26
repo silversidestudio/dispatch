@@ -19,12 +19,14 @@ export type Identity = {
 export default function Identities({
     company,
     identities,
+    webhookUrl,
     canManage,
     readiness,
     canVerify,
 }: {
     company: Company;
     identities: (Identity & ProviderIdentity)[];
+    webhookUrl: string;
     canManage: boolean;
     readiness: { provider: string; enabled: boolean; configured: boolean; webhook_configured: boolean; live_enabled: boolean };
     canVerify: boolean;
@@ -43,7 +45,7 @@ export default function Identities({
                     <div className="mb-4 flex flex-wrap gap-2" aria-label="Stored SendGrid credentials">
                         {[
                             { label: 'API key', configured: readiness.configured },
-                            { label: 'Webhook verification key', configured: readiness.webhook_configured },
+                            { label: 'Webhook public key', configured: readiness.webhook_configured },
                         ].map(({ label, configured }) => (
                             <span
                                 key={label}
@@ -70,22 +72,30 @@ export default function Identities({
                             credentials.patch(`/organisations/${company.id}/sendgrid-credentials`, { onSuccess: () => credentials.reset() });
                         }}
                     >
+                        <div>
+                            <Field
+                                label="SendGrid API key"
+                                type="password"
+                                required
+                                value={credentials.data.sendgrid_api_key}
+                                change={(v) => credentials.setData('sendgrid_api_key', v)}
+                            />
+                            <p className="text-muted-foreground mt-1 text-xs">
+                                Use a custom key with Mail Send full access and Sender Authentication read access.
+                            </p>
+                        </div>
                         <Field
-                            label="SendGrid API key"
-                            type="password"
-                            required
-                            value={credentials.data.sendgrid_api_key}
-                            change={(v) => credentials.setData('sendgrid_api_key', v)}
-                        />
-                        <Field
-                            label="Webhook verification key"
+                            label="Event Webhook public key"
                             type="password"
                             value={credentials.data.sendgrid_webhook_key}
                             change={(v) => credentials.setData('sendgrid_webhook_key', v)}
                         />
                         <p className="text-sm">
-                            SendGrid webhook address: <code>/webhooks/sendgrid/{company.id}</code>. Saving without a verification key removes the
-                            stored key.
+                            SendGrid Event Webhook URL: <code className="break-all">{webhookUrl}</code>
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                            Enable Signed Event Webhook in SendGrid, save it, then paste the public key shown there. The private key stays with
+                            SendGrid.
                         </p>
                         <Errors errors={credentials.errors} />
                         <Button disabled={credentials.processing}>Save SendGrid details</Button>
