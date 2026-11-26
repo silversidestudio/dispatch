@@ -79,3 +79,5 @@ Laravel database notifications are created after campaign processing reaches a t
 Contact CSV imports require an active mailing list and a final confirmation before queueing. Contact and suppression imports support up to 25,000 data rows per file by default (5 MB and 30 columns) and process in 250-row queue chunks with a durable file cursor, so worker retries resume without repeating completed rows. Change their shared row limit with `DISPATCH_IMPORT_MAX_ROWS`; larger settings should be sized against worker memory and job duration.
 
 SendGrid's domain authentication status does not check DMARC. An organisation owner or administrator can record a manual DMARC DNS review on a sending identity; Dispatch stores the reviewer and timestamp and resets that record if the sender domain changes. This is an audit acknowledgement, not an automated DNS validation.
+
+Sender identities can be archived and restored by workspace administrators. Archived identities are excluded from new campaign forms and cannot be selected for new campaigns. Existing campaigns retain their immutable sender snapshot; each workspace must keep at least one active sender identity.

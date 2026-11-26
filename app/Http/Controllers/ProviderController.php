@@ -34,6 +34,7 @@ class ProviderController extends Controller
             Gate::authorize('update', $organisation);
         }
         abort_unless($identity->organisation_id === $organisation->id, 404);
+        abort_if($identity->archived_at, 404);
         $d = $r->validate(['domain_id' => 'required|integer|min:1', 'confirmation' => 'required|in:AUTHORISE']);
         abort_unless(config('dispatch.sendgrid.enabled') && $organisation->sendgrid_api_key, 422, 'SendGrid credentials are not configured. No external verification performed.');
         try {
@@ -57,6 +58,7 @@ class ProviderController extends Controller
     {
         Gate::authorize('update', $organisation);
         abort_unless($identity->organisation_id === $organisation->id, 404);
+        abort_if($identity->archived_at, 404);
         $request->validate(['confirmed' => 'required|accepted']);
 
         DB::transaction(function () use ($identity, $organisation, $request) {

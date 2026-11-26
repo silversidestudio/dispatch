@@ -107,7 +107,7 @@ class CampaignController extends Controller
 
     private function form(Organisation $o, ?Campaign $c)
     {
-        return Inertia::render('campaign-editor', ['company' => $o, 'campaign' => $c, 'defaultEmail' => app(EmailStarterTemplates::class)->basic($o->email_branding ?? []), 'identities' => SendingIdentity::where('organisation_id', $o->id)->get(), 'lists' => MailingList::where('organisation_id', $o->id)->whereNull('archived_at')->get(['id', 'name']), 'segments' => Segment::where('organisation_id', $o->id)->get(['id', 'name']), 'templates' => EmailTemplate::where('organisation_id', $o->id)->get(), 'canManage' => Gate::allows('manageCampaigns', $o), 'canUseSimulation' => (bool) auth()->user()->is_platform_admin]);
+        return Inertia::render('campaign-editor', ['company' => $o, 'campaign' => $c, 'defaultEmail' => app(EmailStarterTemplates::class)->basic($o->email_branding ?? []), 'identities' => SendingIdentity::where('organisation_id', $o->id)->whereNull('archived_at')->get(), 'lists' => MailingList::where('organisation_id', $o->id)->whereNull('archived_at')->get(['id', 'name']), 'segments' => Segment::where('organisation_id', $o->id)->get(['id', 'name']), 'templates' => EmailTemplate::where('organisation_id', $o->id)->get(), 'canManage' => Gate::allows('manageCampaigns', $o), 'canUseSimulation' => (bool) auth()->user()->is_platform_admin]);
     }
 
     public function edit(Organisation $organisation, Campaign $campaign)
@@ -126,7 +126,7 @@ class CampaignController extends Controller
         if ($campaign) {
             $this->scope($organisation, $campaign, 'manageCampaigns');
             abort_if($campaign->archived_at, 422, 'Restore this campaign before editing it.');
-        }$d = $r->validate(['delivery_mode' => 'sometimes|in:simulation,sendgrid_sandbox,sendgrid_live', 'open_tracking' => 'sometimes|boolean', 'click_tracking' => 'sometimes|boolean', 'name' => 'required|string|max:120', 'subject' => 'required|string|max:255', 'preview_text' => 'nullable|string|max:255', 'sending_identity_id' => ['required', 'integer', Rule::exists('sending_identities', 'id')->where('organisation_id', $organisation->id)], 'reply_to' => 'nullable|email:rfc|max:254', 'audience_type' => 'required|in:list,segment', 'audience_id' => 'required|integer', 'html' => 'required|string|max:200000', 'text_body' => 'required|string|max:100000']);
+        }$d = $r->validate(['delivery_mode' => 'sometimes|in:simulation,sendgrid_sandbox,sendgrid_live', 'open_tracking' => 'sometimes|boolean', 'click_tracking' => 'sometimes|boolean', 'name' => 'required|string|max:120', 'subject' => 'required|string|max:255', 'preview_text' => 'nullable|string|max:255', 'sending_identity_id' => ['required', 'integer', Rule::exists('sending_identities', 'id')->where('organisation_id', $organisation->id)->whereNull('archived_at')], 'reply_to' => 'nullable|email:rfc|max:254', 'audience_type' => 'required|in:list,segment', 'audience_id' => 'required|integer', 'html' => 'required|string|max:200000', 'text_body' => 'required|string|max:100000']);
         if (! $r->user()->is_platform_admin) {
             if (isset($d['delivery_mode']) && $d['delivery_mode'] !== 'sendgrid_live') {
                 throw ValidationException::withMessages(['delivery_mode' => 'Live SendGrid is the available delivery option for this workspace.']);

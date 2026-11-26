@@ -20,6 +20,9 @@ class CampaignService
         $errors = [];
         $o = Organisation::findOrFail($c->organisation_id);
         $identity = SendingIdentity::where('organisation_id', $o->id)->find($c->sending_identity_id);
+        if ($identity?->archived_at && ! $c->snapshot) {
+            $identity = null;
+        }
         if ($o->status !== 'active') {
             $errors[] = 'This workspace is inactive. Ask your system administrator to restore access.';
         }if (! $o->postal_address) {

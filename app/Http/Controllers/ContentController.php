@@ -34,7 +34,8 @@ class ContentController extends Controller
 
         return Inertia::render('identities', [
             'company' => $organisation,
-            'identities' => SendingIdentity::where('organisation_id', $organisation->id)->with('dmarcReviewedBy:id,name')->get(),
+            'identities' => SendingIdentity::where('organisation_id', $organisation->id)->whereNull('archived_at')->with('dmarcReviewedBy:id,name')->get(),
+            'archivedIdentities' => SendingIdentity::where('organisation_id', $organisation->id)->whereNotNull('archived_at')->with('dmarcReviewedBy:id,name')->latest('archived_at')->get(),
             'webhookUrl' => rtrim(config('app.url'), '/').'/webhooks/sendgrid/'.$organisation->id,
             'canManage' => $canManage,
             'readiness' => $readiness,
@@ -47,6 +48,7 @@ class ContentController extends Controller
         Gate::authorize('update', $organisation);
         if ($identity) {
             abort_unless($identity->organisation_id === $organisation->id, 404);
+            abort_if($identity->archived_at, 404);
         }$r->merge(['email' => strtolower(trim($r->input('email', '')))]);
         $d = $r->validate(['name' => 'required|string|max:120', 'email' => ['required', 'email:rfc', 'max:454', Rule::unique('sending_identities')->where('organisation_id', $organisation->id)->ignore($identity?->id)], 'reply_to' => 'nullable|email:rfc|max:454', 'is_default' => 'required|boolean']);
         DB::transaction(function () use ($organisation, $identity, $d) {
@@ -75,6 +77,56 @@ class ContentController extends Controller
         });
 
         return back()->with('success', 'Identity saved for simulation only. No DNS verification was performed.');
+    }
+
+    public function identityArchive(Organisation $organisation, SendingIdentity $identity)
+    {
+        Gate::authorize('update', $organisation);
+        abort_unless($identity->organisation_id === $organisation->id, 404);
+
+        DB::transaction(function () use ($organisation, $identity) {
+            Organisation::whereKey($organisation->id)->lockForUpdate()->firstOrFail();
+            $current = SendingIdentity::where('organisation_id', $organisation->id)->whereKey($identity->id)->lockForUpdate()->firstOrFail();
+            if ($current->archived_at) {
+                return;
+            }
+
+            $active = SendingIdentity::where('organisation_id', $organisation->id)->whereNull('archived_at');
+            if ($active->count() <= 1) {
+                throw ValidationException::withMessages(['identity' => 'Keep at least one active sender identity in this workspace.']);
+            }
+
+            $needsDefault = $current->is_default || ! (clone $active)->where('is_default', true)->exists();
+            if ($needsDefault) {
+                $replacement = (clone $active)->whereKeyNot($current->id)->orderBy('id')->lockForUpdate()->firstOrFail();
+                $replacement->update(['is_default' => true]);
+            }
+
+            $current->update(['archived_at' => now(), 'is_default' => false]);
+            AuditLog::record('identity.archived', $organisation->id, ['identity_id' => $current->id, 'email' => $current->email]);
+        });
+
+        return back()->with('success', 'Sender identity archived. It is no longer available for new campaigns; existing campaign history is preserved.');
+    }
+
+    public function identityRestore(Organisation $organisation, SendingIdentity $identity)
+    {
+        Gate::authorize('update', $organisation);
+        abort_unless($identity->organisation_id === $organisation->id, 404);
+
+        DB::transaction(function () use ($organisation, $identity) {
+            Organisation::whereKey($organisation->id)->lockForUpdate()->firstOrFail();
+            $current = SendingIdentity::where('organisation_id', $organisation->id)->whereKey($identity->id)->lockForUpdate()->firstOrFail();
+            if (! $current->archived_at) {
+                return;
+            }
+
+            $makeDefault = ! SendingIdentity::where('organisation_id', $organisation->id)->whereNull('archived_at')->where('is_default', true)->exists();
+            $current->update(['archived_at' => null, 'is_default' => $makeDefault]);
+            AuditLog::record('identity.restored', $organisation->id, ['identity_id' => $current->id, 'email' => $current->email]);
+        });
+
+        return back()->with('success', 'Sender identity restored. Check its verification status before using it in a live campaign.');
     }
 
     public function templates(Organisation $organisation)

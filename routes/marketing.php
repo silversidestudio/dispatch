@@ -56,6 +56,8 @@ Route::middleware(['auth', 'verified'])->prefix('organisations/{organisation}')-
     Route::get('identities', [$c, 'identities']);
     Route::post('identities', [$c, 'identitySave']);
     Route::patch('identities/{identity}', [$c, 'identitySave']);
+    Route::post('identities/{identity}/archive', [$c, 'identityArchive']);
+    Route::post('identities/{identity}/restore', [$c, 'identityRestore']);
     Route::post('identities/{identity}/verify', [ProviderController::class, 'verify']);
     Route::post('identities/{identity}/dmarc-review', [ProviderController::class, 'reviewDmarc']);
     Route::get('templates', [$c, 'templates']);
