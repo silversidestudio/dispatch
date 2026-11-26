@@ -25,6 +25,7 @@ class SuppressionController extends Controller
             'suppressions' => Suppression::where('organisation_id', $organisation->id)->latest('id')->paginate(25)->withQueryString(),
             'imports' => SuppressionImport::where('organisation_id', $organisation->id)->latest('id')->limit(10)->get(),
             'total' => Suppression::where('organisation_id', $organisation->id)->count(),
+            'maxRows' => (int) config('dispatch.import_max_rows', 25000),
             'canManage' => Gate::allows('manageCampaigns', $organisation),
         ]);
     }
@@ -39,12 +40,12 @@ class SuppressionController extends Controller
         ]);
         $path = $request->file('file')->store('suppression-imports');
         try {
-            [$headers, $rows] = app(SuppressionImportService::class)->read($path);
+            [$headers, $total] = app(SuppressionImportService::class)->inspect($path);
         } catch (\Throwable $exception) {
             Storage::delete($path);
             throw $exception;
         }
-        if ($rows === []) {
+        if ($total === 0) {
             Storage::delete($path);
 
             return back()->withErrors(['file' => 'The CSV has no email rows to import.']);
@@ -57,9 +58,9 @@ class SuppressionController extends Controller
             'headers' => $headers,
             'source' => $data['source'],
             'evidence' => $data['evidence'] ?? null,
-            'total' => count($rows),
+            'total' => $total,
         ]);
-        AuditLog::record('suppression_import.uploaded', $organisation->id, ['suppression_import_id' => $import->id, 'rows' => count($rows)]);
+        AuditLog::record('suppression_import.uploaded', $organisation->id, ['suppression_import_id' => $import->id, 'rows' => $total]);
 
         return redirect("/organisations/$organisation->id/suppressions/imports/$import->id");
     }
@@ -71,8 +72,7 @@ class SuppressionController extends Controller
 
         $sample = [];
         if (Storage::exists($import->path) && in_array($import->status, ['preview', 'failed'], true)) {
-            [, $rows] = app(SuppressionImportService::class)->read($import->path);
-            $sample = array_slice($rows, 0, 10);
+            $sample = app(SuppressionImportService::class)->sample($import->path);
         }
 
         return Inertia::render('suppression-import-detail', [
@@ -90,6 +90,9 @@ class SuppressionController extends Controller
         abort_unless($import->organisation_id === $organisation->id, 404);
         $data = $request->validate(['email_column' => 'required|integer|min:0']);
         abort_unless($data['email_column'] < count($import->headers), 422, 'Choose a column from this CSV.');
+        if ($import->processed > 0 && $import->email_column !== (int) $data['email_column']) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['email_column' => 'This import has already started and must continue with its original email column.']);
+        }
 
         $import->update(['email_column' => $data['email_column'], 'status' => 'queued', 'failure' => null]);
         ProcessSuppressionImport::dispatch($import->id)->afterCommit();

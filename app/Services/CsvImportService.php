@@ -33,7 +33,7 @@ class CsvImportService
                 if ($row === [null]) {
                     continue;
                 }$rows[] = $row;
-                if (count($rows) > config('dispatch.contact_import.max_rows', 10000)) {
+                if (count($rows) > config('dispatch.import_max_rows', 25000)) {
                     throw ValidationException::withMessages(['file' => 'This CSV exceeds the contact import row limit. Split it into smaller files.']);
                 }
             }
@@ -58,7 +58,7 @@ class CsvImportService
                     continue;
                 }
                 $total++;
-                if ($total > config('dispatch.contact_import.max_rows', 10000)) {
+                if ($total > config('dispatch.import_max_rows', 25000)) {
                     throw ValidationException::withMessages(['file' => 'This CSV exceeds the contact import row limit. Split it into smaller files.']);
                 }
             }

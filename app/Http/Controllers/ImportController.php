@@ -22,7 +22,7 @@ class ImportController extends Controller
     {
         Gate::authorize('view', $organisation);
 
-        return Inertia::render('imports', ['company' => $organisation, 'imports' => ContactImport::where('organisation_id', $organisation->id)->latest()->paginate(15), 'lists' => MailingList::where('organisation_id', $organisation->id)->whereNull('archived_at')->orderBy('name')->get(['id', 'name']), 'maxRows' => (int) config('dispatch.contact_import.max_rows', 10000), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+        return Inertia::render('imports', ['company' => $organisation, 'imports' => ContactImport::where('organisation_id', $organisation->id)->latest()->paginate(15), 'lists' => MailingList::where('organisation_id', $organisation->id)->whereNull('archived_at')->orderBy('name')->get(['id', 'name']), 'maxRows' => (int) config('dispatch.import_max_rows', 25000), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
     }
 
     public function upload(Request $r, Organisation $organisation)
@@ -54,7 +54,7 @@ class ImportController extends Controller
 
         $selectedList = $import->mailing_list_id ? MailingList::where('organisation_id', $organisation->id)->find($import->mailing_list_id) : null;
 
-        return Inertia::render('import-detail', ['company' => $organisation, 'import' => $import, 'sample' => $sample, 'lists' => MailingList::where('organisation_id', $organisation->id)->whereNull('archived_at')->orderBy('name')->get(['id', 'name']), 'selectedList' => $selectedList ? ['id' => $selectedList->id, 'name' => $selectedList->name, 'archived' => (bool) $selectedList->archived_at] : null, 'maxRows' => (int) config('dispatch.contact_import.max_rows', 10000), 'rows' => ImportRow::where('contact_import_id', $import->id)->latest('id')->limit(30)->get(), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
+        return Inertia::render('import-detail', ['company' => $organisation, 'import' => $import, 'sample' => $sample, 'lists' => MailingList::where('organisation_id', $organisation->id)->whereNull('archived_at')->orderBy('name')->get(['id', 'name']), 'selectedList' => $selectedList ? ['id' => $selectedList->id, 'name' => $selectedList->name, 'archived' => (bool) $selectedList->archived_at] : null, 'maxRows' => (int) config('dispatch.import_max_rows', 25000), 'rows' => ImportRow::where('contact_import_id', $import->id)->latest('id')->limit(30)->get(), 'canManage' => Gate::allows('manageCampaigns', $organisation)]);
     }
 
     public function start(Request $r, Organisation $organisation, ContactImport $import)

@@ -3,7 +3,9 @@
 return [
     'provider' => env('DISPATCH_DELIVERY_PROVIDER', 'simulation'),
     'max_recipients' => 10000, 'retry_seconds' => 30,
-    'contact_import' => ['max_rows' => (int) env('DISPATCH_CONTACT_IMPORT_MAX_ROWS', 25000), 'chunk_size' => 250],
+    'import_max_rows' => (int) env('DISPATCH_IMPORT_MAX_ROWS', env('DISPATCH_CONTACT_IMPORT_MAX_ROWS', 25000)),
+    'contact_import' => ['chunk_size' => 250],
+    'suppression_import' => ['chunk_size' => 250],
     'sendgrid' => [
         'enabled' => (bool) env('SENDGRID_ENABLED', false), 'live_enabled' => (bool) env('SENDGRID_LIVE_SENDING_ENABLED', false),
         'per_minute' => (int) env('SENDGRID_REQUESTS_PER_MINUTE', 60), 'timeout' => 15, 'max_attempts' => 5,

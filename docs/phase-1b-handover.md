@@ -39,7 +39,7 @@ Mailing lists support creation/editing/description, counts, contact search, pagi
 
 ### CSV imports
 
-Uploads are private and limited to 5 MB, 10,000 rows and 30 unique header columns. Workflow includes preview, mapping, duplicate/format warnings, queued execution, progress, successful/rejected counts, recent row results and downloadable formula-safe errors. Full server validation runs in the worker. Replaying/retrying skips previously committed row numbers. Existing records are preserved rather than overwritten. Only profile fields are mapped; no imported permission is assumed.
+Uploads are private and limited to 5 MB, 25,000 rows by default and 30 unique header columns. Workflow includes preview, mapping, duplicate/format warnings, queued execution, progress, successful/rejected counts, recent row results and downloadable formula-safe errors. Full server validation runs in the worker. Replaying/retrying skips previously committed row numbers. Existing records are preserved rather than overwritten. Only profile fields are mapped; no imported permission is assumed. Contact and global suppression imports share the `DISPATCH_IMPORT_MAX_ROWS` setting.
 
 ### Templates and sender identities
 

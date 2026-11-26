@@ -20,7 +20,7 @@ Do not upload an unsubscribe export through the ordinary contact-import page. Co
 - If a matching contact exists, its eligibility is updated to match the existing suppression reason.
 - Repeating a job does not duplicate suppressions or completed row results.
 - Suppression imports are company-scoped. The same address can have a distinct record in another organisation.
-- Each CSV is limited to 5 MB and 10,000 data rows. Split larger exports into separate files.
+- Each CSV is limited to 5 MB and 25,000 data rows by default. Contact and suppression imports share the `DISPATCH_IMPORT_MAX_ROWS` setting; split larger exports into separate files.
 - The upload is stored on the application's private local storage, and import history plus aggregate results are retained for audit. Rejected-row exports contain row numbers and error descriptions, not email values.
 
 Dispatch checks suppressions during audience eligibility calculation and again before provider submission. A later contact import or list membership cannot override a suppression.

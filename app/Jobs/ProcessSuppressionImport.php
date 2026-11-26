@@ -24,7 +24,9 @@ class ProcessSuppressionImport implements ShouldQueue
 
     public function handle(SuppressionImportService $service): void
     {
-        $service->process(SuppressionImport::findOrFail($this->suppressionImportId));
+        if ($service->processChunk(SuppressionImport::findOrFail($this->suppressionImportId))) {
+            self::dispatch($this->suppressionImportId)->afterCommit();
+        }
     }
 
     public function failed(?\Throwable $exception): void

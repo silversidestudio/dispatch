@@ -27,6 +27,24 @@ fi
 
 cd "$APP_DIR"
 
+# Show the branded maintenance page while dependencies/assets and database
+# migrations are updated. If an update fails, keep maintenance mode enabled so
+# an operator can inspect the release before reopening the site.
+MAINTENANCE_ACTIVE=0
+restore_application() {
+    local deploy_status=$?
+    trap - EXIT
+    if [[ "$MAINTENANCE_ACTIVE" == "1" ]]; then
+        if [[ "$deploy_status" -ne 0 ]]; then
+            echo "Deployment failed; the site remains in maintenance mode. Review the release, then run artisan up when it is safe." >&2
+        fi
+    fi
+    exit "$deploy_status"
+}
+trap restore_application EXIT
+"$PHP_BIN" artisan down --render=errors::503 --retry=30
+MAINTENANCE_ACTIVE=1
+
 "$COMPOSER_BIN" install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
 # Plesk may run deploy actions in a non-interactive shell. Initialise nodenv
@@ -84,5 +102,9 @@ fi
 "$PHP_BIN" artisan route:cache
 "$PHP_BIN" artisan view:cache
 "$PHP_BIN" artisan horizon:terminate
+
+"$PHP_BIN" artisan up
+MAINTENANCE_ACTIVE=0
+trap - EXIT
 
 echo "Post-deployment tasks completed for $APP_DIR"

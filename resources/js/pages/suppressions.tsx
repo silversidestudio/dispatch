@@ -25,12 +25,14 @@ export default function Suppressions({
     suppressions,
     imports,
     total,
+    maxRows,
     canManage,
 }: {
     company: Company;
     suppressions: Page<Suppression>;
     imports: SuppressionImport[];
     total: number;
+    maxRows: number;
     canManage: boolean;
 }) {
     const base = `/organisations/${company.id}/suppressions`;
@@ -64,7 +66,7 @@ export default function Suppressions({
                                 onChange={(event) => form.setData('file', event.target.files?.[0] ?? null)}
                             />
                             <p className="text-muted-foreground text-sm">
-                                Use a CSV with a header row and a column of email addresses. Up to 10,000 rows per file.
+                                Use a CSV with a header row and a column of email addresses. Up to {maxRows.toLocaleString()} rows per file.
                             </p>
                         </div>
                         <div className="space-y-2">
