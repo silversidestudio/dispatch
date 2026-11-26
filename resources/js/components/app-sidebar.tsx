@@ -12,7 +12,7 @@ export function AppSidebar() {
     const base = activeOrganisationId ? `/organisations/${activeOrganisationId}` : null;
     const workspace: NavItem[] = [
         { title: 'Overview', url: '/dashboard', icon: LayoutGrid },
-        { title: 'Organisations', url: '/organisations', icon: Building2 },
+        ...(auth.user.is_platform_admin || organisations.length !== 1 ? [{ title: 'Organisations', url: '/organisations', icon: Building2 }] : []),
     ];
     const audience: NavItem[] = base
         ? [

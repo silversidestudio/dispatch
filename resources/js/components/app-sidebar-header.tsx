@@ -8,7 +8,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { Bell, CheckCheck, Search } from 'lucide-react';
 import { SharedData } from '@/types';
 export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: BreadcrumbItem[] }) {
-    const { notifications } = usePage<SharedData>().props;
+    const { auth, organisations, notifications } = usePage<SharedData>().props;
     return (
         <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4 md:px-6">
             <div className="flex items-center gap-2">
@@ -16,12 +16,14 @@ export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: Breadcrum
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
             <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" asChild>
-                    <Link href="/organisations">
-                        <Search className="size-4" />
-                        <span className="hidden md:inline">Find workspace</span>
-                    </Link>
-                </Button>
+                {(auth.user.is_platform_admin || organisations.length !== 1) && (
+                    <Button variant="ghost" size="sm" asChild>
+                        <Link href="/organisations">
+                            <Search className="size-4" />
+                            <span className="hidden md:inline">Find workspace</span>
+                        </Link>
+                    </Button>
+                )}
                 <AppearanceDropdown />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
